@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
@@ -529,80 +529,74 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   }
 
   KeyEventResult _handlePageBackKey(KeyEvent event, BuildContext context) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      return _handleBack(context)
-          ? KeyEventResult.handled
-          : KeyEventResult.ignored;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleBackKey(
+      event,
+      onBack: () => _handleBack(context),
+    );
   }
 
   KeyEventResult _handleHeaderKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_movies.isNotEmpty || _moviesErrorMessage != null) {
-        _enterRegion(
-          AppFocusRegionId.providerResultsMovies,
-          restoreLastFocused: false,
-        );
-        return KeyEventResult.handled;
-      }
-      if (_shows.isNotEmpty || _showsErrorMessage != null) {
-        _enterRegion(
-          AppFocusRegionId.providerResultsSeries,
-          restoreLastFocused: false,
-        );
-        return KeyEventResult.handled;
-      }
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight ||
-        event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onDown: () {
+        if (_movies.isNotEmpty || _moviesErrorMessage != null) {
+          _enterRegion(
+            AppFocusRegionId.providerResultsMovies,
+            restoreLastFocused: false,
+          );
+          return true;
+        }
+        if (_shows.isNotEmpty || _showsErrorMessage != null) {
+          _enterRegion(
+            AppFocusRegionId.providerResultsSeries,
+            restoreLastFocused: false,
+          );
+          return true;
+        }
+        return true;
+      },
+    );
   }
 
   KeyEventResult _handleMoviesItemKey(int index, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _enterRegion(
-        AppFocusRegionId.providerResultsHeader,
-        restoreLastFocused: false,
-      );
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_shows.isNotEmpty || _showsErrorMessage != null) {
-        _enterRegion(AppFocusRegionId.providerResultsSeries);
-        return KeyEventResult.handled;
-      }
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  KeyEventResult _handleShowsItemKey(int index, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (_movies.isNotEmpty || _moviesErrorMessage != null) {
-        _enterRegion(AppFocusRegionId.providerResultsMovies);
-      } else {
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onUp: () {
         _enterRegion(
           AppFocusRegionId.providerResultsHeader,
           restoreLastFocused: false,
         );
-      }
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+        return true;
+      },
+      onDown: () {
+        if (_shows.isNotEmpty || _showsErrorMessage != null) {
+          _enterRegion(AppFocusRegionId.providerResultsSeries);
+        }
+        return true;
+      },
+      blockLeft: false,
+      blockRight: false,
+    );
+  }
+
+  KeyEventResult _handleShowsItemKey(int index, KeyEvent event) {
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onUp: () {
+        if (_movies.isNotEmpty || _moviesErrorMessage != null) {
+          _enterRegion(AppFocusRegionId.providerResultsMovies);
+        } else {
+          _enterRegion(
+            AppFocusRegionId.providerResultsHeader,
+            restoreLastFocused: false,
+          );
+        }
+        return true;
+      },
+      onDown: () => true,
+      blockLeft: false,
+      blockRight: false,
+    );
   }
 
   @override
@@ -656,6 +650,8 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
           context,
           ref,
           ContentRouteArgs.movie(selectedMedia.id),
+          originRegionId: AppFocusRegionId.providerResultsMovies,
+          fallbackRegionId: AppFocusRegionId.providerResultsMovies,
         ),
       );
     }
@@ -677,6 +673,8 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
           context,
           ref,
           ContentRouteArgs.series(selectedMedia.id),
+          originRegionId: AppFocusRegionId.providerResultsSeries,
+          fallbackRegionId: AppFocusRegionId.providerResultsSeries,
         ),
       );
     }

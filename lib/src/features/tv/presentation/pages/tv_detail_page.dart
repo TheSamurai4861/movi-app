@@ -1089,6 +1089,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                           ref,
                           profile: profile,
                           reason: decision.reason,
+                          originRegionId: AppFocusRegionId.tvDetailPrimary,
+                          fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
                         );
                         if (!ok) return;
                         ref.invalidate(
@@ -1332,6 +1334,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                               contentType: ContentType.series,
                               tmdbId: tmdbId,
                               contentTitle: mediaTitle,
+                              originRegionId: AppFocusRegionId.tvDetailPrimary,
+                              fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
                             );
                           },
                           child: Text(l10n.actionReportProblem),
@@ -2337,6 +2341,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                               context,
                               ref,
                               person: personSummary,
+                              triggerFocusNode: _castFocusNode(index),
+                              originRegionId: AppFocusRegionId.tvDetailPrimary,
+                              fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
                             );
                           },
                         ),
@@ -3977,6 +3984,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 contentType: ContentType.series,
                 tmdbId: tmdbId,
                 contentTitle: mediaTitle,
+                originRegionId: AppFocusRegionId.tvDetailPrimary,
+                fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
               ),
             );
           },
@@ -4059,6 +4068,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     contentType: ContentType.series,
                     tmdbId: tmdbId,
                     contentTitle: mediaTitle,
+                    originRegionId: AppFocusRegionId.tvDetailPrimary,
+                    fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
                   ),
                 );
               },

@@ -2,13 +2,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -254,31 +254,20 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
   }
 
   KeyEventResult _handlePageBackKey(KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      return _handleBack() ? KeyEventResult.handled : KeyEventResult.ignored;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleBackKey(
+      event,
+      onBack: _handleBack,
+    );
   }
 
   KeyEventResult _handleHeaderKey(KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _enterRegion(AppFocusRegionId.genreAllGrid, restoreLastFocused: false);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight ||
-        event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onDown: () {
+        _enterRegion(AppFocusRegionId.genreAllGrid, restoreLastFocused: false);
+        return true;
+      },
+    );
   }
 
   void _requestInitialGridFocusIfNeeded(int count) {
@@ -477,6 +466,10 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                                                   ContentRouteArgs.movie(
                                                     selectedMedia.id,
                                                   ),
+                                                  originRegionId:
+                                                      AppFocusRegionId.genreAllGrid,
+                                                  fallbackRegionId:
+                                                      AppFocusRegionId.genreAllGrid,
                                                 ),
                                           );
                                         }
@@ -502,6 +495,10 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                                                 ContentRouteArgs.series(
                                                   selectedMedia.id,
                                                 ),
+                                                originRegionId:
+                                                    AppFocusRegionId.genreAllGrid,
+                                                fallbackRegionId:
+                                                    AppFocusRegionId.genreAllGrid,
                                               ),
                                         );
                                       },

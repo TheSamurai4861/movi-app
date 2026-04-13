@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
@@ -113,14 +114,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     }
   }
 
-  bool _requestFocus(FocusNode node) {
-    if (!node.canRequestFocus || node.context == null) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
   FocusNode _continueUpFocusNode(List<Profile> profiles, String? selectedId) {
     final selectedIndex = profiles.indexWhere(
       (profile) => profile.id == selectedId,
@@ -129,41 +122,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
       return _profileFocusNodes[selectedIndex];
     }
     return _profileFocusNodes.first;
-  }
-
-  KeyEventResult _handleDirectionalKey(
-    KeyEvent event, {
-    FocusNode? left,
-    FocusNode? right,
-    FocusNode? up,
-    FocusNode? down,
-    bool blockLeft = true,
-    bool blockRight = true,
-    bool blockUp = true,
-    bool blockDown = true,
-  }) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-
-    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
-
-    switch (event.logicalKey) {
-      case LogicalKeyboardKey.arrowLeft:
-        if (moveTo(left)) return KeyEventResult.handled;
-        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowRight:
-        if (moveTo(right)) return KeyEventResult.handled;
-        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowUp:
-        if (moveTo(up)) return KeyEventResult.handled;
-        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowDown:
-        if (moveTo(down)) return KeyEventResult.handled;
-        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
-    }
-
-    return KeyEventResult.ignored;
   }
 
   bool _handleBack(BuildContext context) {
@@ -245,6 +203,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
       profile: profile,
       title: 'Profil verrouillé',
       reason: 'Saisis le PIN pour changer de profil.',
+      originRegionId: AppFocusRegionId.welcomeUserForm,
+      fallbackRegionId: AppFocusRegionId.welcomeUserForm,
     );
   }
 
@@ -378,7 +338,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                               verticalAlignment: 0.18,
                               child: Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   down: profilesAsync.maybeWhen(
                                     data: (profiles) {
@@ -493,7 +453,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                               Focus(
                                                 canRequestFocus: false,
                                                 onKeyEvent: (_, event) =>
-                                                    _handleDirectionalKey(
+                                                    FocusDirectionalNavigation.handleDirectionalKey(
                                                       event,
                                                       left: index > 0
                                                           ? _profileFocusNodes[index -
@@ -557,7 +517,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                         child: Focus(
                                           canRequestFocus: false,
                                           onKeyEvent: (_, event) =>
-                                              _handleDirectionalKey(
+                                              FocusDirectionalNavigation.handleDirectionalKey(
                                                 event,
                                                 up: _continueUpFocusNode(
                                                   profiles,
@@ -610,7 +570,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                         child: Focus(
                                           canRequestFocus: false,
                                           onKeyEvent: (_, event) =>
-                                              _handleDirectionalKey(
+                                              FocusDirectionalNavigation.handleDirectionalKey(
                                                 event,
                                                 up:
                                                     launchRecovery
@@ -631,7 +591,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                   const SingleActivator(
                                                     LogicalKeyboardKey
                                                         .arrowDown,
-                                                  ): () => _requestFocus(
+                                                  ): () => FocusDirectionalNavigation.requestFocus(
                                                     _submitFocusNode,
                                                   ),
                                                   if (launchRecovery
@@ -640,7 +600,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                     const SingleActivator(
                                                       LogicalKeyboardKey
                                                           .arrowUp,
-                                                    ): () => _requestFocus(
+                                                    ): () => FocusDirectionalNavigation.requestFocus(
                                                       _retryFocusNode,
                                                     ),
                                                 },
@@ -672,7 +632,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                         child: Focus(
                                           canRequestFocus: false,
                                           onKeyEvent: (_, event) =>
-                                              _handleDirectionalKey(
+                                              FocusDirectionalNavigation.handleDirectionalKey(
                                                 event,
                                                 up: _nameFocusNode,
                                                 blockLeft: true,

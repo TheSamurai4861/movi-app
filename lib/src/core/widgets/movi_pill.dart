@@ -34,7 +34,7 @@ class MoviPill extends StatelessWidget {
     final textStyle = (large ? textTheme.labelLarge : textTheme.labelMedium)
         ?.copyWith(color: Colors.white, fontWeight: FontWeight.w500);
 
-    final background = color ?? const Color(0x80292929);
+    final background = color ?? const Color(0x804B4B4B);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),

@@ -18,6 +18,7 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/directional_edge.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
@@ -41,6 +42,7 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_tv_action_menu.dart';
@@ -328,7 +330,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // -------------------- Parental guard --------------------
 
-  Future<bool> _ensureSettingsUnlocked() async {
+  Future<bool> _ensureSettingsUnlocked({FocusNode? triggerFocusNode}) async {
     final profile = ref.read(currentProfileProvider);
     if (profile == null) return true;
     if (!profile.isKid) return true;
@@ -351,6 +353,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         profile: profile,
         title: 'Paramètres verrouillés',
         reason: 'Saisis le PIN pour accéder aux réglages.',
+        triggerFocusNode: triggerFocusNode,
+        originRegionId: AppFocusRegionId.settingsPrimary,
+        fallbackRegionId: AppFocusRegionId.settingsPrimary,
       );
 
       if (unlocked) {
@@ -363,7 +368,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
   }
 
-  Future<bool> _ensureProfileUnlocked(Profile profile) async {
+  Future<bool> _ensureProfileUnlocked(
+    Profile profile, {
+    FocusNode? triggerFocusNode,
+  }) async {
     if (!profile.isKid && profile.pegiLimit == null) return true;
 
     if (_unlocking) return false;
@@ -384,6 +392,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         profile: profile,
         title: 'Paramètres verrouillés',
         reason: 'Saisis le PIN pour accéder aux réglages.',
+        triggerFocusNode: triggerFocusNode,
+        originRegionId: AppFocusRegionId.settingsPrimary,
+        fallbackRegionId: AppFocusRegionId.settingsPrimary,
       );
 
       if (unlocked) {
@@ -906,18 +917,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     KeyEvent event, {
     bool blockDown = false,
   }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (blockDown && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+    if (blockDown &&
+        event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
       return KeyEventResult.handled;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      final handled = _focusSidebarFromRegionExit();
-      return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onLeft: _focusSidebarFromRegionExit,
+      blockRight: true,
+      blockDown: blockDown,
+    );
+  }
+
+  bool _focusProfileNodeAt(int index) {
+    if (index < 0 || index >= _profileFocusNodes.length) {
+      return false;
     }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.requestFocus(_profileFocusNodes[index]);
   }
 
   KeyEventResult _handleProfileKey({
@@ -937,61 +955,40 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return KeyEventResult.handled;
     }
 
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.handled;
-    }
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (index == 0) {
-        _focusSidebarFromRegionExit();
-      } else {
-        _profileFocusNodes[index - 1].requestFocus();
-      }
-      return KeyEventResult.handled;
-    }
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      if (index + 1 < profileCount) {
-        _profileFocusNodes[index + 1].requestFocus();
-      } else {
-        _addProfileFocusNode.requestFocus();
-      }
-      return KeyEventResult.handled;
-    }
-
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onLeft: () => index == 0 ? _focusSidebarFromRegionExit() : _focusProfileNodeAt(index - 1),
+      onRight: () => index + 1 < profileCount
+          ? _focusProfileNodeAt(index + 1)
+          : FocusDirectionalNavigation.requestFocus(_addProfileFocusNode),
+      blockUp: true,
+      blockDown: false,
+    );
   }
 
   KeyEventResult _handleAddProfileKey({
     required KeyEvent event,
     required int profileCount,
   }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      return KeyEventResult.handled;
-    }
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (profileCount > 0) {
-        _profileFocusNodes[profileCount - 1].requestFocus();
-      } else {
-        _firstProfileFocusNode.requestFocus();
-      }
-      return KeyEventResult.handled;
-    }
-
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalKey(
+      event,
+      left: profileCount > 0 ? _profileFocusNodes[profileCount - 1] : _firstProfileFocusNode,
+      blockUp: true,
+      blockRight: true,
+      blockDown: false,
+    );
   }
 
   KeyEventResult _handlePremiumTileKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _firstProfileFocusNode.requestFocus();
-      return KeyEventResult.handled;
+    final directionalResult = FocusDirectionalNavigation.handleDirectionalKey(
+      event,
+      up: _firstProfileFocusNode,
+      blockLeft: false,
+      blockRight: false,
+      blockDown: false,
+    );
+    if (directionalResult != KeyEventResult.ignored) {
+      return directionalResult;
     }
     return _handleSettingsHorizontalBoundary(event);
   }
@@ -1129,7 +1126,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   child: _buildProfileCircle(
                     name: l10n.errorUnknown,
                     color: const Color.fromARGB(20, 255, 255, 255),
-                    icon: Icons.error_outline,
+                    icon: AppAssets.iconDelete,
                     focusNode: _firstProfileFocusNode,
                     onTap: () => _guard(
                       () => ref
@@ -1146,9 +1143,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   child: _buildProfileCircle(
                     name: l10n.playlistAddButton,
                     color: const Color.fromARGB(20, 255, 255, 255),
-                    icon: Icons.add,
+                    icon: AppAssets.iconPlus,
                     focusNode: _addProfileFocusNode,
-                    onTap: _onAddProfile,
+                    onTap: () => _onAddProfile(
+                      triggerFocusNode: _addProfileFocusNode,
+                    ),
                   ),
                 ),
               ],
@@ -1177,17 +1176,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       index: index,
                       profileCount: profiles.length,
                       onLongPress: () =>
-                          unawaited(_onManageProfile(profiles[index])),
+                          unawaited(
+                            _onManageProfile(
+                              profiles[index],
+                              triggerFocusNode: _profileFocusNodes[index],
+                            ),
+                          ),
                     ),
                     child: _buildProfileCircle(
                       name: profiles[index].name,
                       color: Theme.of(context).colorScheme.primary,
-                      icon: Icons.person,
+                      icon: AppAssets.iconUser,
                       isSelected: profiles[index].id == selectedProfileId,
                       focusNode: _profileFocusNodes[index],
                       onTap: () => unawaited(_onSelectProfile(profiles[index])),
                       onLongPress: () =>
-                          unawaited(_onManageProfile(profiles[index])),
+                          unawaited(
+                            _onManageProfile(
+                              profiles[index],
+                              triggerFocusNode: _profileFocusNodes[index],
+                            ),
+                          ),
                     ),
                   ),
                 ),
@@ -1200,9 +1209,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: _buildProfileCircle(
                   name: l10n.playlistAddButton,
                   color: const Color.fromARGB(20, 255, 255, 255),
-                  icon: Icons.add,
+                  icon: AppAssets.iconPlus,
                   focusNode: _addProfileFocusNode,
-                  onTap: _onAddProfile,
+                  onTap: () => _onAddProfile(
+                    triggerFocusNode: _addProfileFocusNode,
+                  ),
                 ),
               ),
             ],
@@ -1317,7 +1328,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildProfileCircle({
     required String name,
     required Color color,
-    required IconData icon,
+    required String icon,
     VoidCallback? onTap,
     VoidCallback? onLongPress,
     FocusNode? focusNode,
@@ -1362,7 +1373,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ]
                           : null,
                     ),
-                    child: Icon(icon, color: Colors.white, size: 30),
+                    child: Center(
+                      child: SizedBox(
+                        width: 30,
+                        height: 30,
+                        child: SvgPicture.asset(
+                          icon,
+                          fit: BoxFit.contain,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -1384,7 +1408,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Future<bool> _ensurePremiumFeature(PremiumFeature feature) async {
+  Future<bool> _ensurePremiumFeature(
+    PremiumFeature feature, {
+    FocusNode? triggerFocusNode,
+  }) async {
     final hasPremium = await ref.read(
       canAccessPremiumFeatureProvider(feature).future,
     );
@@ -1397,19 +1424,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return false;
     }
 
-    await showPremiumFeatureLockedSheet(context);
+    await showPremiumFeatureLockedSheet(
+      context,
+      triggerFocusNode: triggerFocusNode,
+      originRegionId: AppFocusRegionId.settingsPrimary,
+      fallbackRegionId: AppFocusRegionId.settingsPrimary,
+    );
     return false;
   }
 
-  Future<void> _onAddProfile() async {
+  Future<void> _onAddProfile({FocusNode? triggerFocusNode}) async {
     final hasPremium = await _ensurePremiumFeature(
       PremiumFeature.localProfiles,
+      triggerFocusNode: triggerFocusNode ?? _addProfileFocusNode,
     );
     if (!hasPremium) return;
 
-    final ok = await _ensureSettingsUnlocked();
+    final ok = await _ensureSettingsUnlocked(
+      triggerFocusNode: triggerFocusNode,
+    );
     if (!ok || !mounted) return;
-    await CreateProfileDialog.show(context);
+    await CreateProfileDialog.show(
+      context,
+      triggerFocusNode: triggerFocusNode ?? _addProfileFocusNode,
+    );
     _lockSessionIfUnlocked();
   }
 
@@ -1422,6 +1460,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (isChangingProfile) {
       final hasPremium = await _ensurePremiumFeature(
         PremiumFeature.localProfiles,
+        triggerFocusNode: _profileFocusNodes.firstWhere(
+          (node) => node.hasFocus,
+          orElse: () => _firstProfileFocusNode,
+        ),
       );
       if (!hasPremium) return;
     }
@@ -1429,10 +1471,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final isTargetChild = profile.isKid || profile.pegiLimit != null;
 
     if (isTargetChild) {
-      final ok = await _ensureProfileUnlocked(profile);
+      final ok = await _ensureProfileUnlocked(
+        profile,
+        triggerFocusNode: _profileFocusNodes.firstWhere(
+          (node) => node.hasFocus,
+          orElse: () => _firstProfileFocusNode,
+        ),
+      );
       if (!ok) return;
     } else {
-      final ok = await _ensureSettingsUnlocked();
+      final ok = await _ensureSettingsUnlocked(
+        triggerFocusNode: _profileFocusNodes.firstWhere(
+          (node) => node.hasFocus,
+          orElse: () => _firstProfileFocusNode,
+        ),
+      );
       if (!ok) return;
     }
 
@@ -1442,15 +1495,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _lockSessionIfUnlocked();
   }
 
-  Future<void> _onManageProfile(Profile profile) async {
+  Future<void> _onManageProfile(
+    Profile profile, {
+    FocusNode? triggerFocusNode,
+  }) async {
     final hasPremium = await _ensurePremiumFeature(
       PremiumFeature.localProfiles,
+      triggerFocusNode: triggerFocusNode,
     );
     if (!hasPremium) return;
 
-    final ok = await _ensureSettingsUnlocked();
+    final ok = await _ensureSettingsUnlocked(
+      triggerFocusNode: triggerFocusNode,
+    );
     if (!ok || !mounted) return;
-    await ManageProfileDialog.show(context, profile: profile);
+    await ManageProfileDialog.show(
+      context,
+      profile: profile,
+      triggerFocusNode: triggerFocusNode,
+    );
     _lockSessionIfUnlocked();
   }
 
@@ -1696,9 +1759,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             final localePrefs = ref.read(
                               slProvider,
                             )<LocalePreferences>();
-                            final viewportWidth = MediaQuery.sizeOf(
-                              context,
-                            ).width;
                             final items = _availableLanguages();
                             final selected = items
                                 .where(
@@ -1746,9 +1806,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                   .firstWhere((e) => e.$1 == selected)
                                   .$2;
                               return ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  minHeight: 44,
-                                ),
+                                constraints: BoxConstraints(minHeight: 44),
                                 child: Align(
                                   alignment: Alignment.centerRight,
                                   child: MoviEnsureVisibleOnFocus(

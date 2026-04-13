@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
@@ -15,14 +16,20 @@ import 'package:movi/src/core/widgets/modal_content_width.dart';
 
 /// Modal dialog pour créer un nouveau profil.
 class CreateProfileDialog extends ConsumerStatefulWidget {
-  const CreateProfileDialog({super.key});
+  const CreateProfileDialog({super.key, this.triggerFocusNode});
+
+  final FocusNode? triggerFocusNode;
 
   /// Affiche la modal et retourne true si un profil a été créé.
-  static Future<bool> show(BuildContext context) async {
+  static Future<bool> show(
+    BuildContext context, {
+    FocusNode? triggerFocusNode,
+  }) async {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => const CreateProfileDialog(),
+      builder: (context) =>
+          CreateProfileDialog(triggerFocusNode: triggerFocusNode),
     );
     return result ?? false;
   }
@@ -713,6 +720,9 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
     return MoviOverlayFocusScope(
       initialFocusNode: _nameFocusNode,
       fallbackFocusNode: bottomActionTarget,
+      triggerFocusNode: widget.triggerFocusNode,
+      originRegionId: AppFocusRegionId.settingsPrimary,
+      fallbackRegionId: AppFocusRegionId.settingsPrimary,
       debugLabel: 'CreateProfileDialogOverlay',
       child: dialog,
     );

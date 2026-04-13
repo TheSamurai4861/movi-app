@@ -103,7 +103,12 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
   Widget build(BuildContext context) {
     const double width = 300;
     const double height = 165;
-    final borderRadius = BorderRadius.circular(16);
+    const double focusBorderWidth = 2;
+    const double radiusValue = 16;
+    final borderRadius = BorderRadius.circular(radiusValue);
+    final innerBorderRadius = BorderRadius.circular(
+      radiusValue - focusBorderWidth,
+    );
     final accent = Theme.of(context).colorScheme.primary;
 
     return Material(
@@ -125,9 +130,13 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.all(2),
+            padding: const EdgeInsets.all(focusBorderWidth),
             decoration: BoxDecoration(
               borderRadius: borderRadius,
+              border: Border.all(
+                color: _focused ? accent : Colors.transparent,
+                width: focusBorderWidth,
+              ),
               boxShadow: _focused
                   ? [
                       BoxShadow(
@@ -139,7 +148,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                   : null,
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: innerBorderRadius,
               child: SizedBox(
                 width: width,
                 height: height,
@@ -148,12 +157,19 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                     Positioned.fill(
                       child: _buildBackdropImage(widget.backdrop),
                     ),
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                        ),
+                      ),
+                    ),
                     Positioned(
                       left: 0,
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        height: 100,
+                        height: 150,
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
@@ -171,7 +187,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                         height: 5,
                         child: Stack(
                           children: [
-                            Container(color: const Color(0xFFA6A6A6)),
+                            Container(color: const Color.fromARGB(255, 97, 97, 97)),
                             FractionallySizedBox(
                               widthFactor: widget.progress.clamp(0.0, 1.0),
                               alignment: Alignment.centerLeft,
@@ -185,17 +201,6 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                       _buildEpisodeContent(width)
                     else
                       _buildMovieContent(width),
-                    if (_focused)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: accent, width: 2),
-                            ),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -237,7 +242,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         ),
         Positioned(
           left: 10,
-          bottom: 48,
+          bottom: 52,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: width - 20),
             child: Text(
@@ -278,7 +283,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         ),
         Positioned(
           left: 10,
-          bottom: 48,
+          bottom: 52,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: width - 20),
             child: Text(

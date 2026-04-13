@@ -12,6 +12,7 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/directional_edge.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/images/image_loading_policy.dart';
@@ -171,19 +172,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   }
 
   void _focusFirstFilter() {
-    if (_firstFilterFocusNode.context == null ||
-        !_firstFilterFocusNode.canRequestFocus) {
-      return;
-    }
-    _firstFilterFocusNode.requestFocus();
+    FocusDirectionalNavigation.requestFocus(_firstFilterFocusNode);
   }
 
   void _focusArtistsFilter() {
-    if (_artistsFilterFocusNode.context == null ||
-        !_artistsFilterFocusNode.canRequestFocus) {
-      return;
-    }
-    _artistsFilterFocusNode.requestFocus();
+    FocusDirectionalNavigation.requestFocus(_artistsFilterFocusNode);
   }
 
   void _focusSidebarMenu() {
@@ -208,61 +201,48 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   }
 
   void _focusSearchInput() {
-    if (_searchFocusNode.context == null || !_searchFocusNode.canRequestFocus) {
+    if (!FocusDirectionalNavigation.requestFocus(_searchFocusNode)) {
       return;
     }
-    _searchFocusNode.requestFocus();
     _searchController.selection = TextSelection.fromPosition(
       TextPosition(offset: _searchController.text.length),
     );
   }
 
   void _focusSearchAction() {
-    if (_searchActionFocusNode.context == null ||
-        !_searchActionFocusNode.canRequestFocus) {
-      return;
-    }
-    _searchActionFocusNode.requestFocus();
+    FocusDirectionalNavigation.requestFocus(_searchActionFocusNode);
   }
 
   KeyEventResult _handleSearchActionKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      if (_addActionFocusNode.context != null &&
-          _addActionFocusNode.canRequestFocus) {
-        _addActionFocusNode.requestFocus();
-      }
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _focusFirstPlaylist();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      _focusArtistsFilter();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onRight: () => FocusDirectionalNavigation.requestFocus(_addActionFocusNode),
+      onDown: () {
+        _focusFirstPlaylist();
+        return true;
+      },
+      onLeft: () {
+        _focusArtistsFilter();
+        return true;
+      },
+      blockUp: true,
+    );
   }
 
   KeyEventResult _handleAddActionKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _focusFirstPlaylist();
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      _focusArtistsFilter();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onDown: () {
+        _focusFirstPlaylist();
+        return true;
+      },
+      onLeft: () {
+        _focusArtistsFilter();
+        return true;
+      },
+      blockUp: true,
+      blockRight: true,
+    );
   }
 
   void _syncPlaylistFocusNodes(int count) {
@@ -301,12 +281,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   void _requestPlaylistFocus(int index, {bool ensureVisible = false}) {
     if (index < 0 || index >= _playlistFocusNodes.length) return;
     final node = _playlistFocusNodes[index];
-    if (node.context == null || !node.canRequestFocus) return;
-    node.requestFocus();
+    if (!FocusDirectionalNavigation.requestFocus(node)) return;
     if (!ensureVisible) return;
+    final nodeContext = node.context;
+    if (nodeContext == null) return;
     unawaited(
       Scrollable.ensureVisible(
-        node.context!,
+        nodeContext,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
@@ -531,7 +512,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                             cursorColor: colorScheme.primary,
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) =>
-                                submitFocusNode.requestFocus(),
+                                FocusDirectionalNavigation.requestFocus(
+                                  submitFocusNode,
+                                ),
                             decoration: InputDecoration(
                               hintText: l10n.playlistName,
                               hintStyle: const TextStyle(color: Colors.white38),
@@ -580,13 +563,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowUp) {
-                                      nameFocusNode.requestFocus();
+                                      FocusDirectionalNavigation.requestFocus(nameFocusNode);
                                       return KeyEventResult.handled;
                                     }
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowRight) {
-                                      submitFocusNode.requestFocus();
+                                      FocusDirectionalNavigation.requestFocus(submitFocusNode);
                                       return KeyEventResult.handled;
                                     }
 
@@ -681,13 +664,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowUp) {
-                                      nameFocusNode.requestFocus();
+                                      FocusDirectionalNavigation.requestFocus(nameFocusNode);
                                       return KeyEventResult.handled;
                                     }
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowLeft) {
-                                      cancelFocusNode.requestFocus();
+                                      FocusDirectionalNavigation.requestFocus(cancelFocusNode);
                                       return KeyEventResult.handled;
                                     }
 
@@ -1011,6 +994,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           context,
           ref,
           person: PersonSummary(id: PersonId(personId), name: playlist.title),
+          originRegionId: AppFocusRegionId.libraryPrimary,
+          fallbackRegionId: AppFocusRegionId.libraryPrimary,
         ),
       );
       return;
@@ -1018,7 +1003,15 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
     if (playlist.id.startsWith(LibraryConstants.sagaPrefix)) {
       final sagaId = playlist.id.replaceFirst(LibraryConstants.sagaPrefix, '');
-      unawaited(navigateToSagaDetail(context, ref, sagaId: sagaId));
+      unawaited(
+        navigateToSagaDetail(
+          context,
+          ref,
+          sagaId: sagaId,
+          originRegionId: AppFocusRegionId.libraryPrimary,
+          fallbackRegionId: AppFocusRegionId.libraryPrimary,
+        ),
+      );
       return;
     }
 
@@ -1076,7 +1069,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       onClear: () {
         _searchController.clear();
         ref.read(librarySearchQueryProvider.notifier).setQuery('');
-        _searchFocusNode.requestFocus();
+        FocusDirectionalNavigation.requestFocus(_searchFocusNode);
       },
     );
 
@@ -1233,15 +1226,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                       onRequestSidebarFocus: _focusSidebarMenu,
                       onRequestFirstPlaylistFocus: _focusFirstPlaylist,
                       onRequestSearchActionFocus: () {
-                        if (_addActionFocusNode.context != null &&
-                            _addActionFocusNode.canRequestFocus) {
-                          _addActionFocusNode.requestFocus();
+                        if (FocusDirectionalNavigation.requestFocus(
+                          _addActionFocusNode,
+                        )) {
                           return;
                         }
-                        if (_searchActionFocusNode.context != null &&
-                            _searchActionFocusNode.canRequestFocus) {
-                          _searchActionFocusNode.requestFocus();
-                        }
+                        FocusDirectionalNavigation.requestFocus(
+                          _searchActionFocusNode,
+                        );
                       },
                       onFilterChanged: (newFilter) {
                         ref
@@ -1528,12 +1520,16 @@ class _LibrarySearchField extends StatelessWidget {
   final VoidCallback onClear;
 
   KeyEventResult _handleKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      onRequestFirstResultFocus();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onDown: () {
+        onRequestFirstResultFocus();
+        return true;
+      },
+      blockLeft: false,
+      blockRight: false,
+      blockUp: false,
+    );
   }
 
   @override

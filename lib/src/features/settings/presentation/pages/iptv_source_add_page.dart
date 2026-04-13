@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -143,6 +144,20 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     return true;
   }
 
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _hasSubmitted = true);
@@ -246,22 +261,26 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: _nameFocusNode,
-          fallbackFocusNode: _backFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.settingsIptvSourceAddPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => _nameFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'IptvSourceAddRouteFocus',
-        child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: SafeArea(
-            child: SettingsContentWidth(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'IptvSourceAddRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: SafeArea(
+              child: SettingsContentWidth(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
                     const SizedBox(height: 16),
                     Focus(
                       canRequestFocus: false,
@@ -475,7 +494,8 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                         },
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -622,6 +642,8 @@ class _UseSourceNowDialogState extends State<_UseSourceNowDialog> {
       triggerFocusNode: widget.triggerFocusNode,
       initialFocusNode: _useFocusNode,
       fallbackFocusNode: _laterFocusNode,
+      originRegionId: AppFocusRegionId.settingsIptvSourceAddPrimary,
+      fallbackRegionId: AppFocusRegionId.settingsIptvSourceAddPrimary,
       debugLabel: 'IptvSourceAddUseNowDialog',
       child: AlertDialog(
         title: const Text('Utiliser cette source ?'),

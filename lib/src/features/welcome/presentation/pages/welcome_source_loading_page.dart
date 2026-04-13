@@ -7,8 +7,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
@@ -99,6 +100,20 @@ class _WelcomeSourceLoadingPageState
         ? AppRouteNames.welcomeSourceSelect
         : AppRouteNames.welcomeSources;
     context.go(targetRoute);
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!mounted) return KeyEventResult.ignored;
+      _handleBack();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   Future<void> _loadCatalog() async {
@@ -447,21 +462,21 @@ class _WelcomeSourceLoadingPageState
         if (didPop) return;
         _handleBack();
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: fallbackFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.welcomeSourceLoadingPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => fallbackFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () {
-          if (!mounted) return false;
-          _handleBack();
-          return true;
-        },
-        debugLabel: 'WelcomeSourceLoadingRouteFocus',
-        child: Scaffold(
-          body: Stack(
-            children: [
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'WelcomeSourceLoadingRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event),
+          child: Scaffold(
+            body: Stack(
+              children: [
               const Center(child: WelcomeSourceLoadingLogo()),
               WelcomeSourceLoadingContent(
                 isLoading: _isLoading,
@@ -487,7 +502,8 @@ class _WelcomeSourceLoadingPageState
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

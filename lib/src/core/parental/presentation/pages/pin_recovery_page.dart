@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/domain/entities/pin_recovery_result.dart';
 import 'package:movi/src/core/parental/presentation/providers/pin_recovery_providers.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
@@ -77,49 +79,6 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
     super.dispose();
   }
 
-  bool _requestFocus(FocusNode node) {
-    if (!node.canRequestFocus || node.context == null) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
-  KeyEventResult _handleDirectionalKey(
-    KeyEvent event, {
-    FocusNode? left,
-    FocusNode? right,
-    FocusNode? up,
-    FocusNode? down,
-    bool blockLeft = true,
-    bool blockRight = true,
-    bool blockUp = true,
-    bool blockDown = true,
-  }) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-
-    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
-
-    switch (event.logicalKey) {
-      case LogicalKeyboardKey.arrowLeft:
-        if (moveTo(left)) return KeyEventResult.handled;
-        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowRight:
-        if (moveTo(right)) return KeyEventResult.handled;
-        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowUp:
-        if (moveTo(up)) return KeyEventResult.handled;
-        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowDown:
-        if (moveTo(down)) return KeyEventResult.handled;
-        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
-    }
-
-    return KeyEventResult.ignored;
-  }
-
   bool _handleBack(BuildContext context, {Object? result}) {
     if (!context.mounted || _isHandlingBack) {
       return false;
@@ -138,6 +97,18 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
       }
     });
     return true;
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
   }
 
   String? _statusErrorText(AppLocalizations l10n, PinRecoveryStatus? error) {
@@ -200,15 +171,19 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: fallbackFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.pinRecoveryPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => fallbackFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'PinRecoveryRouteFocus',
-        child: Scaffold(
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'PinRecoveryRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
           body: SafeArea(
             child: Column(
               children: [
@@ -216,7 +191,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                   child: Focus(
                     canRequestFocus: false,
-                    onKeyEvent: (_, event) => _handleDirectionalKey(
+                    onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                       event,
                       down: firstContentFocusNode,
                       blockUp: true,
@@ -255,7 +230,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                             if (!showCodeStep)
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _backFocusNode,
                                   blockDown: true,
@@ -285,7 +260,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                               ],
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _backFocusNode,
                                   down: isVerified
@@ -309,7 +284,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                                   onChanged: controller.setCode,
                                   onSubmitted: (_) {
                                     if (isVerified) {
-                                      _requestFocus(_newPinFocusNode);
+                                      FocusDirectionalNavigation.requestFocus(_newPinFocusNode);
                                       return;
                                     }
                                     controller.verify();
@@ -322,7 +297,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                               const SizedBox(height: AppSpacing.lg),
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _backFocusNode,
                                   down: _confirmPinFocusNode,
@@ -341,7 +316,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                                   ),
                                   onChanged: controller.setNewPin,
                                   onSubmitted: (_) =>
-                                      _requestFocus(_confirmPinFocusNode),
+                                      FocusDirectionalNavigation.requestFocus(_confirmPinFocusNode),
                                   enabled:
                                       !isResetting &&
                                       state.status !=
@@ -351,7 +326,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                               const SizedBox(height: AppSpacing.md),
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _newPinFocusNode,
                                   down: _resetFocusNode,
@@ -391,7 +366,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                             if (showCodeStep && !isVerified)
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _codeFocusNode,
                                   down: _resendFocusNode,
@@ -411,7 +386,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                               const SizedBox(height: AppSpacing.xs),
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _verifyFocusNode,
                                   blockDown: true,
@@ -440,7 +415,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
                             if (isVerified)
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: _confirmPinFocusNode,
                                   blockDown: true,
@@ -467,6 +442,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -137,7 +137,13 @@ class HomeDesktopContent extends ConsumerStatefulWidget {
   ConsumerState<HomeDesktopContent> createState() => _HomeDesktopContentState();
 }
 
-class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
+class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
+    with AutomaticKeepAliveClientMixin<HomeDesktopContent> {
+  static bool _sessionAutoRefreshDone = false;
+  static bool _sessionInitialHeroFocusDone = false;
+  static const PageStorageKey<String> _scrollStorageKey =
+      PageStorageKey<String>('home-desktop-scroll');
+
   bool _isHeroLoadingMeta = false;
   bool _hasAutoRefreshed = false;
   final FocusNode _heroPrimaryActionFocusNode = FocusNode(
@@ -209,15 +215,21 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _logHomeHeroDebug('init_state');
     _heroPrimaryActionFocusNode.addListener(_heroPrimaryActionFocusListener);
-    _requestInitialHeroFocus();
+    if (!_sessionInitialHeroFocusDone) {
+      _sessionInitialHeroFocusDone = true;
+      _requestInitialHeroFocus();
+    }
     // Déclencher automatiquement le refresh après le premier frame si les données sont vides
     // Simule un pull-to-refresh complet (sync + refresh home)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || _hasAutoRefreshed || _sessionAutoRefreshDone) return;
       final state = ref.read(hp.homeControllerProvider);
       final disableHero = ref.read(
         featureFlagsProvider.select((f) => f.home.disableHero),
@@ -228,6 +240,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
             (!disableHero && state.hero.isEmpty) || state.iptvLists.isEmpty;
         if (isEmpty && !_hasAutoRefreshed) {
           _hasAutoRefreshed = true;
+          _sessionAutoRefreshDone = true;
           // Simuler exactement le comportement du pull-to-refresh
           unawaited(_simulatePullToRefresh(ref));
         }
@@ -295,6 +308,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
     final iptvFilter = ref.watch(hp.homeIptvMediaFilterProvider);
@@ -385,6 +399,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
               ]);
             },
             child: CustomScrollView(
+              key: _scrollStorageKey,
               slivers: [
                 if (state.error != null)
                   const SliverToBoxAdapter(child: HomeErrorBanner()),

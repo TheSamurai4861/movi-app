@@ -21,6 +21,9 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/playback_sync_offset_preferences.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
 import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/widgets/subtitle_playback_layout.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
@@ -371,6 +374,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           ref,
           profile: profile,
           reason: decision.reason,
+          triggerFocusNode: FocusManager.instance.primaryFocus,
+          originRegionId: AppFocusRegionId.videoPlayerPrimary,
+          fallbackRegionId: AppFocusRegionId.videoPlayerPrimary,
         );
         if (!mounted) return;
         if (!unlocked) {
@@ -1442,6 +1448,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       enableDrag: true,
       builder: (context) => SubtitleTrackSelectionMenu(
         triggerFocusNode: FocusManager.instance.primaryFocus,
+        originRegionId: AppFocusRegionId.videoPlayerPrimary,
+        fallbackRegionId: AppFocusRegionId.videoPlayerPrimary,
         tracks: _subtitleTracks,
         currentTrack: _currentSubtitleTrack,
         onTrackSelected: (track) async {
@@ -1516,6 +1524,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       enableDrag: true,
       builder: (context) => AudioTrackSelectionMenu(
         triggerFocusNode: FocusManager.instance.primaryFocus,
+        originRegionId: AppFocusRegionId.videoPlayerPrimary,
+        fallbackRegionId: AppFocusRegionId.videoPlayerPrimary,
         tracks: _audioTracks,
         currentTrack: _currentAudioTrack,
         onTrackSelected: (track) async {
@@ -1628,6 +1638,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       enableDrag: true,
       builder: (context) => VideoFitModeSelectionMenu(
         triggerFocusNode: FocusManager.instance.primaryFocus,
+        originRegionId: AppFocusRegionId.videoPlayerPrimary,
+        fallbackRegionId: AppFocusRegionId.videoPlayerPrimary,
         currentMode: _currentVideoFitMode,
         onModeSelected: (mode) async {
           try {
@@ -1794,13 +1806,19 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       asp.currentProfileSubtitleAppearanceProvider,
     );
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        await _onBack(context);
-      },
-      child: Scaffold(
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.videoPlayerPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => _keyboardFocusNode,
+        resolveFallbackEntryNode: () => _keyboardFocusNode,
+      ),
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          await _onBack(context);
+        },
+        child: Scaffold(
         backgroundColor: Colors.black,
         body: Focus(
           autofocus: true,
@@ -1969,6 +1987,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           ),
         ),
       ),
+      )
     );
   }
 

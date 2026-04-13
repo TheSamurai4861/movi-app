@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/preferences/playback_sync_offset_preferences.dart';
 import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
@@ -128,14 +128,6 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
   int? _previewSubtitleOffsetMs;
   int? _previewAudioOffsetMs;
 
-  bool _requestFocus(FocusNode? node) {
-    if (node == null || node.context == null || !node.canRequestFocus) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
   int _selectedSizePresetIndex(SubtitleAppearancePrefs prefs) {
     return SubtitleSizePreset.values
         .indexOf(prefs.sizePreset)
@@ -182,107 +174,6 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
         .clamp(0, SubtitleShadowPreset.values.length - 1);
   }
 
-  KeyEventResult _handleBackKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight ||
-        event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _requestFocus(_sizePresetFocusNodes.first);
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      context.pop();
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  KeyEventResult _handleHorizontalGroupKey({
-    required KeyEvent event,
-    required int index,
-    required List<FocusNode> nodes,
-    required FocusNode? upNode,
-    required FocusNode? downNode,
-  }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      if (index == 0) return KeyEventResult.handled;
-      _requestFocus(nodes[index - 1]);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      if (index >= nodes.length - 1) return KeyEventResult.handled;
-      _requestFocus(nodes[index + 1]);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _requestFocus(upNode);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _requestFocus(downNode);
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  KeyEventResult _handleVerticalListKey({
-    required KeyEvent event,
-    required int index,
-    required List<FocusNode> nodes,
-    required FocusNode? upNode,
-    required FocusNode? downNode,
-  }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      if (index == 0) {
-        _requestFocus(upNode);
-      } else {
-        _requestFocus(nodes[index - 1]);
-      }
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (index >= nodes.length - 1) {
-        _requestFocus(downNode);
-      } else {
-        _requestFocus(nodes[index + 1]);
-      }
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
-
-  KeyEventResult _handleSliderKey({
-    required KeyEvent event,
-    required FocusNode? upNode,
-    required FocusNode? downNode,
-  }) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _requestFocus(upNode);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _requestFocus(downNode);
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +232,13 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
       debugLabel: 'SettingsSubtitlesPrimaryRegion',
       child: Focus(
         canRequestFocus: false,
-        onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+        onKeyEvent: (_, event) => FocusDirectionalNavigation.handleBackKey(
+          event,
+          onBack: () {
+            context.pop();
+            return true;
+          },
+        ),
         child: Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
           body: SafeArea(
@@ -360,7 +257,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                       debugLabel: 'SettingsSubtitlesHeaderRegion',
                       child: Focus(
                         canRequestFocus: false,
-                        onKeyEvent: (_, event) => _handleBackKey(event),
+                        onKeyEvent: (_, event) =>
+                            FocusDirectionalNavigation.handleDirectionalKey(
+                              event,
+                              down: _sizePresetFocusNodes.first,
+                            ),
                         child: MoviEnsureVisibleOnFocus(
                           verticalAlignment: _focusVerticalAlignment,
                           child: MoviSubpageBackTitleHeader(
@@ -412,12 +313,12 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                         child: Focus(
                                           canRequestFocus: false,
                                           onKeyEvent: (_, event) =>
-                                              _handleHorizontalGroupKey(
-                                                event: event,
+                                              FocusDirectionalNavigation.handleHorizontalGroupKey(
+                                                event,
                                                 index: index,
                                                 nodes: _sizePresetFocusNodes,
-                                                upNode: _backFocusNode,
-                                                downNode:
+                                                up: _backFocusNode,
+                                                down:
                                                     _textColorFocusNodes[selectedTextColorIndex],
                                               ),
                                           child: ChoiceChip(
@@ -476,13 +377,13 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                         child: Focus(
                                           canRequestFocus: false,
                                           onKeyEvent: (_, event) =>
-                                              _handleHorizontalGroupKey(
-                                                event: event,
+                                              FocusDirectionalNavigation.handleHorizontalGroupKey(
+                                                event,
                                                 index: index,
                                                 nodes: _textColorFocusNodes,
-                                                upNode:
+                                                up:
                                                     _sizePresetFocusNodes[selectedSizePresetIndex],
-                                                downNode: _fontFocusNodes.first,
+                                                down: _fontFocusNodes.first,
                                               ),
                                           child: MoviFocusableAction(
                                             focusNode:
@@ -543,13 +444,13 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                         child: Focus(
                                           canRequestFocus: false,
                                           onKeyEvent: (_, event) =>
-                                              _handleVerticalListKey(
-                                                event: event,
+                                              FocusDirectionalNavigation.handleVerticalListKey(
+                                                event,
                                                 index: index,
                                                 nodes: _fontFocusNodes,
-                                                upNode:
+                                                up:
                                                     _textColorFocusNodes[selectedTextColorIndex],
-                                                downNode:
+                                                down:
                                                     _subtitleOffsetSliderFocusNode,
                                               ),
                                           child: MoviFocusableAction(
@@ -646,10 +547,10 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                               ),
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleSliderKey(
-                                  event: event,
-                                  upNode: _fontFocusNodes[selectedFontIndex],
-                                  downNode:
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleSliderKey(
+                                  event,
+                                  up: _fontFocusNodes[selectedFontIndex],
+                                  down:
                                       _subtitleOffsetPresetFocusNodes[selectedSubtitlePresetIndex],
                                 ),
                                 child: MoviEnsureVisibleOnFocus(
@@ -693,12 +594,12 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                 focusNodes: _subtitleOffsetPresetFocusNodes,
                                 verticalAlignment: _focusVerticalAlignment,
                                 onKeyEvent: (index, event) =>
-                                    _handleHorizontalGroupKey(
-                                      event: event,
+                                    FocusDirectionalNavigation.handleHorizontalGroupKey(
+                                      event,
                                       index: index,
                                       nodes: _subtitleOffsetPresetFocusNodes,
-                                      upNode: _subtitleOffsetSliderFocusNode,
-                                      downNode: _audioOffsetSliderFocusNode,
+                                      up: _subtitleOffsetSliderFocusNode,
+                                      down: _audioOffsetSliderFocusNode,
                                     ),
                                 onPresetSelected: subtitleOffsetSupported
                                     ? (offsetMs) =>
@@ -725,11 +626,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                               ),
                               Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleSliderKey(
-                                  event: event,
-                                  upNode:
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleSliderKey(
+                                  event,
+                                  up:
                                       _subtitleOffsetPresetFocusNodes[selectedSubtitlePresetIndex],
-                                  downNode:
+                                  down:
                                       _audioOffsetPresetFocusNodes[selectedAudioPresetIndex],
                                 ),
                                 child: MoviEnsureVisibleOnFocus(
@@ -773,12 +674,12 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                 focusNodes: _audioOffsetPresetFocusNodes,
                                 verticalAlignment: _focusVerticalAlignment,
                                 onKeyEvent: (index, event) =>
-                                    _handleHorizontalGroupKey(
-                                      event: event,
+                                    FocusDirectionalNavigation.handleHorizontalGroupKey(
+                                      event,
                                       index: index,
                                       nodes: _audioOffsetPresetFocusNodes,
-                                      upNode: _audioOffsetSliderFocusNode,
-                                      downNode: _resetOffsetsFocusNode,
+                                      up: _audioOffsetSliderFocusNode,
+                                      down: _resetOffsetsFocusNode,
                                     ),
                                 onPresetSelected: audioOffsetSupported
                                     ? (offsetMs) =>
@@ -803,34 +704,15 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                 width: double.infinity,
                                 child: Focus(
                                   canRequestFocus: false,
-                                  onKeyEvent: (_, event) {
-                                    if (event is! KeyDownEvent) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowUp) {
-                                      _requestFocus(
-                                        _audioOffsetPresetFocusNodes[selectedAudioPresetIndex],
-                                      );
-                                      return KeyEventResult.handled;
-                                    }
-                                    if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowDown) {
-                                      _requestFocus(
-                                        hasAdvancedSubtitleStyling
+                                  onKeyEvent: (_, event) =>
+                                      FocusDirectionalNavigation.handleDirectionalKey(
+                                        event,
+                                        up:
+                                            _audioOffsetPresetFocusNodes[selectedAudioPresetIndex],
+                                        down: hasAdvancedSubtitleStyling
                                             ? _backgroundColorFocusNodes[selectedBackgroundColorIndex]
                                             : _premiumLockedActionFocusNode,
-                                      );
-                                      return KeyEventResult.handled;
-                                    }
-                                    if (event.logicalKey ==
-                                            LogicalKeyboardKey.arrowLeft ||
-                                        event.logicalKey ==
-                                            LogicalKeyboardKey.arrowRight) {
-                                      return KeyEventResult.handled;
-                                    }
-                                    return KeyEventResult.ignored;
-                                  },
+                                      ),
                                   child: MoviEnsureVisibleOnFocus(
                                     verticalAlignment: _focusVerticalAlignment,
                                     child: OutlinedButton(
@@ -902,14 +784,14 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                               child: Focus(
                                                 canRequestFocus: false,
                                                 onKeyEvent: (_, event) =>
-                                                    _handleHorizontalGroupKey(
-                                                      event: event,
+                                                    FocusDirectionalNavigation.handleHorizontalGroupKey(
+                                                      event,
                                                       index: index,
                                                       nodes:
                                                           _backgroundColorFocusNodes,
-                                                      upNode:
+                                                      up:
                                                           _resetOffsetsFocusNode,
-                                                      downNode:
+                                                      down:
                                                           _backgroundOpacitySliderFocusNode,
                                                     ),
                                                 child: MoviFocusableAction(
@@ -947,11 +829,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                     ),
                                     Focus(
                                       canRequestFocus: false,
-                                      onKeyEvent: (_, event) => _handleSliderKey(
-                                        event: event,
-                                        upNode:
+                                      onKeyEvent: (_, event) => FocusDirectionalNavigation.handleSliderKey(
+                                        event,
+                                        up:
                                             _backgroundColorFocusNodes[selectedBackgroundColorIndex],
-                                        downNode:
+                                        down:
                                             _shadowPresetFocusNodes[selectedShadowPresetIndex],
                                       ),
                                       child: MoviEnsureVisibleOnFocus(
@@ -1004,14 +886,14 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                           child: Focus(
                                             canRequestFocus: false,
                                             onKeyEvent: (_, event) =>
-                                                _handleHorizontalGroupKey(
-                                                  event: event,
+                                                FocusDirectionalNavigation.handleHorizontalGroupKey(
+                                                  event,
                                                   index: index,
                                                   nodes:
                                                       _shadowPresetFocusNodes,
-                                                  upNode:
+                                                  up:
                                                       _backgroundOpacitySliderFocusNode,
-                                                  downNode:
+                                                  down:
                                                       _fineSizeSliderFocusNode,
                                                 ),
                                             child: ChoiceChip(
@@ -1059,11 +941,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                     ),
                                     Focus(
                                       canRequestFocus: false,
-                                      onKeyEvent: (_, event) => _handleSliderKey(
-                                        event: event,
-                                        upNode:
+                                      onKeyEvent: (_, event) => FocusDirectionalNavigation.handleSliderKey(
+                                        event,
+                                        up:
                                             _shadowPresetFocusNodes[selectedShadowPresetIndex],
-                                        downNode: _resetDefaultsFocusNode,
+                                        down: _resetDefaultsFocusNode,
                                       ),
                                       child: MoviEnsureVisibleOnFocus(
                                         verticalAlignment:
@@ -1100,25 +982,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                 width: double.infinity,
                                 child: Focus(
                                   canRequestFocus: false,
-                                  onKeyEvent: (_, event) {
-                                    if (event is! KeyDownEvent) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowUp) {
-                                      _requestFocus(_fineSizeSliderFocusNode);
-                                      return KeyEventResult.handled;
-                                    }
-                                    if (event.logicalKey ==
-                                            LogicalKeyboardKey.arrowDown ||
-                                        event.logicalKey ==
-                                            LogicalKeyboardKey.arrowLeft ||
-                                        event.logicalKey ==
-                                            LogicalKeyboardKey.arrowRight) {
-                                      return KeyEventResult.handled;
-                                    }
-                                    return KeyEventResult.ignored;
-                                  },
+                                  onKeyEvent: (_, event) =>
+                                      FocusDirectionalNavigation.handleDirectionalKey(
+                                        event,
+                                        up: _fineSizeSliderFocusNode,
+                                      ),
                                   child: MoviEnsureVisibleOnFocus(
                                     verticalAlignment: _focusVerticalAlignment,
                                     child: OutlinedButton(
@@ -1145,25 +1013,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                 const SizedBox(height: 12),
                                 Focus(
                                   canRequestFocus: false,
-                                  onKeyEvent: (_, event) {
-                                    if (event is! KeyDownEvent) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowUp) {
-                                      _requestFocus(_resetOffsetsFocusNode);
-                                      return KeyEventResult.handled;
-                                    }
-                                    if (event.logicalKey ==
-                                            LogicalKeyboardKey.arrowDown ||
-                                        event.logicalKey ==
-                                            LogicalKeyboardKey.arrowLeft ||
-                                        event.logicalKey ==
-                                            LogicalKeyboardKey.arrowRight) {
-                                      return KeyEventResult.handled;
-                                    }
-                                    return KeyEventResult.ignored;
-                                  },
+                                  onKeyEvent: (_, event) =>
+                                      FocusDirectionalNavigation.handleDirectionalKey(
+                                        event,
+                                        up: _resetOffsetsFocusNode,
+                                      ),
                                   child: MoviEnsureVisibleOnFocus(
                                     verticalAlignment: _focusVerticalAlignment,
                                     child: MoviPrimaryButton(
@@ -1175,6 +1029,12 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                             context,
                                             triggerFocusNode:
                                                 _premiumLockedActionFocusNode,
+                                            originRegionId:
+                                                AppFocusRegionId
+                                                    .settingsSubtitlesPremium,
+                                            fallbackRegionId:
+                                                AppFocusRegionId
+                                                    .settingsSubtitlesPremium,
                                           ),
                                     ),
                                   ),

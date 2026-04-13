@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
@@ -20,18 +21,27 @@ import 'package:movi/src/core/widgets/modal_content_width.dart';
 /// - Aucun import depuis `features/*`
 /// - Utilise l'entity domain `Profile` (pas de "SupabaseProfile")
 class ManageProfileDialog extends ConsumerStatefulWidget {
-  const ManageProfileDialog({super.key, required this.profile});
+  const ManageProfileDialog({
+    super.key,
+    required this.profile,
+    this.triggerFocusNode,
+  });
 
   final Profile profile;
+  final FocusNode? triggerFocusNode;
 
   static Future<void> show(
     BuildContext context, {
     required Profile profile,
+    FocusNode? triggerFocusNode,
   }) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (context) => ManageProfileDialog(profile: profile),
+      builder: (context) => ManageProfileDialog(
+        profile: profile,
+        triggerFocusNode: triggerFocusNode,
+      ),
     );
   }
 
@@ -984,6 +994,9 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     return MoviOverlayFocusScope(
       initialFocusNode: _nameFocusNode,
       fallbackFocusNode: _saveFocusNode,
+      triggerFocusNode: widget.triggerFocusNode,
+      originRegionId: AppFocusRegionId.settingsPrimary,
+      fallbackRegionId: AppFocusRegionId.settingsPrimary,
       debugLabel: 'ManageProfileDialogOverlay',
       child: dialog,
     );

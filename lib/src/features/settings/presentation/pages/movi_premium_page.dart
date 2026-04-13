@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
@@ -145,7 +146,7 @@ class _DesktopOffersPreview extends StatelessWidget {
             Row(
               children: [
                 _SectionIcon(
-                  icon: Icons.workspace_premium_rounded,
+                  icon: AppAssets.iconPremium,
                   accent: accent,
                 ),
                 const SizedBox(width: 10),
@@ -323,7 +324,7 @@ class _BenefitsExpanded extends StatelessWidget {
           children: [
             Row(
               children: [
-                _SectionIcon(icon: Icons.stars_rounded, accent: accent),
+                _SectionIcon(icon: AppAssets.iconStarFilled, accent: accent),
                 const SizedBox(width: 10),
                 Text('Avantages', style: theme.textTheme.titleLarge),
               ],
@@ -497,7 +498,7 @@ class _OfferCompactCard extends StatelessWidget {
             Row(
               children: [
                 _SectionIcon(
-                  icon: Icons.workspace_premium_rounded,
+                  icon: AppAssets.iconPremium,
                   accent: accent,
                 ),
                 const SizedBox(width: 10),
@@ -560,7 +561,7 @@ class _OfferCompactCard extends StatelessWidget {
 class _SectionIcon extends StatelessWidget {
   const _SectionIcon({required this.icon, required this.accent});
 
-  final IconData icon;
+  final String icon;
   final Color accent;
 
   @override
@@ -573,7 +574,14 @@ class _SectionIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, color: accent, size: 18),
+      child: SvgPicture.asset(
+        icon,
+        fit: BoxFit.contain,
+        colorFilter: const ColorFilter.mode(
+          Colors.white,
+          BlendMode.srcIn,
+        ),
+      ),
     );
   }
 }

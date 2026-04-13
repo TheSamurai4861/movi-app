@@ -58,6 +58,17 @@ flutter:
     - assets/icons/navigation/
     - assets/icons/actions/
     - assets/icons/media/
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_18pt-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter_18pt-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter_18pt-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter_18pt-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

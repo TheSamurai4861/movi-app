@@ -1432,6 +1432,8 @@ class _DeleteSourceCupertinoDialogState
       triggerFocusNode: widget.triggerFocusNode,
       initialFocusNode: _confirmFocusNode,
       fallbackFocusNode: _cancelFocusNode,
+      originRegionId: AppFocusRegionId.settingsIptvSourcesPrimary,
+      fallbackRegionId: AppFocusRegionId.settingsIptvSourcesPrimary,
       debugLabel: 'IptvSourcesDeleteCupertinoDialog',
       child: CupertinoAlertDialog(
         title: Text(widget.title),

@@ -235,10 +235,9 @@ class AppTheme {
 
   /// Construit la [TextTheme] Movi basée sur Montserrat.
   static TextTheme _buildTextTheme({required bool isDark}) {
-    // Base : Montserrat appliqué au textTheme matériel par défaut.
-    final base = isDark
-        ? Typography.whiteMountainView
-        : Typography.blackMountainView;
+    final base =
+        (isDark ? Typography.whiteMountainView : Typography.blackMountainView)
+            .apply(fontFamily: 'Inter');
 
     final primary = isDark
         ? AppColors.darkTextPrimary
@@ -249,25 +248,24 @@ class AppTheme {
 
     TextStyle headline(double size) =>
         (base.titleLarge ?? const TextStyle()).copyWith(
+          fontFamily: 'Inter',
           fontSize: size,
           fontWeight: FontWeight.w600,
           color: primary,
           height: 1.2,
-          decoration: TextDecoration.none,
-          decorationColor: null,
         );
 
     TextStyle body(double size, FontWeight weight, Color color) =>
         (base.bodyMedium ?? const TextStyle()).copyWith(
+          fontFamily: 'Inter',
           fontSize: size,
           fontWeight: weight,
           color: color,
-          height: 1.4,
-          decoration: TextDecoration.none,
-          decorationColor: null,
+          height: 1.35,
         );
 
     return base.copyWith(
+      displaySmall: headline(28),
       headlineSmall: headline(24),
       titleLarge: headline(20),
       titleMedium: headline(18),

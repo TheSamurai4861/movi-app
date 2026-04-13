@@ -7,8 +7,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -98,6 +99,27 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
         return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
     }
 
+    return KeyEventResult.ignored;
+  }
+
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted || _isSwitching) return false;
+    if (!context.canPop()) return false;
+    context.pop();
+    return true;
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
     return KeyEventResult.ignored;
   }
 
@@ -205,22 +227,28 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
       orElse: () => _backFocusNode,
     );
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: initialFocusNode,
-        fallbackFocusNode: _backFocusNode,
-      ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!context.mounted || _isSwitching) return false;
-        context.pop();
-        return true;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
       },
-      debugLabel: 'IptvSourceSelectRouteFocus',
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: Stack(
-          children: [
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.settingsIptvSourceSelectPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
+        ),
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'IptvSourceSelectRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: Stack(
+              children: [
             SafeArea(
               child: SettingsContentWidth(
                 child: Column(
@@ -247,7 +275,7 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
                       child: MoviSubpageBackTitleHeader(
                         title: l10n.activeSourceTitle,
                         focusNode: _backFocusNode,
-                        onBack: _isSwitching ? null : () => context.pop(),
+                        onBack: _isSwitching ? null : () => _handleBack(context),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -302,7 +330,9 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

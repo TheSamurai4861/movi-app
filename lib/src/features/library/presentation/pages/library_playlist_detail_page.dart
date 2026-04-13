@@ -24,6 +24,9 @@ import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/features/library/domain/services/library_playlist_sorter.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/shared/domain/services/iptv_content_resolver.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
@@ -716,9 +719,23 @@ class _LibraryPlaylistDetailPageState
 
     final resolvedId = resolution.resolvedContentId!;
     if (reference.type == ContentType.movie) {
-      navigateToMovieDetail(context, ref, ContentRouteArgs.movie(resolvedId));
+      navigateToMovieDetail(
+        context,
+        ref,
+        ContentRouteArgs.movie(resolvedId),
+        triggerFocusNode: FocusManager.instance.primaryFocus,
+        originRegionId: AppFocusRegionId.libraryPlaylistDetailPrimary,
+        fallbackRegionId: AppFocusRegionId.libraryPlaylistDetailPrimary,
+      );
     } else {
-      navigateToTvDetail(context, ref, ContentRouteArgs.series(resolvedId));
+      navigateToTvDetail(
+        context,
+        ref,
+        ContentRouteArgs.series(resolvedId),
+        triggerFocusNode: FocusManager.instance.primaryFocus,
+        originRegionId: AppFocusRegionId.libraryPlaylistDetailPrimary,
+        fallbackRegionId: AppFocusRegionId.libraryPlaylistDetailPrimary,
+      );
     }
   }
 
@@ -743,10 +760,16 @@ class _LibraryPlaylistDetailPageState
         ? ref.watch(playlistItemsProvider(widget.playlist.playlistId!))
         : null;
 
-    return Focus(
-      canRequestFocus: false,
-      onKeyEvent: (_, event) => _handlePageBackKey(event),
-      child: Scaffold(
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.libraryPlaylistDetailPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => _playRandomFocusNode,
+        resolveFallbackEntryNode: () => _heroBackFocusNode,
+      ),
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => _handlePageBackKey(event),
+        child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
           top: true,
@@ -1002,6 +1025,7 @@ class _LibraryPlaylistDetailPageState
           ),
         ),
       ),
+      )
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 // Shell
 import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
@@ -152,6 +153,147 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     });
   }
 
+  void _focusSidebarSelectionEntry(
+    ShellFocusCoordinator coordinator,
+    ShellTab tab, {
+    required bool preferPrimaryEntry,
+  }) {
+    if (preferPrimaryEntry) {
+      _focusPrimaryEntryWithRetry(coordinator, tab);
+      return;
+    }
+    _focusTabEntryWithRetry(coordinator, tab);
+  }
+
+  bool _focusSidebarSelection(
+    ShellFocusCoordinator coordinator,
+    ShellTab tab, {
+    required bool preferPrimaryEntry,
+  }) {
+    return preferPrimaryEntry
+        ? coordinator.focusTabPrimaryEntry(tab)
+        : coordinator.focusTabEntry(tab);
+  }
+
+  bool _handleSidebarRightKey(
+    WidgetRef ref,
+    ShellFocusCoordinator coordinator, {
+    required int selectedIndex,
+  }) {
+    if (!coordinator.isSidebarFocused) return false;
+
+    final targetIndex = coordinator.sidebarFocusedIndex ?? selectedIndex;
+    final targetTab = shellTabFromIndex(targetIndex);
+    final preferPrimaryEntry = targetTab == ShellTab.library;
+
+    if (targetIndex != selectedIndex) {
+      shellSelectIndex(ref, targetIndex);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusSidebarSelectionEntry(
+          coordinator,
+          targetTab,
+          preferPrimaryEntry: preferPrimaryEntry,
+        );
+      });
+      return true;
+    }
+
+    final focused = _focusSidebarSelection(
+      coordinator,
+      targetTab,
+      preferPrimaryEntry: preferPrimaryEntry,
+    );
+    if (!focused) {
+      _focusSidebarSelectionEntry(
+        coordinator,
+        targetTab,
+        preferPrimaryEntry: preferPrimaryEntry,
+      );
+    }
+    return true;
+  }
+
+  bool _handleContentLeftKey(
+    ShellFocusCoordinator coordinator,
+    ShellTab selectedTab,
+  ) {
+    if (coordinator.isSidebarFocused) return false;
+
+    final focusedNode = FocusManager.instance.primaryFocus;
+    if (focusedNode == null) return false;
+
+    final moved = focusedNode.focusInDirection(TraversalDirection.left);
+    if (moved) return true;
+
+    return coordinator.resolveTabExit(selectedTab, DirectionalEdge.left);
+  }
+
+  bool _supportsShellBackExit(ShellTab tab) {
+    return tab == ShellTab.home ||
+        tab == ShellTab.search ||
+        tab == ShellTab.library;
+  }
+
+  bool _handleShellBackspace(
+    ShellFocusCoordinator coordinator,
+    ShellTab selectedTab,
+  ) {
+    if (coordinator.isSidebarFocused || !_supportsShellBackExit(selectedTab)) {
+      return false;
+    }
+
+    final focusedNode = FocusManager.instance.primaryFocus;
+    if (focusedNode == null) return false;
+
+    return coordinator.resolveTabExit(selectedTab, DirectionalEdge.back);
+  }
+
+  KeyEventResult _handleShellKeyEvent(
+    WidgetRef ref,
+    KeyEvent event,
+    ShellFocusCoordinator coordinator, {
+    required int selectedIndex,
+    required ShellTab selectedTab,
+  }) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (_isTextInputFocused()) return KeyEventResult.ignored;
+
+    final rightResult = FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onRight: () => _handleSidebarRightKey(
+        ref,
+        coordinator,
+        selectedIndex: selectedIndex,
+      ),
+      blockLeft: false,
+      blockUp: false,
+      blockDown: false,
+    );
+    if (rightResult != KeyEventResult.ignored) {
+      return rightResult;
+    }
+
+    final leftResult = FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onLeft: () => _handleContentLeftKey(coordinator, selectedTab),
+      blockRight: false,
+      blockUp: false,
+      blockDown: false,
+    );
+    if (leftResult != KeyEventResult.ignored) {
+      return leftResult;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleShellBackspace(coordinator, selectedTab)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedIndexProvider);
@@ -189,64 +331,13 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
     // Pas de texte brut : pas de loadingLabel ici.
     final shellBody = Focus(
-      onKeyEvent: (_, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-        if (_isTextInputFocused()) return KeyEventResult.ignored;
-
-        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-            focusCoordinator.isSidebarFocused) {
-          final targetIndex =
-              focusCoordinator.sidebarFocusedIndex ?? selectedIndex;
-          final targetTab = shellTabFromIndex(targetIndex);
-          final preferPrimaryEntry = targetTab == ShellTab.library;
-          if (targetIndex != selectedIndex) {
-            shellSelectIndex(ref, targetIndex);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              if (preferPrimaryEntry) {
-                _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
-              } else {
-                _focusTabEntryWithRetry(focusCoordinator, targetTab);
-              }
-            });
-            return KeyEventResult.handled;
-          }
-          final focused = preferPrimaryEntry
-              ? focusCoordinator.focusTabPrimaryEntry(targetTab)
-              : focusCoordinator.focusTabEntry(targetTab);
-          if (!focused) {
-            if (preferPrimaryEntry) {
-              _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
-            } else {
-              _focusTabEntryWithRetry(focusCoordinator, targetTab);
-            }
-          }
-          return KeyEventResult.handled;
-        }
-
-        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-            !focusCoordinator.isSidebarFocused) {
-          final focusedNode = FocusManager.instance.primaryFocus;
-          if (focusedNode == null) return KeyEventResult.ignored;
-          final moved = focusedNode.focusInDirection(TraversalDirection.left);
-          if (moved) return KeyEventResult.handled;
-          focusCoordinator.resolveTabExit(selectedTab, DirectionalEdge.left);
-          return KeyEventResult.handled;
-        }
-
-        if (event.logicalKey == LogicalKeyboardKey.backspace &&
-            (selectedTab == ShellTab.home ||
-                selectedTab == ShellTab.search ||
-                selectedTab == ShellTab.library) &&
-            !focusCoordinator.isSidebarFocused) {
-          final focusedNode = FocusManager.instance.primaryFocus;
-          if (focusedNode == null) return KeyEventResult.ignored;
-          focusCoordinator.resolveTabExit(selectedTab, DirectionalEdge.back);
-          return KeyEventResult.handled;
-        }
-
-        return KeyEventResult.ignored;
-      },
+      onKeyEvent: (_, event) => _handleShellKeyEvent(
+        ref,
+        event,
+        focusCoordinator,
+        selectedIndex: selectedIndex,
+        selectedTab: selectedTab,
+      ),
       child: ShellShortcuts(
         onSelectTab: (tab) => shellSelectTab(ref, tab),
         child: isLarge

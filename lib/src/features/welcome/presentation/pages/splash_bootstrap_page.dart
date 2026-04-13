@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
@@ -48,14 +49,15 @@ class _SplashBootstrapPageState extends ConsumerState<SplashBootstrapPage> {
 
     return PopScope(
       canPop: false,
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: initialFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.splashBootstrapPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => initialFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => false,
-        debugLabel: 'SplashBootstrapRouteFocus',
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'SplashBootstrapRegion',
         child: Scaffold(
           body: error == null
               ? Builder(

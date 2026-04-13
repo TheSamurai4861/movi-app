@@ -6,6 +6,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/parental/presentation/providers/parental_access_providers.dart';
 import 'package:movi/src/core/parental/presentation/utils/parental_reason_localizer.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
@@ -19,12 +20,18 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
     this.title,
     this.reason,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final Profile profile;
   final String? title;
   final String? reason;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   static Future<bool> show(
     BuildContext context,
@@ -32,8 +39,13 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
     required Profile profile,
     String? title,
     String? reason,
+    FocusNode? triggerFocusNode,
+    AppFocusRegionId? originRegionId,
+    AppFocusRegionId? fallbackRegionId,
+    AppFocusRegionId overlayRegionId = AppFocusRegionId.dialogPrimary,
   }) {
-    final triggerFocusNode = FocusManager.instance.primaryFocus;
+    final effectiveTriggerFocusNode =
+        triggerFocusNode ?? FocusManager.instance.primaryFocus;
     final size = MediaQuery.sizeOf(context);
     final screenType = ScreenTypeResolver.instance.resolve(
       size.width,
@@ -45,7 +57,10 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
       profile: profile,
       title: title,
       reason: reason,
-      triggerFocusNode: triggerFocusNode,
+      triggerFocusNode: effectiveTriggerFocusNode,
+      originRegionId: originRegionId,
+      fallbackRegionId: fallbackRegionId,
+      overlayRegionId: overlayRegionId,
     );
     final future = isDesktopLike
         ? showDialog<bool>(
@@ -286,6 +301,9 @@ class _RestrictedContentSheetState
       triggerFocusNode: widget.triggerFocusNode,
       initialFocusNode: _pinFocusNode,
       fallbackFocusNode: _closeFocusNode,
+      originRegionId: widget.originRegionId,
+      overlayRegionId: widget.overlayRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
       debugLabel: 'RestrictedContentSheet',
       child: isDesktopLike
           ? Dialog(

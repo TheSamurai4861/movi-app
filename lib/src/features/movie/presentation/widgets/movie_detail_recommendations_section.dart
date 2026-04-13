@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -38,6 +39,8 @@ class MovieDetailRecommendationsSection extends ConsumerWidget {
                 context,
                 ref,
                 ContentRouteArgs.movie(mm.id),
+                originRegionId: AppFocusRegionId.movieDetailPrimary,
+                fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
               ),
             ),
           )

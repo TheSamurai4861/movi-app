@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
 
@@ -24,34 +26,60 @@ class _AboutPageState extends ConsumerState<AboutPage> {
     super.dispose();
   }
 
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted || !context.canPop()) {
+      return false;
+    }
+    context.pop();
+    return true;
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: _backFocusNode,
-        fallbackFocusNode: _backFocusNode,
-      ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!context.mounted) return false;
-        context.pop();
-        return true;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
       },
-      debugLabel: 'AboutRouteFocus',
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: SafeArea(
-          child: SettingsContentWidth(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              children: [
-                MoviSubpageBackTitleHeader(
-                  title: l10n.settingsAboutTitle,
-                  onBack: () => context.pop(),
-                  focusNode: _backFocusNode,
-                ),
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.settingsAboutPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => _backFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
+        ),
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'AboutRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: SafeArea(
+              child: SettingsContentWidth(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  children: [
+                    MoviSubpageBackTitleHeader(
+                      title: l10n.settingsAboutTitle,
+                      onBack: () => _handleBack(context),
+                      focusNode: _backFocusNode,
+                    ),
                 const SizedBox(height: 24),
                 const Text(
                   'Application',
@@ -128,8 +156,10 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
-              ],
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

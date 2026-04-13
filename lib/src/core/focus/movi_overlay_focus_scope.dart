@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/presentation/focus_overlay_scope.dart';
 
 /// Focus boundary dedicated to dialogs, sheets and temporary overlays.
@@ -13,6 +14,9 @@ class MoviOverlayFocusScope extends StatelessWidget {
     required this.initialFocusNode,
     this.fallbackFocusNode,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
+    this.fallbackRegionId = AppFocusRegionId.shellSidebar,
     this.debugLabel,
   });
 
@@ -20,6 +24,9 @@ class MoviOverlayFocusScope extends StatelessWidget {
   final FocusNode initialFocusNode;
   final FocusNode? fallbackFocusNode;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId overlayRegionId;
+  final AppFocusRegionId? fallbackRegionId;
   final String? debugLabel;
 
   @override
@@ -28,6 +35,9 @@ class MoviOverlayFocusScope extends StatelessWidget {
       initialFocusNode: initialFocusNode,
       fallbackFocusNode: fallbackFocusNode,
       triggerFocusNode: triggerFocusNode,
+      originRegionId: originRegionId,
+      overlayRegionId: overlayRegionId,
+      fallbackRegionId: fallbackRegionId,
       debugLabel: debugLabel,
       child: child,
     );

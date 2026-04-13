@@ -222,6 +222,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                           ref,
                           profile: profile,
                           reason: decision.reason,
+                          originRegionId: AppFocusRegionId.movieDetailPrimary,
+                          fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
                         );
                         if (!ok) return;
                         ref.invalidate(
@@ -1491,6 +1493,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                 contentType: ContentType.movie,
                 tmdbId: tmdbId,
                 contentTitle: mediaTitle,
+                originRegionId: AppFocusRegionId.movieDetailPrimary,
+                fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
               ),
             );
           },
@@ -1561,6 +1565,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     contentType: ContentType.movie,
                     tmdbId: tmdbId,
                     contentTitle: mediaTitle,
+                    originRegionId: AppFocusRegionId.movieDetailPrimary,
+                    fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
                   ),
                 );
               },

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 
 import 'package:movi/src/features/settings/presentation/localization/movi_premium_localizer.dart';
 import 'package:movi/src/features/settings/presentation/pages/movi_premium_page.dart';
@@ -39,7 +41,12 @@ class MoviPremiumSettingsTile extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
-              const Icon(Icons.workspace_premium_outlined, color: Colors.white),
+              SvgPicture.asset(
+                AppAssets.iconPremium,
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -71,9 +78,7 @@ class MoviPremiumSettingsTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              pageState.hasActiveSubscription
-                  ? const Icon(Icons.verified, size: 20, color: Colors.white70)
-                  : const Icon(
+              const Icon(
                       Icons.chevron_right,
                       size: 20,
                       color: Colors.white70,

@@ -56,7 +56,13 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
     WidgetRef ref,
     String movieId,
   ) async {
-    navigateToMovieDetail(context, ref, ContentRouteArgs.movie(movieId));
+    navigateToMovieDetail(
+      context,
+      ref,
+      ContentRouteArgs.movie(movieId),
+      originRegionId: AppFocusRegionId.sagaDetailPrimary,
+      fallbackRegionId: AppFocusRegionId.sagaDetailPrimary,
+    );
   }
 
   Future<void> _startSaga(BuildContext context, WidgetRef ref) async {
@@ -926,6 +932,8 @@ class _SagaMovieCard extends ConsumerWidget {
                     context,
                     ref,
                     ContentRouteArgs.movie(mm.id),
+                    originRegionId: AppFocusRegionId.sagaDetailPrimary,
+                    fallbackRegionId: AppFocusRegionId.sagaDetailPrimary,
                   )
                 : null,
           ),

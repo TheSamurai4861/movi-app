@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -61,6 +62,8 @@ class MovieDetailSagaSection extends ConsumerWidget {
                       context,
                       ref,
                       sagaId: sagaLink.id.value,
+                      originRegionId: AppFocusRegionId.movieDetailPrimary,
+                      fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
                     ),
                     semanticLabel: AppLocalizations.of(
                       context,
@@ -115,6 +118,8 @@ class MovieDetailSagaSection extends ConsumerWidget {
                         context,
                         ref,
                         ContentRouteArgs.movie(mm.id),
+                        originRegionId: AppFocusRegionId.movieDetailPrimary,
+                        fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
                       ),
                     ),
                   )

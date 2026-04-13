@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -2077,11 +2078,23 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
     try {
       if (current.type == ContentType.series) {
-        await navigateToTvDetail(context, ref, ContentRouteArgs.series(id));
+        await navigateToTvDetail(
+          context,
+          ref,
+          ContentRouteArgs.series(id),
+          originRegionId: AppFocusRegionId.homePrimary,
+          fallbackRegionId: AppFocusRegionId.homePrimary,
+        );
         return;
       }
 
-      await navigateToMovieDetail(context, ref, ContentRouteArgs.movie(id));
+      await navigateToMovieDetail(
+        context,
+        ref,
+        ContentRouteArgs.movie(id),
+        originRegionId: AppFocusRegionId.homePrimary,
+        fallbackRegionId: AppFocusRegionId.homePrimary,
+      );
     } finally {
       if (mounted) {
         _resumeBackgroundWork(reason: 'details_closed');

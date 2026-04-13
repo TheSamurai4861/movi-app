@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -102,9 +103,21 @@ class HomeIptvSection extends ConsumerWidget {
             ? ContentRouteArgs.movie(m.id)
             : ContentRouteArgs.series(m.id);
         if (m.type == MoviMediaType.movie) {
-          await navigateToMovieDetail(context, ref, routeArgs);
+          await navigateToMovieDetail(
+            context,
+            ref,
+            routeArgs,
+            originRegionId: AppFocusRegionId.homePrimary,
+            fallbackRegionId: AppFocusRegionId.homePrimary,
+          );
         } else {
-          await navigateToTvDetail(context, ref, routeArgs);
+          await navigateToTvDetail(
+            context,
+            ref,
+            routeArgs,
+            originRegionId: AppFocusRegionId.homePrimary,
+            fallbackRegionId: AppFocusRegionId.homePrimary,
+          );
         }
       },
     );

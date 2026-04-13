@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/player/domain/value_objects/video_fit_mode.dart';
@@ -12,11 +13,17 @@ class VideoFitModeSelectionMenu extends StatefulWidget {
     required this.currentMode,
     required this.onModeSelected,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final VideoFitMode currentMode;
   final Future<void> Function(VideoFitMode mode) onModeSelected;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   @override
   State<VideoFitModeSelectionMenu> createState() =>
@@ -46,6 +53,9 @@ class _VideoFitModeSelectionMenuState extends State<VideoFitModeSelectionMenu> {
   Widget build(BuildContext context) {
     return MoviOverlayFocusScope(
       triggerFocusNode: widget.triggerFocusNode,
+      originRegionId: widget.originRegionId,
+      overlayRegionId: widget.overlayRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
       initialFocusNode: widget.currentMode == VideoFitMode.cover
           ? _coverFocusNode
           : _containFocusNode,

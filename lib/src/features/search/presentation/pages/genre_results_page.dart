@@ -495,6 +495,10 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                                         context,
                                         ref,
                                         ContentRouteArgs.movie(x.id),
+                                        originRegionId:
+                                            AppFocusRegionId.genreResultsPrimary,
+                                        fallbackRegionId:
+                                            AppFocusRegionId.genreResultsPrimary,
                                       ),
                                     );
                                   })
@@ -519,6 +523,10 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                                         context,
                                         ref,
                                         ContentRouteArgs.series(x.id),
+                                        originRegionId:
+                                            AppFocusRegionId.genreResultsPrimary,
+                                        fallbackRegionId:
+                                            AppFocusRegionId.genreResultsPrimary,
                                       ),
                                     );
                                   })

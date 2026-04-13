@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
@@ -20,12 +21,18 @@ class ReportProblemSheet extends ConsumerStatefulWidget {
     required this.tmdbId,
     required this.contentTitle,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final ContentType contentType;
   final int tmdbId;
   final String contentTitle;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   static Future<void> show(
     BuildContext context,
@@ -33,6 +40,9 @@ class ReportProblemSheet extends ConsumerStatefulWidget {
     required ContentType contentType,
     required int tmdbId,
     required String contentTitle,
+    AppFocusRegionId? originRegionId,
+    AppFocusRegionId? fallbackRegionId,
+    AppFocusRegionId overlayRegionId = AppFocusRegionId.dialogPrimary,
   }) async {
     final triggerFocusNode = FocusManager.instance.primaryFocus;
     await showDialog<void>(
@@ -43,6 +53,9 @@ class ReportProblemSheet extends ConsumerStatefulWidget {
         tmdbId: tmdbId,
         contentTitle: contentTitle,
         triggerFocusNode: triggerFocusNode,
+        originRegionId: originRegionId,
+        fallbackRegionId: fallbackRegionId,
+        overlayRegionId: overlayRegionId,
       ),
     );
   }
@@ -193,6 +206,9 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
         triggerFocusNode: widget.triggerFocusNode,
         initialFocusNode: _messageFocusNode,
         fallbackFocusNode: _cancelFocusNode,
+        originRegionId: widget.originRegionId,
+        fallbackRegionId: widget.fallbackRegionId,
+        overlayRegionId: widget.overlayRegionId,
         debugLabel: 'ReportProblemDialog',
         child: Dialog(
           backgroundColor: Colors.transparent,

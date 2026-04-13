@@ -59,6 +59,10 @@ class _ShellContentHostState extends State<ShellContentHost> {
   /// Ordre stable des indices keep-alive, utilisé par l'IndexedStack.
   late List<int> _keepAliveOrder;
 
+  /// Bucket partagé pour conserver le PageStorage des sous-pages du shell
+  /// même si leur sous-arbre est temporairement remounté.
+  final PageStorageBucket _pageStorageBucket = PageStorageBucket();
+
   /// Conteneur Riverpod dédié aux pages éphémères.
   ProviderContainer? _ephemeralContainer;
 
@@ -169,9 +173,12 @@ class _ShellContentHostState extends State<ShellContentHost> {
   Widget _getKeepAlivePage(int index) {
     return _keepAliveCache.putIfAbsent(
       index,
-      () => _wrapWithPrimaryScrollController(
-        index,
-        Builder(builder: widget.pageBuilders[index]),
+      () => KeyedSubtree(
+        key: PageStorageKey<String>('shell-keepalive-tab-$index'),
+        child: _wrapWithPrimaryScrollController(
+          index,
+          Builder(builder: widget.pageBuilders[index]),
+        ),
       ),
     );
   }
@@ -233,25 +240,31 @@ class _ShellContentHostState extends State<ShellContentHost> {
           key: ValueKey('ephemeral-$selected-$_ephemeralGeneration'),
           child: _wrapWithPrimaryScrollController(
             selected,
-            Builder(builder: widget.pageBuilders[selected]),
+            KeyedSubtree(
+              key: PageStorageKey<String>('shell-ephemeral-tab-$selected'),
+              child: Builder(builder: widget.pageBuilders[selected]),
+            ),
           ),
         ),
       );
     }
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Stack(
-            children: [
-              keepAliveZone,
-              if (!isKeepAliveSelected) Positioned.fill(child: ephemeralZone),
-            ],
+    return PageStorage(
+      bucket: _pageStorageBucket,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Stack(
+              children: [
+                keepAliveZone,
+                if (!isKeepAliveSelected) Positioned.fill(child: ephemeralZone),
+              ],
+            ),
           ),
-        ),
-        if (_showEphemeralLoading)
-          _ShellSwitchLoadingOverlay(label: widget.loadingLabel),
-      ],
+          if (_showEphemeralLoading)
+            _ShellSwitchLoadingOverlay(label: widget.loadingLabel),
+        ],
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -67,6 +68,9 @@ class CategoryGrid extends ConsumerWidget {
                       context,
                       ref,
                       ContentRouteArgs.movie(selectedMedia.id),
+                      triggerFocusNode: focusNode,
+                      originRegionId: AppFocusRegionId.categoryPrimary,
+                      fallbackRegionId: AppFocusRegionId.categoryPrimary,
                     ),
                   );
                   return;
@@ -76,6 +80,9 @@ class CategoryGrid extends ConsumerWidget {
                     context,
                     ref,
                     ContentRouteArgs.series(selectedMedia.id),
+                    triggerFocusNode: focusNode,
+                    originRegionId: AppFocusRegionId.categoryPrimary,
+                    fallbackRegionId: AppFocusRegionId.categoryPrimary,
                   ),
                 );
               },

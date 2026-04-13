@@ -295,6 +295,8 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
                       context,
                       ref,
                       ContentRouteArgs.movie(selectedMedia.id),
+                      originRegionId: AppFocusRegionId.searchResultsPrimary,
+                      fallbackRegionId: AppFocusRegionId.searchResultsPrimary,
                     );
                     return;
                   }
@@ -302,6 +304,8 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
                     context,
                     ref,
                     ContentRouteArgs.series(selectedMedia.id),
+                    originRegionId: AppFocusRegionId.searchResultsPrimary,
+                    fallbackRegionId: AppFocusRegionId.searchResultsPrimary,
                   );
                 },
               );

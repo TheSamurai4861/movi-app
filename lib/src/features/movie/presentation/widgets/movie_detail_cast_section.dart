@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
@@ -140,6 +141,9 @@ class _MovieDetailCastSectionState
                         context,
                         ref,
                         person: personSummary,
+                        triggerFocusNode: _itemFocusNodes[index],
+                        originRegionId: AppFocusRegionId.movieDetailPrimary,
+                        fallbackRegionId: AppFocusRegionId.movieDetailPrimary,
                       );
                     },
                   ),

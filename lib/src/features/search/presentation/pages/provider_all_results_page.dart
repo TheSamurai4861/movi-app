@@ -2,12 +2,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
@@ -209,37 +209,24 @@ class _ProviderAllResultsPageState
   }
 
   KeyEventResult _handlePageBackKey(KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
-      return _handleBack(context)
-          ? KeyEventResult.handled
-          : KeyEventResult.ignored;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleBackKey(
+      event,
+      onBack: () => _handleBack(context),
+    );
   }
 
   KeyEventResult _handleHeaderKey(KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      if (_errorMessage != null && _movies.isEmpty && _shows.isEmpty) {
-        _retryFocusNode.requestFocus();
-        return KeyEventResult.handled;
-      }
-      _enterRegion(AppFocusRegionId.providerAllGrid, restoreLastFocused: false);
-      return KeyEventResult.handled;
-    }
-    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-        event.logicalKey == LogicalKeyboardKey.arrowRight ||
-        event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.handled;
-    }
-    return KeyEventResult.ignored;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onDown: () {
+        if (_errorMessage != null && _movies.isEmpty && _shows.isEmpty) {
+          FocusDirectionalNavigation.requestFocus(_retryFocusNode);
+          return true;
+        }
+        _enterRegion(AppFocusRegionId.providerAllGrid, restoreLastFocused: false);
+        return true;
+      },
+    );
   }
 
   void _requestInitialGridFocusIfNeeded(int itemsCount) {
@@ -435,7 +422,9 @@ class _ProviderAllResultsPageState
                                     ),
                                     onExitDown: () {
                                       if (_errorMessage != null) {
-                                        _retryFocusNode.requestFocus();
+                                        FocusDirectionalNavigation.requestFocus(
+                                          _retryFocusNode,
+                                        );
                                         return true;
                                       }
                                       if (_hasMore && !_isLoading) {
@@ -475,6 +464,10 @@ class _ProviderAllResultsPageState
                                                     ContentRouteArgs.movie(
                                                       selectedMedia.id,
                                                     ),
+                                                    originRegionId:
+                                                        AppFocusRegionId.providerAllGrid,
+                                                    fallbackRegionId:
+                                                        AppFocusRegionId.providerAllGrid,
                                                   ),
                                             );
                                           }
@@ -498,6 +491,10 @@ class _ProviderAllResultsPageState
                                                   ContentRouteArgs.series(
                                                     selectedMedia.id,
                                                   ),
+                                                  originRegionId:
+                                                      AppFocusRegionId.providerAllGrid,
+                                                  fallbackRegionId:
+                                                      AppFocusRegionId.providerAllGrid,
                                                 ),
                                           );
                                         },

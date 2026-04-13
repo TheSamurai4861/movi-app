@@ -29,7 +29,12 @@ class HomeContent extends ConsumerStatefulWidget {
   ConsumerState<HomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends ConsumerState<HomeContent> {
+class _HomeContentState extends ConsumerState<HomeContent>
+    with AutomaticKeepAliveClientMixin<HomeContent> {
+  static bool _sessionAutoRefreshDone = false;
+  static const PageStorageKey<String> _scrollStorageKey =
+      PageStorageKey<String>('home-content-scroll');
+
   bool _isHeroLoadingMeta = false;
   bool _hasAutoRefreshed = false;
   bool get _allowLegacyHeroOverlayPrecache =>
@@ -93,13 +98,16 @@ class _HomeContentState extends ConsumerState<HomeContent> {
   }
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _logHomeHeroDebug('init_state');
     // Déclencher automatiquement le refresh après le premier frame si les données sont vides
     // Simule un pull-to-refresh complet (sync + refresh home)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _hasAutoRefreshed) return;
+      if (!mounted || _hasAutoRefreshed || _sessionAutoRefreshDone) return;
       final state = ref.read(hp.homeControllerProvider);
       final disableHero = ref.read(
         featureFlagsProvider.select((f) => f.home.disableHero),
@@ -109,6 +117,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
           (!disableHero && state.hero.isEmpty) || state.iptvLists.isEmpty;
       if (isEmpty) {
         _hasAutoRefreshed = true;
+        _sessionAutoRefreshDone = true;
         // Simuler exactement le comportement du pull-to-refresh
         // Attendre un peu si un chargement est en cours
         Future.delayed(
@@ -145,6 +154,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
     final iptvFilter = ref.watch(hp.homeIptvMediaFilterProvider);
@@ -224,6 +234,7 @@ class _HomeContentState extends ConsumerState<HomeContent> {
             ]);
           },
           child: CustomScrollView(
+            key: _scrollStorageKey,
             slivers: [
               if (state.error != null)
                 const SliverToBoxAdapter(child: HomeErrorBanner()),

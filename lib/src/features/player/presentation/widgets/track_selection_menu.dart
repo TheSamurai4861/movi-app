@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -36,6 +37,9 @@ class _TrackSelectionSheetScaffold extends StatefulWidget {
     this.headerAction,
     this.triggerFocusNode,
     this.initialFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final String title;
@@ -43,6 +47,9 @@ class _TrackSelectionSheetScaffold extends StatefulWidget {
   final Widget? headerAction;
   final FocusNode? triggerFocusNode;
   final FocusNode? initialFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   @override
   State<_TrackSelectionSheetScaffold> createState() =>
@@ -67,6 +74,9 @@ class _TrackSelectionSheetScaffoldState
 
     return MoviOverlayFocusScope(
       triggerFocusNode: widget.triggerFocusNode,
+      originRegionId: widget.originRegionId,
+      overlayRegionId: widget.overlayRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
       initialFocusNode: widget.initialFocusNode ?? _closeFocusNode,
       fallbackFocusNode: _closeFocusNode,
       debugLabel: 'TrackSelectionSheet',
@@ -133,6 +143,9 @@ class SubtitleTrackSelectionMenu extends StatefulWidget {
     required this.onDisable,
     required this.onOpenSubtitleSettings,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final List<TrackInfo> tracks;
@@ -141,6 +154,9 @@ class SubtitleTrackSelectionMenu extends StatefulWidget {
   final Future<void> Function() onDisable;
   final VoidCallback onOpenSubtitleSettings;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   @override
   State<SubtitleTrackSelectionMenu> createState() =>
@@ -213,6 +229,9 @@ class _SubtitleTrackSelectionMenuState
     return _TrackSelectionSheetScaffold(
       title: AppLocalizations.of(context)!.subtitlesMenuTitle,
       triggerFocusNode: widget.triggerFocusNode,
+      originRegionId: widget.originRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
+      overlayRegionId: widget.overlayRegionId,
       headerAction: IconButton(
         onPressed: widget.onOpenSubtitleSettings,
         icon: const MoviAssetIcon(
@@ -235,12 +254,18 @@ class AudioTrackSelectionMenu extends StatefulWidget {
     required this.currentTrack,
     required this.onTrackSelected,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final List<TrackInfo> tracks;
   final TrackInfo? currentTrack;
   final Future<void> Function(TrackInfo track) onTrackSelected;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   @override
   State<AudioTrackSelectionMenu> createState() =>
@@ -296,6 +321,9 @@ class _AudioTrackSelectionMenuState extends State<AudioTrackSelectionMenu> {
     return _TrackSelectionSheetScaffold(
       title: AppLocalizations.of(context)!.audioMenuTitle,
       triggerFocusNode: widget.triggerFocusNode,
+      originRegionId: widget.originRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
+      overlayRegionId: widget.overlayRegionId,
       initialFocusNode: _optionFocusNodes.isNotEmpty
           ? _optionFocusNodes.first
           : null,

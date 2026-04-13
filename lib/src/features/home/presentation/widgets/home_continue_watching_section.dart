@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/images/image_loading_policy.dart';
 import 'package:movi/src/core/images/safe_image_cache_manager.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
@@ -284,9 +285,21 @@ class _HomeContinueWatchingSectionState
 
     final resolvedId = resolution.resolvedContentId!;
     if (media.type == ContentType.movie) {
-      navigateToMovieDetail(context, ref, ContentRouteArgs.movie(resolvedId));
+      navigateToMovieDetail(
+        context,
+        ref,
+        ContentRouteArgs.movie(resolvedId),
+        originRegionId: AppFocusRegionId.homePrimary,
+        fallbackRegionId: AppFocusRegionId.homePrimary,
+      );
     } else {
-      navigateToTvDetail(context, ref, ContentRouteArgs.series(resolvedId));
+      navigateToTvDetail(
+        context,
+        ref,
+        ContentRouteArgs.series(resolvedId),
+        originRegionId: AppFocusRegionId.homePrimary,
+        fallbackRegionId: AppFocusRegionId.homePrimary,
+      );
     }
   }
 }

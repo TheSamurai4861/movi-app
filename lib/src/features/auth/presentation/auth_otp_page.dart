@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/router/router.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
@@ -48,49 +50,6 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     super.dispose();
   }
 
-  bool _requestFocus(FocusNode node) {
-    if (!node.canRequestFocus || node.context == null) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
-  KeyEventResult _handleDirectionalKey(
-    KeyEvent event, {
-    FocusNode? left,
-    FocusNode? right,
-    FocusNode? up,
-    FocusNode? down,
-    bool blockLeft = true,
-    bool blockRight = true,
-    bool blockUp = true,
-    bool blockDown = true,
-  }) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-
-    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
-
-    switch (event.logicalKey) {
-      case LogicalKeyboardKey.arrowLeft:
-        if (moveTo(left)) return KeyEventResult.handled;
-        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowRight:
-        if (moveTo(right)) return KeyEventResult.handled;
-        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowUp:
-        if (moveTo(up)) return KeyEventResult.handled;
-        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowDown:
-        if (moveTo(down)) return KeyEventResult.handled;
-        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
-    }
-
-    return KeyEventResult.ignored;
-  }
-
   bool _handleBack(BuildContext context) {
     if (!context.mounted) {
       return false;
@@ -101,6 +60,18 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     }
     navigator.maybePop();
     return true;
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -154,17 +125,21 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: isCodeStepVisible
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.authOtpPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => isCodeStepVisible
               ? _codeFocusNode
               : _emailFocusNode,
-          fallbackFocusNode: _primaryActionFocusNode,
+          resolveFallbackEntryNode: () => _primaryActionFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'AuthOtpRouteFocus',
-        child: Scaffold(
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'AuthOtpRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
           body: SafeArea(
             child: Center(
               child: ConstrainedBox(
@@ -193,7 +168,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                   child: Focus(
                                     canRequestFocus: false,
                                     onKeyEvent: (_, event) =>
-                                        _handleDirectionalKey(
+                                        FocusDirectionalNavigation.handleDirectionalKey(
                                           event,
                                           down: isCodeStepVisible
                                               ? _codeFocusNode
@@ -205,7 +180,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                           <ShortcutActivator, VoidCallback>{
                                             const SingleActivator(
                                               LogicalKeyboardKey.arrowDown,
-                                            ): () => _requestFocus(
+                                            ): () => FocusDirectionalNavigation.requestFocus(
                                               isCodeStepVisible
                                                   ? _codeFocusNode
                                                   : _primaryActionFocusNode,
@@ -282,7 +257,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                 child: Focus(
                                   canRequestFocus: false,
                                   onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
+                                      FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
                                         up: _emailFocusNode,
                                         down: _primaryActionFocusNode,
@@ -292,10 +267,10 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          _requestFocus(_emailFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_emailFocusNode),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
-                                      ): () => _requestFocus(
+                                      ): () => FocusDirectionalNavigation.requestFocus(
                                         _primaryActionFocusNode,
                                       ),
                                     },
@@ -365,7 +340,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                               verticalAlignment: 0.22,
                               child: Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: isCodeStepVisible
                                       ? _codeFocusNode
@@ -418,7 +393,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                       child: Focus(
                                         canRequestFocus: false,
                                         onKeyEvent: (_, event) =>
-                                            _handleDirectionalKey(
+                                            FocusDirectionalNavigation.handleDirectionalKey(
                                               event,
                                               right: isNarrow
                                                   ? null
@@ -456,7 +431,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                       child: Focus(
                                         canRequestFocus: false,
                                         onKeyEvent: (_, event) =>
-                                            _handleDirectionalKey(
+                                            FocusDirectionalNavigation.handleDirectionalKey(
                                               event,
                                               left: isNarrow
                                                   ? null
@@ -514,6 +489,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
           ),
         ),
       ),
+    ),
     );
   }
 

@@ -1,7 +1,7 @@
 // lib/src/features/shell/presentation/widgets/navigation/sidebar_nav.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/features/shell/presentation/widgets/navigation/sidebar_nav_item.dart';
 
@@ -98,11 +98,16 @@ class _SidebarNavState extends State<SidebarNav> {
     }
   }
 
+  bool _focusSidebarIndex(int index) {
+    if (_itemFocusNodes.isEmpty) return false;
+    final boundedIndex = index.clamp(0, _itemFocusNodes.length - 1);
+    widget.onFocusedIndexChanged?.call(boundedIndex);
+    return FocusDirectionalNavigation.requestFocus(_itemFocusNodes[boundedIndex]);
+  }
+
   void _focusSelectedItem() {
     if (_itemFocusNodes.isEmpty) return;
-    final index = widget.selectedIndex.clamp(0, _itemFocusNodes.length - 1);
-    widget.onFocusedIndexChanged?.call(index);
-    _itemFocusNodes[index].requestFocus();
+    _focusSidebarIndex(widget.selectedIndex);
   }
 
   int _currentFocusedIndex() {
@@ -115,25 +120,26 @@ class _SidebarNavState extends State<SidebarNav> {
     return widget.selectedIndex.clamp(0, _itemFocusNodes.length - 1);
   }
 
-  KeyEventResult _handleSidebarDirection(LogicalKeyboardKey key) {
+  KeyEventResult _handleSidebarDirection(KeyEvent event) {
     if (_itemFocusNodes.isEmpty) return KeyEventResult.ignored;
-    if (key != LogicalKeyboardKey.arrowDown &&
-        key != LogicalKeyboardKey.arrowUp) {
-      return KeyEventResult.ignored;
-    }
 
     final currentIndex = _currentFocusedIndex();
-    final targetIndex = key == LogicalKeyboardKey.arrowDown
-        ? (currentIndex + 1).clamp(0, _itemFocusNodes.length - 1)
-        : (currentIndex - 1).clamp(0, _itemFocusNodes.length - 1);
 
-    if (targetIndex == currentIndex) {
-      return KeyEventResult.handled;
-    }
-
-    _itemFocusNodes[targetIndex].requestFocus();
-    widget.onFocusedIndexChanged?.call(targetIndex);
-    return KeyEventResult.handled;
+    return FocusDirectionalNavigation.handleDirectionalTransition(
+      event,
+      onUp: () {
+        final targetIndex = (currentIndex - 1).clamp(0, _itemFocusNodes.length - 1);
+        if (targetIndex == currentIndex) return true;
+        return _focusSidebarIndex(targetIndex);
+      },
+      onDown: () {
+        final targetIndex = (currentIndex + 1).clamp(0, _itemFocusNodes.length - 1);
+        if (targetIndex == currentIndex) return true;
+        return _focusSidebarIndex(targetIndex);
+      },
+      blockLeft: false,
+      blockRight: false,
+    );
   }
 
   @override
@@ -182,10 +188,7 @@ class _SidebarNavState extends State<SidebarNav> {
           child: Focus(
             focusNode: _focusNode,
             autofocus: widget.autofocus,
-            onKeyEvent: (_, event) {
-              if (event is! KeyDownEvent) return KeyEventResult.ignored;
-              return _handleSidebarDirection(event.logicalKey);
-            },
+            onKeyEvent: (_, event) => _handleSidebarDirection(event),
             onFocusChange: (hasFocus) {
               if (hasFocus) {
                 _focusSelectedItem();

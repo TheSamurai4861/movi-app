@@ -11,6 +11,7 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/directional_edge.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -194,14 +195,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     super.dispose();
   }
 
-  bool _tryRequestFocus(FocusNode node) {
-    if (!node.canRequestFocus || node.context == null) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
   bool _enterRegion(
     AppFocusRegionId regionId, {
     bool restoreLastFocused = true,
@@ -323,43 +316,36 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 
   bool _handleSearchKeyboard(KeyEvent event) {
-    if (event is! KeyDownEvent) return false;
-
     if (_focusNode.hasFocus) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _resolveExitFromRegion(AppFocusRegionId.searchInput);
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_textCtrl.text.isEmpty) return true;
-        _tryRequestFocus(_clearFocusNode);
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        _focusSearchContentBelow(preferHistory: _hasHistoryItems());
-        return true;
-      }
-      return false;
+      return FocusDirectionalNavigation.handleDirectionalTransition(
+            event,
+            onLeft: () => _resolveExitFromRegion(AppFocusRegionId.searchInput),
+            onRight: _textCtrl.text.isEmpty
+                ? null
+                : () => FocusDirectionalNavigation.requestFocus(
+                    _clearFocusNode,
+                  ),
+            onUp: () => true,
+            onDown: () {
+              _focusSearchContentBelow(preferHistory: _hasHistoryItems());
+              return true;
+            },
+          ) ==
+          KeyEventResult.handled;
     }
 
     if (_clearFocusNode.hasFocus) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _tryRequestFocus(_focusNode);
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        _focusSearchContentBelow();
-        return true;
-      }
+      return FocusDirectionalNavigation.handleDirectionalTransition(
+            event,
+            onLeft: () => FocusDirectionalNavigation.requestFocus(_focusNode),
+            onUp: () => true,
+            onDown: () {
+              _focusSearchContentBelow();
+              return true;
+            },
+            onRight: () => true,
+          ) ==
+          KeyEventResult.handled;
     }
 
     return false;
@@ -469,10 +455,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   _focusSearchContentBelow(preferHistory: hasHistoryItems),
               onArrowRight: () {
                 if (_textCtrl.text.isEmpty) return;
-                _tryRequestFocus(_clearFocusNode);
+                FocusDirectionalNavigation.requestFocus(_clearFocusNode);
               },
               onClearArrowLeft: () {
-                _tryRequestFocus(_focusNode);
+                FocusDirectionalNavigation.requestFocus(_focusNode);
               },
               onClearArrowUp: _noop,
               onClearArrowDown: () => _focusSearchContentBelow(),
@@ -497,7 +483,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 unawaited(
                   ref.read(searchHistoryControllerProvider.notifier).refresh(),
                 );
-                _focusNode.requestFocus();
+                FocusDirectionalNavigation.requestFocus(_focusNode);
               },
               onSubmitted: (value) {
                 _setSearchInputActivated(true);
@@ -565,6 +551,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             context,
                             ref,
                             ContentRouteArgs.movie(mm.id),
+                            originRegionId: AppFocusRegionId.searchResultsMovies,
+                            fallbackRegionId:
+                                AppFocusRegionId.searchResultsMovies,
                           ),
                           focusNode: entry.key == 0
                               ? _firstMovieResultFocusNode
@@ -620,6 +609,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             context,
                             ref,
                             ContentRouteArgs.series(mm.id),
+                            originRegionId: AppFocusRegionId.searchResultsSeries,
+                            fallbackRegionId:
+                                AppFocusRegionId.searchResultsSeries,
                           ),
                           focusNode: entry.key == 0
                               ? _firstShowResultFocusNode
@@ -1151,18 +1143,20 @@ class _AnimatedPersonCardState extends State<_AnimatedPersonCard>
             offset: Offset(0, _translateAnimation.value),
             child: Focus(
               canRequestFocus: false,
-              onKeyEvent: (_, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey != LogicalKeyboardKey.arrowLeft) {
-                  return KeyEventResult.ignored;
-                }
-                final onFirstLeft = widget.onFirstLeft;
-                if (onFirstLeft == null) {
-                  return KeyEventResult.ignored;
-                }
-                onFirstLeft();
-                return KeyEventResult.handled;
-              },
+              onKeyEvent: (_, event) =>
+                  FocusDirectionalNavigation.handleDirectionalTransition(
+                    event,
+                    onLeft: widget.onFirstLeft == null
+                        ? null
+                        : () {
+                            widget.onFirstLeft!();
+                            return true;
+                          },
+                    blockLeft: false,
+                    blockRight: false,
+                    blockUp: false,
+                    blockDown: false,
+                  ),
               child: MoviPersonCard(
                 person: widget.person,
                 onTap: widget.onTap,
@@ -1241,18 +1235,20 @@ class _AnimatedMovieCardState extends State<_AnimatedMovieCard>
             offset: Offset(0, _translateAnimation.value),
             child: Focus(
               canRequestFocus: false,
-              onKeyEvent: (_, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey != LogicalKeyboardKey.arrowLeft) {
-                  return KeyEventResult.ignored;
-                }
-                final onFirstLeft = widget.onFirstLeft;
-                if (onFirstLeft == null) {
-                  return KeyEventResult.ignored;
-                }
-                onFirstLeft();
-                return KeyEventResult.handled;
-              },
+              onKeyEvent: (_, event) =>
+                  FocusDirectionalNavigation.handleDirectionalTransition(
+                    event,
+                    onLeft: widget.onFirstLeft == null
+                        ? null
+                        : () {
+                            widget.onFirstLeft!();
+                            return true;
+                          },
+                    blockLeft: false,
+                    blockRight: false,
+                    blockUp: false,
+                    blockDown: false,
+                  ),
               child: MoviMediaCard(
                 media: widget.media,
                 onTap: widget.onTap,
@@ -1605,18 +1601,20 @@ class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
             offset: Offset(0, _translateAnimation.value),
             child: Focus(
               canRequestFocus: false,
-              onKeyEvent: (_, event) {
-                if (event is! KeyDownEvent) return KeyEventResult.ignored;
-                if (event.logicalKey != LogicalKeyboardKey.arrowLeft) {
-                  return KeyEventResult.ignored;
-                }
-                final onFirstLeft = widget.onFirstLeft;
-                if (onFirstLeft == null) {
-                  return KeyEventResult.ignored;
-                }
-                onFirstLeft();
-                return KeyEventResult.handled;
-              },
+              onKeyEvent: (_, event) =>
+                  FocusDirectionalNavigation.handleDirectionalTransition(
+                    event,
+                    onLeft: widget.onFirstLeft == null
+                        ? null
+                        : () {
+                            widget.onFirstLeft!();
+                            return true;
+                          },
+                    blockLeft: false,
+                    blockRight: false,
+                    blockUp: false,
+                    blockDown: false,
+                  ),
               child: _SagaCard(saga: widget.saga, focusNode: widget.focusNode),
             ),
           ),
@@ -1642,8 +1640,13 @@ class _SagaCard extends ConsumerWidget {
 
     return MoviFocusableAction(
       focusNode: focusNode,
-      onPressed: () =>
-          navigateToSagaDetail(context, ref, sagaId: saga.id.value),
+      onPressed: () => navigateToSagaDetail(
+        context,
+        ref,
+        sagaId: saga.id.value,
+        originRegionId: AppFocusRegionId.searchResultsSagas,
+        fallbackRegionId: AppFocusRegionId.searchResultsSagas,
+      ),
       semanticLabel: saga.title.display,
       builder: (context, state) {
         return MoviFocusFrame(

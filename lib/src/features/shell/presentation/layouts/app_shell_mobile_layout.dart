@@ -74,6 +74,7 @@ class AppShellMobileLayout extends StatelessWidget {
           Positioned.fill(
             child: SafeArea(
               child: ShellContentHost(
+                key: const PageStorageKey<String>('app-shell-mobile-content-host'),
                 selectedIndex: selectedIndex,
                 pageBuilders: pageBuilders,
                 scrollControllerForIndex: scrollControllerForIndex,

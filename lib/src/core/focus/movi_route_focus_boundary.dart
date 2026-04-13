@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
 
 class MoviRouteFocusBoundary extends StatefulWidget {
+  @Deprecated(
+    'Use FocusRegionScope instead. This legacy boundary is kept only for temporary compatibility and must not be reintroduced in screens.',
+  )
   const MoviRouteFocusBoundary({
     super.key,
     required this.child,

@@ -11,6 +11,7 @@ import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
@@ -141,14 +142,6 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     }
   }
 
-  bool _requestFocus(FocusNode node) {
-    if (!node.canRequestFocus || node.context == null) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
   bool _enterFocusRegion(AppFocusRegionId regionId) {
     return ref
         .read(focusOrchestratorProvider)
@@ -166,41 +159,6 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
     }
-    return KeyEventResult.ignored;
-  }
-
-  KeyEventResult _handleDirectionalKey(
-    KeyEvent event, {
-    FocusNode? left,
-    FocusNode? right,
-    FocusNode? up,
-    FocusNode? down,
-    bool blockLeft = true,
-    bool blockRight = true,
-    bool blockUp = true,
-    bool blockDown = true,
-  }) {
-    if (event is! KeyDownEvent) {
-      return KeyEventResult.ignored;
-    }
-
-    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
-
-    switch (event.logicalKey) {
-      case LogicalKeyboardKey.arrowLeft:
-        if (moveTo(left)) return KeyEventResult.handled;
-        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowRight:
-        if (moveTo(right)) return KeyEventResult.handled;
-        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowUp:
-        if (moveTo(up)) return KeyEventResult.handled;
-        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
-      case LogicalKeyboardKey.arrowDown:
-        if (moveTo(down)) return KeyEventResult.handled;
-        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
-    }
-
     return KeyEventResult.ignored;
   }
 
@@ -571,7 +529,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                             verticalAlignment: 0.18,
                             child: Focus(
                               canRequestFocus: false,
-                              onKeyEvent: (_, event) => _handleDirectionalKey(
+                              onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                 event,
                                 down: _shouldDisplaySavedSourcesSection
                                     ? (_sourcesError != null
@@ -618,7 +576,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                   child: Focus(
                                     canRequestFocus: false,
                                     onKeyEvent: (_, event) =>
-                                        _handleDirectionalKey(
+                                        FocusDirectionalNavigation.handleDirectionalKey(
                                           event,
                                           up:
                                               launchRecovery?.isRetryable ??
@@ -663,7 +621,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                               verticalAlignment: 0.22,
                               child: Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
                                   event,
                                   up: launchRecovery?.isRetryable ?? false
                                       ? _retryFocusNode
@@ -703,7 +661,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 selectedId: _selectedSourceId,
                                 focusNodes: _savedSourceFocusNodes,
                                 focusVerticalAlignment: 0.22,
-                                onFirstItemUp: () => _requestFocus(
+                                onFirstItemUp: () => FocusDirectionalNavigation.requestFocus(
                                   launchRecovery?.isRetryable ?? false
                                       ? _retryFocusNode
                                       : _refreshFocusNode,
@@ -737,7 +695,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 child: Focus(
                                   canRequestFocus: false,
                                   onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
+                                      FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
                                         up: _shouldDisplaySavedSourcesSection
                                             ? (_sourcesError != null
@@ -758,7 +716,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          _requestFocus(_serverFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_serverFocusNode),
                                     },
                                     child: TextField(
                                       controller: _nameCtrl,
@@ -782,7 +740,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 child: Focus(
                                   canRequestFocus: false,
                                   onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
+                                      FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
                                         up: _nameFocusNode,
                                         down: _userFocusNode,
@@ -794,11 +752,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          _requestFocus(_nameFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_nameFocusNode),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          _requestFocus(_userFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_userFocusNode),
                                     },
                                     child: TextField(
                                       controller: _serverCtrl,
@@ -822,7 +780,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 child: Focus(
                                   canRequestFocus: false,
                                   onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
+                                      FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
                                         up: _serverFocusNode,
                                         down: _passFocusNode,
@@ -834,11 +792,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          _requestFocus(_serverFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_serverFocusNode),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          _requestFocus(_passFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_passFocusNode),
                                     },
                                     child: TextField(
                                       controller: _userCtrl,
@@ -861,7 +819,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 child: Focus(
                                   canRequestFocus: false,
                                   onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
+                                      FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
                                         up: _userFocusNode,
                                         right: _passwordToggleFocusNode,
@@ -873,16 +831,16 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          _requestFocus(_userFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_userFocusNode),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowRight,
-                                      ): () => _requestFocus(
+                                      ): () => FocusDirectionalNavigation.requestFocus(
                                         _passwordToggleFocusNode,
                                       ),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          _requestFocus(_submitFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(_submitFocusNode),
                                     },
                                     child: TextField(
                                       controller: _passCtrl,
@@ -902,7 +860,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                           child: Focus(
                                             canRequestFocus: false,
                                             onKeyEvent: (_, event) =>
-                                                _handleDirectionalKey(
+                                                FocusDirectionalNavigation.handleDirectionalKey(
                                                   event,
                                                   left: _passFocusNode,
                                                   down: _submitFocusNode,
@@ -941,7 +899,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 child: Focus(
                                   canRequestFocus: false,
                                   onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
+                                      FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
                                         up: _passFocusNode,
                                         blockLeft: true,

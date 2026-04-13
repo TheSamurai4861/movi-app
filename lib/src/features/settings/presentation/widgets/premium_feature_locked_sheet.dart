@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
@@ -11,6 +11,9 @@ import 'package:movi/src/features/settings/presentation/pages/movi_premium_page.
 Future<void> showPremiumFeatureLockedSheet(
   BuildContext context, {
   FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
+  AppFocusRegionId overlayRegionId = AppFocusRegionId.dialogPrimary,
 }) {
   final localizer = MoviPremiumLocalizer.fromBuildContext(context);
   final effectiveTriggerFocusNode =
@@ -31,6 +34,9 @@ Future<void> showPremiumFeatureLockedSheet(
         localizer: localizer,
         parentContext: context,
         triggerFocusNode: effectiveTriggerFocusNode,
+        originRegionId: originRegionId,
+        fallbackRegionId: fallbackRegionId,
+        overlayRegionId: overlayRegionId,
       ),
     );
   }
@@ -44,6 +50,9 @@ Future<void> showPremiumFeatureLockedSheet(
         localizer: localizer,
         parentContext: context,
         triggerFocusNode: effectiveTriggerFocusNode,
+        originRegionId: originRegionId,
+        fallbackRegionId: fallbackRegionId,
+        overlayRegionId: overlayRegionId,
       );
     },
   );
@@ -54,11 +63,17 @@ class _PremiumFeatureLockedBottomSheet extends StatefulWidget {
     required this.localizer,
     required this.parentContext,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final MoviPremiumLocalizer localizer;
   final BuildContext parentContext;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   @override
   State<_PremiumFeatureLockedBottomSheet> createState() =>
@@ -94,6 +109,9 @@ class _PremiumFeatureLockedBottomSheetState
       triggerFocusNode: widget.triggerFocusNode,
       initialFocusNode: _actionFocusNode,
       fallbackFocusNode: _dismissFocusNode,
+      originRegionId: widget.originRegionId,
+      overlayRegionId: widget.overlayRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
       debugLabel: 'PremiumFeatureLockedBottomSheet',
       child: SafeArea(
         top: false,
@@ -115,20 +133,11 @@ class _PremiumFeatureLockedBottomSheetState
               const SizedBox(height: 20),
               Focus(
                 canRequestFocus: false,
-                onKeyEvent: (_, event) {
-                  if (event is! KeyDownEvent) {
-                    return KeyEventResult.ignored;
-                  }
-                  if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                    _dismissFocusNode.requestFocus();
-                    return KeyEventResult.handled;
-                  }
-                  if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                      event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                    return KeyEventResult.handled;
-                  }
-                  return KeyEventResult.ignored;
-                },
+                onKeyEvent: (_, event) =>
+                    FocusDirectionalNavigation.handleDirectionalKey(
+                      event,
+                      down: _dismissFocusNode,
+                    ),
                 child: MoviPrimaryButton(
                   label: widget.localizer.contextualUpsellAction,
                   focusNode: _actionFocusNode,
@@ -138,21 +147,11 @@ class _PremiumFeatureLockedBottomSheetState
               const SizedBox(height: 12),
               Focus(
                 canRequestFocus: false,
-                onKeyEvent: (_, event) {
-                  if (event is! KeyDownEvent) {
-                    return KeyEventResult.ignored;
-                  }
-                  if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                    _actionFocusNode.requestFocus();
-                    return KeyEventResult.handled;
-                  }
-                  if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
-                      event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                      event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                    return KeyEventResult.handled;
-                  }
-                  return KeyEventResult.ignored;
-                },
+                onKeyEvent: (_, event) =>
+                    FocusDirectionalNavigation.handleDirectionalKey(
+                      event,
+                      up: _actionFocusNode,
+                    ),
                 child: SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -175,11 +174,17 @@ class _PremiumFeatureLockedDialog extends StatefulWidget {
     required this.localizer,
     required this.parentContext,
     this.triggerFocusNode,
+    this.originRegionId,
+    this.fallbackRegionId,
+    this.overlayRegionId = AppFocusRegionId.dialogPrimary,
   });
 
   final MoviPremiumLocalizer localizer;
   final BuildContext parentContext;
   final FocusNode? triggerFocusNode;
+  final AppFocusRegionId? originRegionId;
+  final AppFocusRegionId? fallbackRegionId;
+  final AppFocusRegionId overlayRegionId;
 
   @override
   State<_PremiumFeatureLockedDialog> createState() =>
@@ -218,6 +223,9 @@ class _PremiumFeatureLockedDialogState
       triggerFocusNode: widget.triggerFocusNode,
       initialFocusNode: _actionFocusNode,
       fallbackFocusNode: _dismissFocusNode,
+      originRegionId: widget.originRegionId,
+      overlayRegionId: widget.overlayRegionId,
+      fallbackRegionId: widget.fallbackRegionId,
       debugLabel: 'PremiumFeatureLockedDialog',
       child: Dialog(
         backgroundColor: Colors.transparent,
@@ -263,20 +271,11 @@ class _PremiumFeatureLockedDialogState
                   const SizedBox(height: 24),
                   Focus(
                     canRequestFocus: false,
-                    onKeyEvent: (_, event) {
-                      if (event is! KeyDownEvent) {
-                        return KeyEventResult.ignored;
-                      }
-                      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                        _dismissFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
-                      if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                          event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                        return KeyEventResult.handled;
-                      }
-                      return KeyEventResult.ignored;
-                    },
+                    onKeyEvent: (_, event) =>
+                        FocusDirectionalNavigation.handleDirectionalKey(
+                          event,
+                          down: _dismissFocusNode,
+                        ),
                     child: MoviPrimaryButton(
                       label: widget.localizer.contextualUpsellAction,
                       focusNode: _actionFocusNode,
@@ -286,21 +285,11 @@ class _PremiumFeatureLockedDialogState
                   const SizedBox(height: 12),
                   Focus(
                     canRequestFocus: false,
-                    onKeyEvent: (_, event) {
-                      if (event is! KeyDownEvent) {
-                        return KeyEventResult.ignored;
-                      }
-                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                        _actionFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
-                      if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                          event.logicalKey == LogicalKeyboardKey.arrowRight ||
-                          event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                        return KeyEventResult.handled;
-                      }
-                      return KeyEventResult.ignored;
-                    },
+                    onKeyEvent: (_, event) =>
+                        FocusDirectionalNavigation.handleDirectionalKey(
+                          event,
+                          up: _actionFocusNode,
+                        ),
                     child: ListenableBuilder(
                       listenable: _dismissFocusNode,
                       builder: (context, _) {

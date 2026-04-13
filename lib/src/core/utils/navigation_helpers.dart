@@ -14,6 +14,7 @@ import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
@@ -24,6 +25,9 @@ Future<bool> _guardParental(
   BuildContext context,
   WidgetRef ref, {
   required ContentRouteArgs args,
+  FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
 }) async {
   // Xtream IDs cannot be evaluated reliably here.
   if (args.isXtream) {
@@ -64,6 +68,9 @@ Future<bool> _guardParental(
     ref,
     profile: profile,
     reason: decision.reason,
+    triggerFocusNode: triggerFocusNode,
+    originRegionId: originRegionId,
+    fallbackRegionId: fallbackRegionId,
   );
   return unlocked;
 }
@@ -72,13 +79,21 @@ Future<bool> _guardPremiumFeature(
   BuildContext context,
   WidgetRef ref, {
   required PremiumFeature feature,
+  FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
 }) async {
   final hasPremium = await ref.read(
     canAccessPremiumFeatureProvider(feature).future,
   );
   if (hasPremium) return true;
   if (!context.mounted) return false;
-  await showPremiumFeatureLockedSheet(context);
+  await showPremiumFeatureLockedSheet(
+    context,
+    triggerFocusNode: triggerFocusNode,
+    originRegionId: originRegionId,
+    fallbackRegionId: fallbackRegionId,
+  );
   return false;
 }
 
@@ -86,11 +101,17 @@ Future<void> navigateToPersonDetail(
   BuildContext context,
   WidgetRef ref, {
   required PersonSummary person,
+  FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
 }) async {
   final allowed = await _guardPremiumFeature(
     context,
     ref,
     feature: PremiumFeature.extendedDiscoveryDetails,
+    triggerFocusNode: triggerFocusNode,
+    originRegionId: originRegionId,
+    fallbackRegionId: fallbackRegionId,
   );
   if (!allowed || !context.mounted) return;
   context.push(AppRouteNames.person, extra: person);
@@ -100,11 +121,17 @@ Future<void> navigateToSagaDetail(
   BuildContext context,
   WidgetRef ref, {
   required String sagaId,
+  FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
 }) async {
   final allowed = await _guardPremiumFeature(
     context,
     ref,
     feature: PremiumFeature.extendedDiscoveryDetails,
+    triggerFocusNode: triggerFocusNode,
+    originRegionId: originRegionId,
+    fallbackRegionId: fallbackRegionId,
   );
   if (!allowed || !context.mounted) return;
   context.push(AppRouteNames.sagaDetail, extra: sagaId);
@@ -117,8 +144,11 @@ Future<void> navigateToSagaDetail(
 Future<void> navigateToMovieDetail(
   BuildContext context,
   WidgetRef ref,
-  ContentRouteArgs args,
-) async {
+  ContentRouteArgs args, {
+  FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
+}) async {
   final logger = sl<AppLogger>();
   logger.debug(
     '🔵 [NAV] navigateToMovieDetail appelé pour id=${args.id}, type=${args.type}',
@@ -133,7 +163,14 @@ Future<void> navigateToMovieDetail(
   }
 
   // Parental gate (tap guard)
-  final allowed = await _guardParental(context, ref, args: args);
+  final allowed = await _guardParental(
+    context,
+    ref,
+    args: args,
+    triggerFocusNode: triggerFocusNode,
+    originRegionId: originRegionId,
+    fallbackRegionId: fallbackRegionId,
+  );
   if (!allowed) {
     return;
   }
@@ -189,8 +226,11 @@ Future<void> navigateToMovieDetail(
 Future<void> navigateToTvDetail(
   BuildContext context,
   WidgetRef ref,
-  ContentRouteArgs args,
-) async {
+  ContentRouteArgs args, {
+  FocusNode? triggerFocusNode,
+  AppFocusRegionId? originRegionId,
+  AppFocusRegionId? fallbackRegionId,
+}) async {
   final logger = sl<AppLogger>();
   logger.debug(
     '🟢 [NAV] navigateToTvDetail appelé pour id=${args.id}, type=${args.type}',
@@ -198,7 +238,14 @@ Future<void> navigateToTvDetail(
   );
 
   // Parental gate (tap guard)
-  final allowed = await _guardParental(context, ref, args: args);
+  final allowed = await _guardParental(
+    context,
+    ref,
+    args: args,
+    triggerFocusNode: triggerFocusNode,
+    originRegionId: originRegionId,
+    fallbackRegionId: fallbackRegionId,
+  );
   if (!allowed) return;
   if (!context.mounted) return;
 
