@@ -107,6 +107,8 @@ class _MoviNetworkImageState extends State<MoviNetworkImage> {
       enabled: policy.enableDiskCache,
     );
 
+    final bool supportsDiskResize = cacheManager is ImageCacheManager;
+
     if (!canUseCachePath || _fallbackForcedByTimeout) {
       return _buildNetworkFallback(
         context,
@@ -131,8 +133,8 @@ class _MoviNetworkImageState extends State<MoviNetworkImage> {
     return CachedNetworkImage(
       imageUrl: trimmed,
       cacheManager: cacheManager,
-      maxWidthDiskCache: resolvedCacheWidth,
-      maxHeightDiskCache: resolvedCacheHeight,
+      maxWidthDiskCache: supportsDiskResize ? resolvedCacheWidth : null,
+      maxHeightDiskCache: supportsDiskResize ? resolvedCacheHeight : null,
       placeholder: (context, _) =>
           widget.placeholder ??
           SizedBox(width: widget.width, height: widget.height),

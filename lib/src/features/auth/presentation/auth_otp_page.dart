@@ -9,13 +9,13 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
+import 'package:movi/src/shared/widgets/app_labeled_text_field.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/features/auth/presentation/auth_otp_controller.dart';
-import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 class AuthOtpPage extends ConsumerStatefulWidget {
@@ -158,154 +158,67 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Step 1 — Email
-                          LabeledField(
+                          AppLabeledTextField(
                             label: l10n.authOtpEmailLabel,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                MoviEnsureVisibleOnFocus(
-                                  verticalAlignment: 0.22,
-                                  child: Focus(
-                                    canRequestFocus: false,
-                                    onKeyEvent: (_, event) =>
-                                        FocusDirectionalNavigation.handleDirectionalKey(
-                                          event,
-                                          down: isCodeStepVisible
-                                              ? _codeFocusNode
-                                              : _primaryActionFocusNode,
-                                          blockUp: true,
-                                        ),
-                                    child: CallbackShortcuts(
-                                      bindings:
-                                          <ShortcutActivator, VoidCallback>{
-                                            const SingleActivator(
-                                              LogicalKeyboardKey.arrowDown,
-                                            ): () => FocusDirectionalNavigation.requestFocus(
-                                              isCodeStepVisible
-                                                  ? _codeFocusNode
-                                                  : _primaryActionFocusNode,
-                                            ),
-                                          },
-                                      child: TextFormField(
-                                        controller: _emailController,
-                                        focusNode: _emailFocusNode,
-                                        enabled: !isBusy,
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        textInputAction: TextInputAction.next,
-                                        autofillHints: const [
-                                          AutofillHints.email,
-                                        ],
-                                        onChanged: (value) {
-                                          ref
-                                              .read(
-                                                authOtpControllerProvider
-                                                    .notifier,
-                                              )
-                                              .setEmail(value);
-                                        },
-                                        onFieldSubmitted: (_) {
-                                          if (!isCodeStepVisible) {
-                                            _onSendCode();
-                                          } else {
-                                            _codeFocusNode.requestFocus();
-                                          }
-                                        },
-                                        decoration: InputDecoration(
-                                          hintText: l10n.authOtpEmailHint,
-                                          errorText: emailErrorText,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (emailErrorText == null) ...[
-                                  const SizedBox(height: 4),
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      left: 12,
-                                      right: 12,
-                                    ),
-                                    child: Text(
-                                      l10n.authOtpEmailHelp,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.6),
-                                          ),
-                                      softWrap: true,
-                                      maxLines: 3,
-                                      overflow: TextOverflow.visible,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                            controller: _emailController,
+                            focusNode: _emailFocusNode,
+                            enabled: !isBusy,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            hintText: l10n.authOtpEmailHint,
+                            helpText: l10n.authOtpEmailHelp,
+                            errorText: emailErrorText,
+                            enableFocusWrapper: true,
+                            verticalAlignment: 0.4,
+                            nextDownFocus: isCodeStepVisible
+                                ? _codeFocusNode
+                                : _primaryActionFocusNode,
+                            blockUp: true,
+                            onChanged: (value) {
+                              ref
+                                  .read(authOtpControllerProvider.notifier)
+                                  .setEmail(value);
+                            },
+                            onFieldSubmitted: (_) {
+                              if (!isCodeStepVisible) {
+                                _onSendCode();
+                              } else {
+                                _codeFocusNode.requestFocus();
+                              }
+                            },
                           ),
                           const SizedBox(height: AppSpacing.lg),
 
                           // Step 2 — Code OTP
                           if (isCodeStepVisible) ...[
-                            LabeledField(
+                            AppLabeledTextField(
                               label: l10n.authOtpCodeLabel,
-                              child: MoviEnsureVisibleOnFocus(
-                                verticalAlignment: 0.22,
-                                child: Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) =>
-                                      FocusDirectionalNavigation.handleDirectionalKey(
-                                        event,
-                                        up: _emailFocusNode,
-                                        down: _primaryActionFocusNode,
-                                      ),
-                                  child: CallbackShortcuts(
-                                    bindings: <ShortcutActivator, VoidCallback>{
-                                      const SingleActivator(
-                                        LogicalKeyboardKey.arrowUp,
-                                      ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_emailFocusNode),
-                                      const SingleActivator(
-                                        LogicalKeyboardKey.arrowDown,
-                                      ): () => FocusDirectionalNavigation.requestFocus(
-                                        _primaryActionFocusNode,
-                                      ),
-                                    },
-                                    child: TextFormField(
-                                      controller: _codeController,
-                                      focusNode: _codeFocusNode,
-                                      enabled: !isBusy,
-                                      keyboardType: TextInputType.number,
-                                      textInputAction: TextInputAction.done,
-                                      maxLength: 8,
-                                      autofillHints: const [
-                                        AutofillHints.oneTimeCode,
-                                      ],
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.digitsOnly,
-                                      ],
-                                      onChanged: (value) {
-                                        ref
-                                            .read(
-                                              authOtpControllerProvider
-                                                  .notifier,
-                                            )
-                                            .setCode(value);
-                                      },
-                                      onFieldSubmitted: (_) => _onVerifyCode(),
-                                      decoration: InputDecoration(
-                                        counterText: '',
-                                        hintText: l10n.authOtpCodeHint,
-                                        helperText: l10n.authOtpCodeHelp,
-                                        errorText: state.codeError,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              controller: _codeController,
+                              focusNode: _codeFocusNode,
+                              enabled: !isBusy,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.done,
+                              maxLength: 8,
+                              counterText: '',
+                              autofillHints: const [AutofillHints.oneTimeCode],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              hintText: l10n.authOtpCodeHint,
+                              helpText: l10n.authOtpCodeHelp,
+                              errorText: state.codeError,
+                              showHelpTextWhenError: true,
+                              enableFocusWrapper: true,
+                              verticalAlignment: 0.22,
+                              nextUpFocus: _emailFocusNode,
+                              nextDownFocus: _primaryActionFocusNode,
+                              onChanged: (value) {
+                                ref
+                                    .read(authOtpControllerProvider.notifier)
+                                    .setCode(value);
+                              },
+                              onFieldSubmitted: (_) => _onVerifyCode(),
                             ),
                             const SizedBox(height: AppSpacing.md),
                           ],
