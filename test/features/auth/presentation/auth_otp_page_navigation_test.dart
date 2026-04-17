@@ -10,7 +10,7 @@ import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
-import 'package:movi/src/features/auth/presentation/auth_otp_page.dart';
+import 'package:movi/src/features/auth/presentation/auth_password_page.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +20,7 @@ void main() {
   });
 
   testWidgets(
-    'routes to launch after successful OTP auth in the primary login flow',
+    'routes to launch after successful password auth in the primary login flow',
     (tester) async {
       final authRepository = _FakeAuthRepository();
       sl.registerSingleton<AuthRepository>(authRepository);
@@ -34,7 +34,7 @@ void main() {
         routes: [
           GoRoute(
             path: AppRoutePaths.authOtp,
-            builder: (context, state) => const AuthOtpPage(),
+            builder: (context, state) => const AuthPasswordPage(),
           ),
           GoRoute(
             path: AppRoutePaths.launch,
@@ -56,14 +56,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(AuthOtpPage), findsOneWidget);
+      expect(find.byType(AuthPasswordPage), findsOneWidget);
 
       authRepository.setAuthenticated();
       await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('Launch'), findsOneWidget);
-      expect(find.byType(AuthOtpPage), findsNothing);
+      expect(find.byType(AuthPasswordPage), findsNothing);
     },
   );
 }

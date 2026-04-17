@@ -1847,6 +1847,84 @@ abstract class AppLocalizations {
   /// **'Change email'**
   String get authOtpChangeEmail;
 
+  /// No description provided for @authOtpUsePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Use password instead'**
+  String get authOtpUsePassword;
+
+  /// No description provided for @authPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authPasswordTitle;
+
+  /// No description provided for @authPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and password to continue.'**
+  String get authPasswordSubtitle;
+
+  /// No description provided for @authPasswordEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get authPasswordEmailLabel;
+
+  /// No description provided for @authPasswordEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'name@example.com'**
+  String get authPasswordEmailHint;
+
+  /// No description provided for @authPasswordEmailHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the email linked to your account.'**
+  String get authPasswordEmailHelp;
+
+  /// No description provided for @authPasswordPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPasswordPasswordLabel;
+
+  /// No description provided for @authPasswordPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password'**
+  String get authPasswordPasswordHint;
+
+  /// No description provided for @authPasswordPasswordHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password is case-sensitive.'**
+  String get authPasswordPasswordHelp;
+
+  /// No description provided for @authPasswordPrimarySubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authPasswordPrimarySubmit;
+
+  /// No description provided for @authPasswordForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get authPasswordForgotPassword;
+
+  /// No description provided for @authPasswordResetSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset email sent.'**
+  String get authPasswordResetSent;
+
+  /// No description provided for @authPasswordUseOtp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use email code instead'**
+  String get authPasswordUseOtp;
+
   /// No description provided for @resumePlayback.
   ///
   /// In en, this message translates to:

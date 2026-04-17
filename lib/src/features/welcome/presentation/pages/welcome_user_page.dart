@@ -265,7 +265,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
           );
         });
       }
-      return Scaffold(body: OverlaySplash(message: l10n.authOtpTitle));
+      return Scaffold(body: OverlaySplash(message: l10n.authPasswordTitle));
     }
 
     final state = ref.watch(userSettingsControllerProvider);
@@ -338,22 +338,25 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                               verticalAlignment: 0.18,
                               child: Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
-                                  event,
-                                  down: profilesAsync.maybeWhen(
-                                    data: (profiles) {
-                                      if (profiles.isEmpty) {
-                                        return _nameFocusNode;
-                                      }
-                                      _syncProfileFocusNodes(profiles.length);
-                                      return _profileFocusNodes.first;
-                                    },
-                                    orElse: () => null,
-                                  ),
-                                  blockLeft: true,
-                                  blockRight: true,
-                                  blockUp: true,
-                                ),
+                                onKeyEvent: (_, event) =>
+                                    FocusDirectionalNavigation.handleDirectionalKey(
+                                      event,
+                                      down: profilesAsync.maybeWhen(
+                                        data: (profiles) {
+                                          if (profiles.isEmpty) {
+                                            return _nameFocusNode;
+                                          }
+                                          _syncProfileFocusNodes(
+                                            profiles.length,
+                                          );
+                                          return _profileFocusNodes.first;
+                                        },
+                                        orElse: () => null,
+                                      ),
+                                      blockLeft: true,
+                                      blockRight: true,
+                                      blockUp: true,
+                                    ),
                                 child: LaunchRecoveryBanner(
                                   message: launchRecovery!.message,
                                   retryFocusNode: _retryFocusNode,
@@ -583,27 +586,22 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                 blockRight: true,
                                               ),
                                           child: CallbackShortcuts(
-                                            bindings:
-                                                <
-                                                  ShortcutActivator,
-                                                  VoidCallback
-                                                >{
-                                                  const SingleActivator(
-                                                    LogicalKeyboardKey
-                                                        .arrowDown,
-                                                  ): () => FocusDirectionalNavigation.requestFocus(
+                                            bindings: <ShortcutActivator, VoidCallback>{
+                                              const SingleActivator(
+                                                LogicalKeyboardKey.arrowDown,
+                                              ): () =>
+                                                  FocusDirectionalNavigation.requestFocus(
                                                     _submitFocusNode,
                                                   ),
-                                                  if (launchRecovery
-                                                          ?.isRetryable ??
-                                                      false)
-                                                    const SingleActivator(
-                                                      LogicalKeyboardKey
-                                                          .arrowUp,
-                                                    ): () => FocusDirectionalNavigation.requestFocus(
+                                              if (launchRecovery?.isRetryable ??
+                                                  false)
+                                                const SingleActivator(
+                                                  LogicalKeyboardKey.arrowUp,
+                                                ): () =>
+                                                    FocusDirectionalNavigation.requestFocus(
                                                       _retryFocusNode,
                                                     ),
-                                                },
+                                            },
                                             child: TextFormField(
                                               controller: _nameCtrl,
                                               focusNode: _nameFocusNode,

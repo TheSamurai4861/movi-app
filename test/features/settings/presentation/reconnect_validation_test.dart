@@ -9,7 +9,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/features/auth/presentation/auth_otp_page.dart';
+import 'package:movi/src/features/auth/presentation/auth_password_page.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ void main() {
   });
 
   testWidgets(
-    'returns to previous screen after successful OTP auth launched from settings',
+    'returns to previous screen after successful password auth launched from settings',
     (tester) async {
       final authRepository = _FakeAuthRepository();
       sl.registerSingleton<AuthRepository>(authRepository);
@@ -45,7 +45,7 @@ void main() {
           GoRoute(
             path: '/auth',
             builder: (context, state) =>
-                const AuthOtpPage(returnOnSuccess: true),
+                const AuthPasswordPage(returnOnSuccess: true),
           ),
         ],
       );
@@ -68,14 +68,14 @@ void main() {
       await tester.tap(find.text('Open auth'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AuthOtpPage), findsOneWidget);
+      expect(find.byType(AuthPasswordPage), findsOneWidget);
 
       authRepository.setAuthenticated();
       await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('Open auth'), findsOneWidget);
-      expect(find.byType(AuthOtpPage), findsNothing);
+      expect(find.byType(AuthPasswordPage), findsNothing);
     },
   );
 }

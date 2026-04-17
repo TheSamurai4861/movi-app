@@ -972,6 +972,47 @@ class AppLocalizationsFr extends AppLocalizations {
   String get authOtpChangeEmail => 'Changer d’e-mail';
 
   @override
+  String get authOtpUsePassword => 'Utiliser le mot de passe';
+
+  @override
+  String get authPasswordTitle => 'Connexion';
+
+  @override
+  String get authPasswordSubtitle =>
+      'Saisissez votre e-mail et votre mot de passe pour continuer.';
+
+  @override
+  String get authPasswordEmailLabel => 'E-mail';
+
+  @override
+  String get authPasswordEmailHint => 'nom@exemple.com';
+
+  @override
+  String get authPasswordEmailHelp =>
+      'Utilisez l\'adresse e-mail li�e � votre compte.';
+
+  @override
+  String get authPasswordPasswordLabel => 'Mot de passe';
+
+  @override
+  String get authPasswordPasswordHint => 'Votre mot de passe';
+
+  @override
+  String get authPasswordPasswordHelp =>
+      'Votre mot de passe est sensible � la casse.';
+
+  @override
+  String get authPasswordPrimarySubmit => 'Se connecter';
+
+  @override
+  String get authPasswordForgotPassword => 'Mot de passe oubli� ?';
+
+  @override
+  String get authPasswordResetSent => 'E-mail de r�initialisation envoy�.';
+
+  @override
+  String get authPasswordUseOtp => 'Utiliser un code e-mail';
+  @override
   String get resumePlayback => 'Reprendre lecture';
 
   @override

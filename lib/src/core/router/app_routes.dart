@@ -13,6 +13,7 @@ import 'package:movi/src/core/router/launch_redirect_guard.dart';
 import 'package:movi/src/core/router/not_found_page.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/parental/presentation/pages/pin_recovery_page.dart';
+import 'package:movi/src/features/auth/presentation/auth_password_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_otp_page.dart';
 import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
@@ -142,9 +143,15 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       pageBuilder: (context, state) {
         final returnOnSuccess =
             state.uri.queryParameters['return_to'] == 'previous';
+        final useOtpFallback = state.uri.queryParameters['mode'] == 'otp';
 
         return MaterialPage(
-          child: AuthOtpPage(returnOnSuccess: returnOnSuccess),
+          child: useOtpFallback
+              ? AuthOtpPage(
+                  returnOnSuccess: returnOnSuccess,
+                  showPasswordFallback: true,
+                )
+              : AuthPasswordPage(returnOnSuccess: returnOnSuccess),
         );
       },
     ),

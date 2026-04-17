@@ -970,6 +970,45 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authOtpChangeEmail => 'E-mail wijzigen';
 
   @override
+  String get authOtpUsePassword => 'Use password instead';
+
+  @override
+  String get authPasswordTitle => 'Sign in';
+
+  @override
+  String get authPasswordSubtitle =>
+      'Enter your email and password to continue.';
+
+  @override
+  String get authPasswordEmailLabel => 'Email';
+
+  @override
+  String get authPasswordEmailHint => 'name@example.com';
+
+  @override
+  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+
+  @override
+  String get authPasswordPasswordLabel => 'Password';
+
+  @override
+  String get authPasswordPasswordHint => 'Your password';
+
+  @override
+  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+
+  @override
+  String get authPasswordPrimarySubmit => 'Sign in';
+
+  @override
+  String get authPasswordForgotPassword => 'Forgot password?';
+
+  @override
+  String get authPasswordResetSent => 'Password reset email sent.';
+
+  @override
+  String get authPasswordUseOtp => 'Use email code instead';
+  @override
   String get resumePlayback => 'Afspelen hervatten';
 
   @override

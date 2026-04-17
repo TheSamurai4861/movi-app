@@ -957,7 +957,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return FocusDirectionalNavigation.handleDirectionalTransition(
       event,
-      onLeft: () => index == 0 ? _focusSidebarFromRegionExit() : _focusProfileNodeAt(index - 1),
+      onLeft: () => index == 0
+          ? _focusSidebarFromRegionExit()
+          : _focusProfileNodeAt(index - 1),
       onRight: () => index + 1 < profileCount
           ? _focusProfileNodeAt(index + 1)
           : FocusDirectionalNavigation.requestFocus(_addProfileFocusNode),
@@ -972,7 +974,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }) {
     return FocusDirectionalNavigation.handleDirectionalKey(
       event,
-      left: profileCount > 0 ? _profileFocusNodes[profileCount - 1] : _firstProfileFocusNode,
+      left: profileCount > 0
+          ? _profileFocusNodes[profileCount - 1]
+          : _firstProfileFocusNode,
       blockUp: true,
       blockRight: true,
       blockDown: false,
@@ -1145,9 +1149,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     color: const Color.fromARGB(20, 255, 255, 255),
                     icon: AppAssets.iconPlus,
                     focusNode: _addProfileFocusNode,
-                    onTap: () => _onAddProfile(
-                      triggerFocusNode: _addProfileFocusNode,
-                    ),
+                    onTap: () =>
+                        _onAddProfile(triggerFocusNode: _addProfileFocusNode),
                   ),
                 ),
               ],
@@ -1175,13 +1178,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       event: event,
                       index: index,
                       profileCount: profiles.length,
-                      onLongPress: () =>
-                          unawaited(
-                            _onManageProfile(
-                              profiles[index],
-                              triggerFocusNode: _profileFocusNodes[index],
-                            ),
-                          ),
+                      onLongPress: () => unawaited(
+                        _onManageProfile(
+                          profiles[index],
+                          triggerFocusNode: _profileFocusNodes[index],
+                        ),
+                      ),
                     ),
                     child: _buildProfileCircle(
                       name: profiles[index].name,
@@ -1190,13 +1192,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       isSelected: profiles[index].id == selectedProfileId,
                       focusNode: _profileFocusNodes[index],
                       onTap: () => unawaited(_onSelectProfile(profiles[index])),
-                      onLongPress: () =>
-                          unawaited(
-                            _onManageProfile(
-                              profiles[index],
-                              triggerFocusNode: _profileFocusNodes[index],
-                            ),
-                          ),
+                      onLongPress: () => unawaited(
+                        _onManageProfile(
+                          profiles[index],
+                          triggerFocusNode: _profileFocusNodes[index],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1211,9 +1212,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: const Color.fromARGB(20, 255, 255, 255),
                   icon: AppAssets.iconPlus,
                   focusNode: _addProfileFocusNode,
-                  onTap: () => _onAddProfile(
-                    triggerFocusNode: _addProfileFocusNode,
-                  ),
+                  onTap: () =>
+                      _onAddProfile(triggerFocusNode: _addProfileFocusNode),
                 ),
               ),
             ],
@@ -1258,7 +1258,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       if (!hasCloudSession && client != null)
         _buildSettingItem(
-          title: AppLocalizations.of(context)!.authOtpPrimarySubmit,
+          title: AppLocalizations.of(context)!.authPasswordPrimarySubmit,
           onTap: () => _guard(
             () => context.push('${AppRoutePaths.authOtp}?return_to=previous'),
           ),
