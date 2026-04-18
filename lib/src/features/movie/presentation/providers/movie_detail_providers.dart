@@ -13,6 +13,7 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
@@ -463,11 +464,19 @@ final sagaMoviesProvider = FutureProvider.family<List<MoviMedia>, SagaSummary?>(
 
     try {
       final sagaRepo = ref.watch(slProvider)<SagaRepository>();
+      final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
       final saga = await sagaRepo.getSaga(sagaLink.id);
+      final availableIds = await iptvLocal.getAvailableTmdbIds(
+        type: XtreamPlaylistItemType.movie,
+      );
 
       // Convertir les SagaEntry en MoviMedia et trier par timelineYear
       final movies = saga.timeline
           .where((entry) => entry.reference.type == ContentType.movie)
+          .where((entry) {
+            final movieId = int.tryParse(entry.reference.id);
+            return movieId != null && availableIds.contains(movieId);
+          })
           .map((entry) {
             final ref = entry.reference;
             return MoviMedia(

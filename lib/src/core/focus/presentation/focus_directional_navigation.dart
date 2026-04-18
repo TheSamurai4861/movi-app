@@ -4,11 +4,29 @@ import 'package:flutter/widgets.dart';
 class FocusDirectionalNavigation {
   const FocusDirectionalNavigation._();
 
+  static bool isEditableTextFocused() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    if (focusContext.widget is EditableText) return true;
+    if (focusContext.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return true;
+    }
+    if (focusContext.findAncestorStateOfType<EditableTextState>() != null) {
+      return true;
+    }
+    return false;
+  }
+
   static KeyEventResult handleBackKey(
     KeyEvent event, {
     required bool Function() onBack,
   }) {
     if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.backspace &&
+        isEditableTextFocused()) {
       return KeyEventResult.ignored;
     }
 
@@ -102,7 +120,6 @@ class FocusDirectionalNavigation {
 
     return KeyEventResult.ignored;
   }
-
 
   static KeyEventResult handleHorizontalGroupKey(
     KeyEvent event, {

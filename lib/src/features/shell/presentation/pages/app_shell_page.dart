@@ -117,10 +117,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   static Widget _settingsBuilder(BuildContext _) => const SettingsPage();
 
   bool _isTextInputFocused() {
-    final focus = FocusManager.instance.primaryFocus;
-    final ctx = focus?.context;
-    if (ctx == null) return false;
-    return ctx.findAncestorStateOfType<EditableTextState>() != null;
+    return FocusDirectionalNavigation.isEditableTextFocused();
   }
 
   void _focusPrimaryEntryWithRetry(

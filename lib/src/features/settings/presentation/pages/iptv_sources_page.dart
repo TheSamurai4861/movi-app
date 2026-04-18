@@ -41,6 +41,20 @@ import 'package:movi/src/features/welcome/presentation/providers/bootstrap_provi
 import 'package:movi/src/features/settings/presentation/services/iptv_source_remote_delete_service.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
+@visibleForTesting
+bool shouldHandleIptvSourcesBackKey({
+  required LogicalKeyboardKey key,
+  required bool isTextInputFocused,
+}) {
+  if (key == LogicalKeyboardKey.goBack || key == LogicalKeyboardKey.escape) {
+    return true;
+  }
+  if (key == LogicalKeyboardKey.backspace) {
+    return !isTextInputFocused;
+  }
+  return false;
+}
+
 class IptvSourcesPage extends ConsumerStatefulWidget {
   const IptvSourcesPage({super.key});
 
@@ -313,11 +327,22 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     return true;
   }
 
+  bool _isTextInputFocused() {
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) return false;
+    return focusContext.findAncestorStateOfType<EditableTextState>() != null;
+  }
+
+  bool _shouldHandleRouteBackKey(LogicalKeyboardKey key) {
+    return shouldHandleIptvSourcesBackKey(
+      key: key,
+      isTextInputFocused: _isTextInputFocused(),
+    );
+  }
+
   KeyEventResult _handleRouteBackKey(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
+    if (_shouldHandleRouteBackKey(event.logicalKey)) {
       return _handleRouteBack()
           ? KeyEventResult.handled
           : KeyEventResult.ignored;

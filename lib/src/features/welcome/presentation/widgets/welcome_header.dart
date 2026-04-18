@@ -7,10 +7,16 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 
 class WelcomeHeader extends ConsumerWidget {
-  const WelcomeHeader({super.key, this.title, this.subtitle});
+  const WelcomeHeader({
+    super.key,
+    this.title,
+    this.subtitle,
+    this.adaptLogoToNarrowScreen = false,
+  });
 
   final String? title;
   final String? subtitle;
+  final bool adaptLogoToNarrowScreen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -19,6 +25,9 @@ class WelcomeHeader extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final resolvedTitle = title ?? l10n.welcomeTitle;
     final resolvedSubtitle = subtitle ?? l10n.welcomeSubtitle;
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final isNarrowViewport = adaptLogoToNarrowScreen && viewportWidth <= 560;
+    final logoSize = isNarrowViewport ? 88.0 : 100.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -27,8 +36,8 @@ class WelcomeHeader extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: MoviAssetIcon(
             AppAssets.iconAppLogoSvg,
-            width: 100,
-            height: 100,
+            width: logoSize,
+            height: logoSize,
             color: accentColor,
           ),
         ),

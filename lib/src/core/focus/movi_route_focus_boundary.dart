@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
 
 class MoviRouteFocusBoundary extends StatefulWidget {
@@ -140,6 +141,11 @@ class _MoviRouteFocusBoundaryState extends State<MoviRouteFocusBoundary> {
       }
       final handled = widget.onUnhandledLeft?.call() ?? false;
       return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.backspace &&
+        FocusDirectionalNavigation.isEditableTextFocused()) {
+      return KeyEventResult.ignored;
     }
 
     if (event.logicalKey == LogicalKeyboardKey.goBack ||

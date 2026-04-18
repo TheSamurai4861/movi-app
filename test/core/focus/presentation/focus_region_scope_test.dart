@@ -532,4 +532,76 @@ void main() {
     await tester.pump();
     expect(FocusManager.instance.primaryFocus, same(targetNode));
   });
+
+  testWidgets(
+    'backspace does not resolve exit map when an editable text is focused',
+    (tester) async {
+      final orchestrator = DefaultFocusOrchestrator();
+      final sourceNode = FocusNode(debugLabel: 'source');
+      final targetNode = FocusNode(debugLabel: 'target');
+      final textFocusNode = FocusNode(debugLabel: 'searchField');
+      final textController = TextEditingController(text: 'abc');
+      addTearDown(sourceNode.dispose);
+      addTearDown(targetNode.dispose);
+      addTearDown(textFocusNode.dispose);
+      addTearDown(textController.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            focusOrchestratorProvider.overrideWithValue(orchestrator),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Column(
+                children: [
+                  FocusRegionScope(
+                    regionId: AppFocusRegionId.searchInput,
+                    binding: FocusRegionBinding(
+                      resolvePrimaryEntryNode: () => sourceNode,
+                    ),
+                    exitMap: FocusRegionExitMap({
+                      DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+                    }),
+                    child: Column(
+                      children: [
+                        Focus(
+                          focusNode: sourceNode,
+                          child: const SizedBox(height: 1, width: 1),
+                        ),
+                        TextField(
+                          focusNode: textFocusNode,
+                          controller: textController,
+                        ),
+                      ],
+                    ),
+                  ),
+                  FocusRegionScope(
+                    regionId: AppFocusRegionId.shellSidebar,
+                    binding: FocusRegionBinding(
+                      resolvePrimaryEntryNode: () => targetNode,
+                    ),
+                    child: Focus(
+                      focusNode: targetNode,
+                      child: const SizedBox(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      textFocusNode.requestFocus();
+      await tester.pump();
+      expect(FocusManager.instance.primaryFocus, same(textFocusNode));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+      await tester.pump();
+
+      expect(FocusManager.instance.primaryFocus, same(textFocusNode));
+      expect(targetNode.hasFocus, isFalse);
+    },
+  );
 }

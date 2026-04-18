@@ -6,6 +6,7 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/directional_edge.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 
 class FocusRegionScope extends ConsumerStatefulWidget {
@@ -137,6 +138,10 @@ class _FocusRegionScopeState extends ConsumerState<FocusRegionScope> {
     if (key == LogicalKeyboardKey.arrowRight) return DirectionalEdge.right;
     if (key == LogicalKeyboardKey.arrowUp) return DirectionalEdge.up;
     if (key == LogicalKeyboardKey.arrowDown) return DirectionalEdge.down;
+    if (key == LogicalKeyboardKey.backspace &&
+        FocusDirectionalNavigation.isEditableTextFocused()) {
+      return null;
+    }
     if (key == LogicalKeyboardKey.goBack ||
         key == LogicalKeyboardKey.escape ||
         key == LogicalKeyboardKey.backspace) {

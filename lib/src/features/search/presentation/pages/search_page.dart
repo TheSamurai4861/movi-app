@@ -27,6 +27,8 @@ import 'package:movi/src/features/search/presentation/widgets/watch_providers_gr
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 
+const int _searchQueryMinLength = 3;
+
 /// SearchPage (version "content-only" pour être hostée par le Shell).
 ///
 /// ✅ Changements clés vs l'ancienne version:
@@ -65,18 +67,30 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     debugLabel: 'SearchFirstSagaResult',
   );
 
+  String _lastTextValue = '';
+  String? _programmaticTextReason;
+  DateTime? _lastUserTypingAt;
+  bool _allowExpectedInputUnfocus = false;
   bool _syncedFromState = false;
   bool _historyVisibilityLock = false;
   bool _historySectionHasFocus = false;
   bool _searchInputActivated = false;
   String? _pendingAutoFocusResultsQuery;
   Timer? _historyHideTimer;
+
+  void _debugSearchFocus(String message) {
+    assert(() {
+      debugPrint('[DEBUG][SearchFocus] $message');
+      return true;
+    }());
+  }
+
   int _providerFocusRequestId = 0;
   int? _providerFocusRequestColumn;
   int _genreFocusRequestId = 0;
   int? _genreFocusRequestColumn;
 
-  bool get _hasQuery => _textCtrl.text.trim().length >= 3;
+  bool get _hasQuery => _textCtrl.text.trim().length >= _searchQueryMinLength;
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -145,22 +159,67 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     // Rebuild quand focus/text change (utile pour basculer "history/results").
     _textCtrl.addListener(_onTextChangedLocal);
     _focusNode.addListener(_onFocusChangedLocal);
+    _clearFocusNode.addListener(_onClearFocusChangedLocal);
     HardwareKeyboard.instance.addHandler(_handleSearchKeyboard);
+  }
+
+  void _markProgrammaticTextChange(String reason) {
+    _programmaticTextReason = reason;
   }
 
   void _onTextChangedLocal() {
     if (!mounted) return;
+    final current = _textCtrl.text;
+    final reason = _programmaticTextReason;
+    if (reason == null || reason == 'user_or_unknown') {
+      _lastUserTypingAt = DateTime.now();
+    }
+    _programmaticTextReason = null;
+    _debugSearchFocus(
+      'textChanged value="$current" prev="$_lastTextValue" len=${current.trim().length} hasFocus=${_focusNode.hasFocus} clearHasFocus=${_clearFocusNode.hasFocus} reason=${reason ?? 'user_or_unknown'}',
+    );
+    _lastTextValue = current;
     setState(() {});
+  }
+
+  void _onClearFocusChangedLocal() {
+    if (!mounted) return;
+    _debugSearchFocus(
+      'clearFocusChanged clearHasFocus=${_clearFocusNode.hasFocus} inputHasFocus=${_focusNode.hasFocus}',
+    );
   }
 
   void _onFocusChangedLocal() {
     if (!mounted) return;
+    final primary = FocusManager.instance.primaryFocus;
+    _debugSearchFocus(
+      'focusChanged inputHasFocus=${_focusNode.hasFocus} primary=${primary?.debugLabel ?? 'null'} text="${_textCtrl.text}"',
+    );
     _historyHideTimer?.cancel();
     if (_focusNode.hasFocus) {
       if (_historyVisibilityLock) {
         _historyVisibilityLock = false;
       }
       setState(() {});
+      return;
+    }
+    final recentlyTyped =
+        _lastUserTypingAt != null &&
+        DateTime.now().difference(_lastUserTypingAt!) <
+            const Duration(milliseconds: 450);
+    final shouldRestoreUnexpectedDrop =
+        !_allowExpectedInputUnfocus &&
+        _searchInputActivated &&
+        recentlyTyped &&
+        !_clearFocusNode.hasFocus;
+    if (shouldRestoreUnexpectedDrop) {
+      _debugSearchFocus(
+        'unexpected focus drop detected -> restoring input focus (primary=${primary?.debugLabel ?? 'null'})',
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        FocusDirectionalNavigation.requestFocus(_focusNode);
+      });
       return;
     }
     _searchInputActivated = false;
@@ -182,6 +241,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _historyHideTimer?.cancel();
     _textCtrl.removeListener(_onTextChangedLocal);
     _focusNode.removeListener(_onFocusChangedLocal);
+    _clearFocusNode.removeListener(_onClearFocusChangedLocal);
     _textCtrl.dispose();
     _focusNode.dispose();
     _clearFocusNode.dispose();
@@ -223,7 +283,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   void _scheduleResultsAutoFocus(String query) {
     final trimmed = query.trim();
-    _pendingAutoFocusResultsQuery = trimmed.length >= 3 ? trimmed : null;
+    _pendingAutoFocusResultsQuery = trimmed.length >= _searchQueryMinLength
+        ? trimmed
+        : null;
+  }
+
+  void _runWithExpectedInputUnfocus(VoidCallback action) {
+    _allowExpectedInputUnfocus = true;
+    action();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _allowExpectedInputUnfocus = false;
+    });
   }
 
   void _focusNearestProviderFromGenres(int column) {
@@ -268,8 +338,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   bool _focusFirstSearchResult({bool restoreLastFocused = false}) {
     final regionId = _firstAvailableResultsRegion();
     if (regionId == null) {
+      _debugSearchFocus('focusFirstSearchResult skipped (no region)');
       return false;
     }
+    _debugSearchFocus(
+      'focusFirstSearchResult enter region=$regionId restore=$restoreLastFocused',
+    );
     return _enterRegion(regionId, restoreLastFocused: restoreLastFocused);
   }
 
@@ -322,9 +396,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             onLeft: () => _resolveExitFromRegion(AppFocusRegionId.searchInput),
             onRight: _textCtrl.text.isEmpty
                 ? null
-                : () => FocusDirectionalNavigation.requestFocus(
-                    _clearFocusNode,
-                  ),
+                : () =>
+                      FocusDirectionalNavigation.requestFocus(_clearFocusNode),
             onUp: () => true,
             onDown: () {
               _focusSearchContentBelow(preferHistory: _hasHistoryItems());
@@ -393,18 +466,30 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     if (_pendingAutoFocusResultsQuery != null &&
         !state.isLoading &&
         state.query == _pendingAutoFocusResultsQuery) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (hasAnyResults) {
-          _focusFirstSearchResult();
-        }
-      });
-      _pendingAutoFocusResultsQuery = null;
+      if (_focusNode.hasFocus || _searchInputActivated) {
+        _debugSearchFocus(
+          'pendingAutoFocus cleared (input active) query="${_pendingAutoFocusResultsQuery!}"',
+        );
+        _pendingAutoFocusResultsQuery = null;
+      } else {
+        _debugSearchFocus(
+          'pendingAutoFocus applying query="${_pendingAutoFocusResultsQuery!}"',
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (hasAnyResults) {
+            _focusFirstSearchResult();
+          }
+        });
+        _pendingAutoFocusResultsQuery = null;
+      }
     }
 
     if (!_syncedFromState) {
       final existing = state.query.trim();
       if (existing.isNotEmpty && _textCtrl.text.trim() != existing) {
+        _markProgrammaticTextChange('initial_sync_from_state');
+        _debugSearchFocus('initialSync setText="$existing"');
         _textCtrl.text = existing;
         _textCtrl.selection = TextSelection.fromPosition(
           TextPosition(offset: _textCtrl.text.length),
@@ -423,13 +508,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             constraints: BoxConstraints(maxWidth: contentMaxWidth),
             child: Text(
               l10n.searchTitle,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ) ??
-                          const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+              style:
+                  Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ) ??
+                  const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -448,14 +531,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               hintText: l10n.searchHint,
               clearTooltip: l10n.clear,
               onArrowLeft: () {
-                _resolveExitFromRegion(AppFocusRegionId.searchInput);
+                _runWithExpectedInputUnfocus(() {
+                  _resolveExitFromRegion(AppFocusRegionId.searchInput);
+                });
               },
               onArrowUp: _noop,
-              onArrowDown: () =>
-                  _focusSearchContentBelow(preferHistory: hasHistoryItems),
+              onArrowDown: () => _runWithExpectedInputUnfocus(
+                () => _focusSearchContentBelow(preferHistory: hasHistoryItems),
+              ),
               onArrowRight: () {
                 if (_textCtrl.text.isEmpty) return;
-                FocusDirectionalNavigation.requestFocus(_clearFocusNode);
+                _runWithExpectedInputUnfocus(() {
+                  FocusDirectionalNavigation.requestFocus(_clearFocusNode);
+                });
               },
               onClearArrowLeft: () {
                 FocusDirectionalNavigation.requestFocus(_focusNode);
@@ -465,10 +553,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               onActivate: () => _setSearchInputActivated(true),
               onChanged: (value) {
                 _setSearchInputActivated(true);
+                _pendingAutoFocusResultsQuery = null;
+                _debugSearchFocus(
+                  'onChanged value="$value" len=${value.trim().length} pendingAutoFocusCleared=true',
+                );
                 ctrl.setQuery(value);
 
-                if (value.trim().length < 3) {
-                  _pendingAutoFocusResultsQuery = null;
+                if (value.trim().length < _searchQueryMinLength) {
                   unawaited(
                     ref
                         .read(searchHistoryControllerProvider.notifier)
@@ -477,6 +568,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 }
               },
               onClear: () {
+                _debugSearchFocus(
+                  'onClear pressed textBefore="${_textCtrl.text}"',
+                );
+                _markProgrammaticTextChange('on_clear_pressed');
                 _textCtrl.clear();
                 ctrl.setQuery('');
                 _pendingAutoFocusResultsQuery = null;
@@ -488,8 +583,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               onSubmitted: (value) {
                 _setSearchInputActivated(true);
                 _scheduleResultsAutoFocus(value);
+                _debugSearchFocus(
+                  'onSubmitted value="$value" pendingAutoFocus="${_pendingAutoFocusResultsQuery ?? ''}"',
+                );
                 ctrl.setQueryImmediate(value);
-                FocusScope.of(context).unfocus();
+                _runWithExpectedInputUnfocus(() {
+                  FocusScope.of(context).unfocus();
+                });
               },
             ),
           ),
@@ -551,7 +651,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             context,
                             ref,
                             ContentRouteArgs.movie(mm.id),
-                            originRegionId: AppFocusRegionId.searchResultsMovies,
+                            originRegionId:
+                                AppFocusRegionId.searchResultsMovies,
                             fallbackRegionId:
                                 AppFocusRegionId.searchResultsMovies,
                           ),
@@ -609,7 +710,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             context,
                             ref,
                             ContentRouteArgs.series(mm.id),
-                            originRegionId: AppFocusRegionId.searchResultsSeries,
+                            originRegionId:
+                                AppFocusRegionId.searchResultsSeries,
                             fallbackRegionId:
                                 AppFocusRegionId.searchResultsSeries,
                           ),
@@ -828,6 +930,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                             });
                                           },
                                           onSelect: (q) {
+                                            _debugSearchFocus(
+                                              'historySelect query="$q"',
+                                            );
+                                            _markProgrammaticTextChange(
+                                              'history_select',
+                                            );
                                             _textCtrl.text = q;
                                             _textCtrl.selection =
                                                 TextSelection.fromPosition(
@@ -838,7 +946,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                                 );
                                             _scheduleResultsAutoFocus(q);
                                             ctrl.setQueryImmediate(q);
-                                            FocusScope.of(context).unfocus();
+                                            _runWithExpectedInputUnfocus(() {
+                                              FocusScope.of(context).unfocus();
+                                            });
                                           },
                                         ),
                                       ),
@@ -950,7 +1060,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               : RefreshIndicator(
                   onRefresh: () async {
                     final q = _textCtrl.text.trim();
-                    if (q.length < 3) {
+                    if (q.length < _searchQueryMinLength) {
                       await ref
                           .read(searchHistoryControllerProvider.notifier)
                           .refresh();

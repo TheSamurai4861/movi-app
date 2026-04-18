@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
@@ -14,6 +15,16 @@ import 'package:movi/src/features/saga/domain/usecases/search_sagas.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+const int _minSearchQueryLength = 3;
+const Duration _searchInputDebounce = Duration(milliseconds: 1400);
+
+void _debugSearchController(String message) {
+  assert(() {
+    debugPrint('[DEBUG][SearchCtrl] $message');
+    return true;
+  }());
+}
 
 class SearchState {
   const SearchState({
@@ -62,6 +73,7 @@ class SearchInstantController extends Notifier<SearchState> {
   Future<void> Function(String query)? _addToHistory;
   Timer? _debounce;
   bool _profileListenerAttached = false;
+  int _queryRevision = 0;
 
   @override
   SearchState build() {
@@ -89,10 +101,13 @@ class SearchInstantController extends Notifier<SearchState> {
         if (!changed) return;
 
         final q = state.query.trim();
-        if (q.length < 3) return;
+        if (q.length < _minSearchQueryLength) return;
         _debounce?.cancel();
         _debounce = null;
-        unawaited(_performSearch(q, addToHistory: false));
+        final revision = _queryRevision;
+        unawaited(
+          _performSearch(q, requestRevision: revision, addToHistory: false),
+        );
       });
     }
 
@@ -105,9 +120,16 @@ class SearchInstantController extends Notifier<SearchState> {
 
   void setQuery(String q) {
     final query = q.trim();
+    final revision = ++_queryRevision;
+    _debugSearchController(
+      'setQuery query="$query" len=${query.length} rev=$revision',
+    );
     state = state.copyWith(query: query);
     _debounce?.cancel();
-    if (query.length < 3) {
+    if (query.length < _minSearchQueryLength) {
+      _debugSearchController(
+        'setQuery cleared results (below min=$_minSearchQueryLength)',
+      );
       state = state.copyWith(
         movies: const [],
         shows: const [],
@@ -118,14 +140,21 @@ class SearchInstantController extends Notifier<SearchState> {
       );
       return;
     }
-    _debounce = Timer(const Duration(seconds: 1), () => _performSearch(query));
+    _debounce = Timer(_searchInputDebounce, () {
+      _debugSearchController('debounce fired query="$query" rev=$revision');
+      _performSearch(query, requestRevision: revision, addToHistory: false);
+    });
   }
 
   void setQueryImmediate(String q) {
     final query = q.trim();
+    final revision = ++_queryRevision;
+    _debugSearchController(
+      'setQueryImmediate query="$query" len=${query.length} rev=$revision',
+    );
     _debounce?.cancel();
     state = state.copyWith(query: query);
-    if (query.length < 3) {
+    if (query.length < _minSearchQueryLength) {
       state = state.copyWith(
         movies: const [],
         shows: const [],
@@ -136,10 +165,23 @@ class SearchInstantController extends Notifier<SearchState> {
       );
       return;
     }
-    _performSearch(query);
+    _performSearch(query, requestRevision: revision);
   }
 
-  Future<void> _performSearch(String query, {bool addToHistory = true}) async {
+  Future<void> _performSearch(
+    String query, {
+    required int requestRevision,
+    bool addToHistory = true,
+  }) async {
+    if (requestRevision != _queryRevision || state.query != query) {
+      _debugSearchController(
+        'skip stale search query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.query}"',
+      );
+      return;
+    }
+    _debugSearchController(
+      'start search query="$query" rev=$requestRevision addToHistory=$addToHistory',
+    );
     state = state.copyWith(isLoading: true, error: null);
     try {
       final res = await Future.wait([
@@ -148,6 +190,12 @@ class SearchInstantController extends Notifier<SearchState> {
         _instant.people(query),
         _searchSagas(query),
       ]);
+      if (requestRevision != _queryRevision || state.query != query) {
+        _debugSearchController(
+          'drop stale response query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.query}"',
+        );
+        return;
+      }
       var movies = res[0] as List<MovieSummary>;
       var shows = res[1] as List<TvShowSummary>;
       final people = res[2] as List<PersonSummary>;
@@ -202,15 +250,30 @@ class SearchInstantController extends Notifier<SearchState> {
         sagas: sagas,
         isLoading: false,
       );
+      _debugSearchController(
+        'search success query="$query" movies=${movies.length} shows=${shows.length} people=${people.length} sagas=${sagas.length}',
+      );
     } catch (e) {
+      if (requestRevision != _queryRevision || state.query != query) {
+        _debugSearchController(
+          'drop stale error query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.query}"',
+        );
+        return;
+      }
       state = state.copyWith(
         isLoading: false,
         error: 'Échec de la recherche: $e',
       );
+      _debugSearchController('search error query="$query" error=$e');
     } finally {
       final add = _addToHistory;
-      if (addToHistory && add != null && query.trim().length >= 3) {
+      if (requestRevision == _queryRevision &&
+          state.query == query &&
+          addToHistory &&
+          add != null &&
+          query.trim().length >= _minSearchQueryLength) {
         await add(query);
+        _debugSearchController('history add query="$query"');
       }
     }
   }

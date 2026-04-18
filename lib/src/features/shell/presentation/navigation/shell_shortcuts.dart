@@ -2,6 +2,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 
 /// Intent: sélectionner un onglet précis.
@@ -75,12 +76,6 @@ class ShellShortcuts extends StatelessWidget {
   }
 
   bool _isTextInputFocused() {
-    final focus = FocusManager.instance.primaryFocus;
-    final ctx = focus?.context;
-    if (ctx == null) return false;
-
-    // Compatible avec plus de versions Flutter :
-    // Si le focus actuel est dans un EditableText (TextField, etc.), on coupe les shortcuts.
-    return ctx.findAncestorStateOfType<EditableTextState>() != null;
+    return FocusDirectionalNavigation.isEditableTextFocused();
   }
 }

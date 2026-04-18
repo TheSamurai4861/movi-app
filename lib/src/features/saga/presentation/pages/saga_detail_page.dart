@@ -535,6 +535,19 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                   );
                                   return availabilityAsync.when(
                                     data: (availability) {
+                                      final availableMovies = movies
+                                          .where((movie) {
+                                            final movieId = int.tryParse(
+                                              movie.id,
+                                            );
+                                            return movieId != null &&
+                                                (availability[movieId] ??
+                                                    false);
+                                          })
+                                          .toList(growable: false);
+                                      _syncMovieFocusNodes(
+                                        availableMovies.length,
+                                      );
                                       return SizedBox(
                                         height: MoviMediaCard.listHeight,
                                         child: Builder(
@@ -546,30 +559,26 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                                       Axis.horizontal,
                                                   clipBehavior: Clip.none,
                                                   padding: EdgeInsets.zero,
-                                                  itemCount: movies.length,
+                                                  itemCount:
+                                                      availableMovies.length,
                                                   separatorBuilder: (_, __) =>
                                                       const SizedBox(width: 16),
                                                   itemBuilder: (context, index) {
-                                                    final movie = movies[index];
-                                                    final movieId =
-                                                        int.tryParse(movie.id);
-                                                    final isAvailable =
-                                                        movieId != null &&
-                                                        (availability[movieId] ??
-                                                            false);
+                                                    final movie =
+                                                        availableMovies[index];
                                                     return MoviEnsureVisibleOnFocus(
                                                       horizontalAlignment: 0.18,
                                                       verticalAlignment: 0.34,
                                                       child: _SagaMovieCard(
                                                         media: movie,
-                                                        isAvailable:
-                                                            isAvailable,
+                                                        isAvailable: true,
                                                         focusNode:
                                                             _movieFocusNodes[index],
                                                         onKeyEvent: (event) =>
                                                             _handleMovieItemKey(
                                                               index,
-                                                              movies.length,
+                                                              availableMovies
+                                                                  .length,
                                                               event,
                                                             ),
                                                         onFocusChange: (hasFocus) {
@@ -592,49 +601,12 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                         child: CircularProgressIndicator(),
                                       ),
                                     ),
-                                    error: (_, __) => SizedBox(
-                                      height: MoviMediaCard.listHeight,
-                                      child: Builder(
-                                        builder: (listContext) =>
-                                            MoviVerticalEnsureVisibleTarget(
-                                              targetContext: listContext,
-                                              child: ListView.separated(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                clipBehavior: Clip.none,
-                                                padding: EdgeInsets.zero,
-                                                itemCount: movies.length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(width: 16),
-                                                itemBuilder: (context, index) {
-                                                  final movie = movies[index];
-                                                  return MoviEnsureVisibleOnFocus(
-                                                    horizontalAlignment: 0.18,
-                                                    verticalAlignment: 0.34,
-                                                    child: _SagaMovieCard(
-                                                      media: movie,
-                                                      isAvailable: true,
-                                                      focusNode:
-                                                          _movieFocusNodes[index],
-                                                      onKeyEvent: (event) =>
-                                                          _handleMovieItemKey(
-                                                            index,
-                                                            movies.length,
-                                                            event,
-                                                          ),
-                                                      onFocusChange: (hasFocus) {
-                                                        if (hasFocus) {
-                                                          _lastFocusedMovieIndex =
-                                                              index;
-                                                        }
-                                                      },
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                      ),
-                                    ),
+                                    error: (_, __) {
+                                      _syncMovieFocusNodes(0);
+                                      return const SizedBox(
+                                        height: MoviMediaCard.listHeight,
+                                      );
+                                    },
                                   );
                                 },
                               ),

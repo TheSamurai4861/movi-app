@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 
@@ -96,9 +97,7 @@ class _MoviRemoteNavigationState extends ConsumerState<MoviRemoteNavigation> {
   }
 
   bool _isTextInputFocused() {
-    final focusContext = FocusManager.instance.primaryFocus?.context;
-    if (focusContext == null) return false;
-    return focusContext.findAncestorStateOfType<EditableTextState>() != null;
+    return FocusDirectionalNavigation.isEditableTextFocused();
   }
 
   bool _hasModifierPressed() {
