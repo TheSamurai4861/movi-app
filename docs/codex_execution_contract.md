@@ -52,15 +52,15 @@ Ordre de priorite:
 
 Minimum attendu selon le type de tache:
 
-- Changement Dart/Flutter avec tests existants proches: lancer le ou les tests
+* Changement Dart/Flutter avec tests existants proches: lancer le ou les tests
   cibles puis `flutter analyze`.
-- Changement Dart/Flutter sans test cible evident: lancer au minimum
+* Changement Dart/Flutter sans test cible evident: lancer au minimum
   `flutter analyze`.
-- Correction de bug runtime/UI/navigation: reproduire avec les commandes de
+* Correction de bug runtime/UI/navigation: reproduire avec les commandes de
   `docs/run_logs_commands.md`, puis verifier le correctif sur le meme chemin.
-- Changement de documentation seule: aucune commande Flutter obligatoire, mais
+* Changement de documentation seule: aucune commande Flutter obligatoire, mais
   l'indiquer explicitement.
-- Changement de configuration ou CI: verifier au minimum la coherence locale
+* Changement de configuration ou CI: verifier au minimum la coherence locale
   lisible du fichier touche; lancer une commande locale si elle existe et si
   elle est pertinente.
 
@@ -68,34 +68,34 @@ Minimum attendu selon le type de tache:
 
 Quand un log est fourni, partir de ces entrees:
 
-- commande exacte lancee
-- chemin du log dans le workspace
-- comportement attendu
-- comportement observe
-- heure approximative si le log est long
+* commande exacte lancee
+* chemin du log dans le workspace
+* comportement attendu
+* comportement observe
+* heure approximative si le log est long
 
 Pour les reproductions runtime, preferer les commandes documentees dans
 `docs/run_logs_commands.md`.
 
 ## Regles logs et secrets
 
-- Utiliser les logs pour diagnostiquer, pas pour noyer la reponse.
-- Conserver les identifiants utiles au diagnostic quand ils sont deja masques.
-- Ne jamais republier un mot de passe, un token, une cle API ou une URL signee
+* Utiliser les logs pour diagnostiquer, pas pour noyer la reponse.
+* Conserver les identifiants utiles au diagnostic quand ils sont deja masques.
+* Ne jamais republier un mot de passe, un token, une cle API ou une URL signee
   sensible.
-- Si un log contient des secrets, les resumer ou les masquer dans la reponse.
+* Si un log contient des secrets, les resumer ou les masquer dans la reponse.
 
 ## Format de sortie attendu
 
 La reponse finale doit contenir, de facon concise:
 
-- ce qui a ete change
-- les fichiers touches
-- les commandes executees
-- le resultat des verifications
-- les risques restants, hypotheses ou points non verifies
+* ce qui a ete change
+* les fichiers touches
+* les commandes executees
+* le resultat des verifications
+* les risques restants, hypotheses ou points non verifies
 
 ## References du repository
 
-- Regles de code: `docs/rules.md`
-- Commandes de run et logs: `docs/run_logs_commands.md`
+* Regles de code: `docs/rules.md`
+* Commandes de run et logs: `docs/run_logs_commands.md`

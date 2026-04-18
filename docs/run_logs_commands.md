@@ -46,6 +46,8 @@ Run standard :
 ```powershell
 flutter run -d windows --dart-define-from-file=.env --dart-define=FORCE_STARTUP_DETAILS=true *>&1 | Tee-Object -FilePath output/flutter-run-windows.log
 ```
+setx MEM0_API_KEY "m0-mAKoEu6hnWg0HIJhnOQSlvisi6z5miF6MDVLkwlg"
+setx MEM0_AUTH_HEADER "Token m0-mAKoEu6hnWg0HIJhnOQSlvisi6z5miF6MDVLkwlg"
 
 Run tres verbeux :
 
