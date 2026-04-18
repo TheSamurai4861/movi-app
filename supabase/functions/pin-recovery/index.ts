@@ -12,6 +12,16 @@ type RequestBody = {
   pin?: string;
 };
 
+type PinRecoveryRequestRow = {
+  id: string;
+  profile_id: string;
+  created_at: string;
+  consumed_at: string | null;
+  code_hash: string | null;
+  code_expires_at: string | null;
+  attempts: number | null;
+};
+
 const corsHeaders = {
   "access-control-allow-origin": "*",
   "access-control-allow-headers":
@@ -20,10 +30,12 @@ const corsHeaders = {
 };
 
 const encoder = new TextEncoder();
-const recoveryRequestLifetimeMs = 60 * 60 * 1000;
+const recoveryCodeLifetimeMs = 15 * 60 * 1000;
 const resetTokenLifetimeMs = 15 * 60 * 1000;
 const recoveryCodePattern = /^\d{8}$/;
 const pinPattern = /^\d{4,6}$/;
+const maxVerifyAttempts = Number(Deno.env.get("PIN_RECOVERY_MAX_ATTEMPTS") ?? "5");
+const brevoEndpoint = "https://api.brevo.com/v3/smtp/email";
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -43,13 +55,13 @@ function asErrorMessage(error: unknown) {
   return String(error ?? "Unknown error");
 }
 
-function mapAuthError(error: unknown) {
+function mapError(error: unknown) {
   const message = asErrorMessage(error).toLowerCase();
 
   if (message.includes("expired")) {
     return { status: "expired", httpStatus: 400 };
   }
-  if (message.includes("rate") || message.includes("too many")) {
+  if (message.includes("rate") || message.includes("too many") || message.includes("quota")) {
     return { status: "too_many_attempts", httpStatus: 429 };
   }
   if (
@@ -116,6 +128,110 @@ function createOpaqueResetToken() {
     .replaceAll("=", "");
 }
 
+function createRecoveryCode() {
+  const random = crypto.getRandomValues(new Uint32Array(1))[0] % 100000000;
+  return random.toString().padStart(8, "0");
+}
+
+function parseFromAddress(raw: string) {
+  const trimmed = raw.trim();
+  const match = /^(.*)<([^>]+)>$/.exec(trimmed);
+  if (match) {
+    const name = match[1].trim().replace(/^"|"$/g, "");
+    const email = match[2].trim();
+    return {
+      name: name || "Movi",
+      email,
+    };
+  }
+
+  return {
+    name: "Movi",
+    email: trimmed,
+  };
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function buildPinRecoveryEmailHtml(code: string, expiresMinutes: number) {
+  const safeCode = escapeHtml(code);
+  const safeMinutes = escapeHtml(String(expiresMinutes));
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Code de recupération PIN</title>
+</head>
+<body style="margin:0;padding:0;background:#141414;font-family:Arial,Helvetica,sans-serif;color:#fff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#141414;padding:28px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:460px;background:#111;border:1px solid #2a2a2a;border-radius:16px;">
+          <tr>
+            <td style="padding:28px 22px;text-align:center;">
+              <p style="margin:0 0 8px 0;color:#2160AB;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;">Récupération PIN</p>
+              <h1 style="margin:0 0 12px 0;font-size:24px;line-height:1.3;">Voici votre code</h1>
+              <p style="margin:0 0 20px 0;color:#cfcfcf;font-size:15px;line-height:1.6;">Saisissez ce code dans l'application pour continuer.</p>
+              <p style="margin:0 0 20px 0;font-size:34px;line-height:1.2;font-weight:700;letter-spacing:6px;color:#fff;">${safeCode}</p>
+              <p style="margin:0;color:#b8b8b8;font-size:13px;line-height:1.6;">Ce code expire dans ${safeMinutes} minutes.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+async function sendBrevoPinRecoveryEmail(params: {
+  to: string;
+  code: string;
+  expiresMinutes: number;
+}) {
+  const apiKey = normalizeString(Deno.env.get("BREVO_API_KEY"));
+  const fromRaw = normalizeString(Deno.env.get("PIN_RECOVERY_EMAIL_FROM"));
+
+  if (!apiKey || !fromRaw) {
+    throw new Error("Missing BREVO_API_KEY or PIN_RECOVERY_EMAIL_FROM");
+  }
+
+  const from = parseFromAddress(fromRaw);
+  const htmlContent = buildPinRecoveryEmailHtml(params.code, params.expiresMinutes);
+
+  const response = await fetch(brevoEndpoint, {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        email: from.email,
+        name: from.name,
+      },
+      to: [{ email: params.to }],
+      subject: "Code de récupération PIN",
+      htmlContent,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Brevo error (${response.status}): ${body}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -140,7 +256,6 @@ serve(async (req) => {
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
-  const publicClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: userData, error: userErr } = await userClient.auth.getUser();
@@ -206,12 +321,19 @@ serve(async (req) => {
       });
     }
 
+    const code = createRecoveryCode();
+    const codeHash = await sha256Base64(code);
+    const codeExpiresAt = new Date(Date.now() + recoveryCodeLifetimeMs).toISOString();
+
     const { error: insertErr } = await serviceClient
       .from("profile_pin_recovery_requests")
       .insert({
         account_id: userId,
         profile_id: profileId,
         email,
+        code_hash: codeHash,
+        code_expires_at: codeExpiresAt,
+        attempts: 0,
       });
 
     if (insertErr) {
@@ -221,10 +343,13 @@ serve(async (req) => {
       });
     }
 
-    const { error: resetErr } = await publicClient.auth.resetPasswordForEmail(
-      email,
-    );
-    if (resetErr) {
+    try {
+      await sendBrevoPinRecoveryEmail({
+        to: email,
+        code,
+        expiresMinutes: Math.floor(recoveryCodeLifetimeMs / 60000),
+      });
+    } catch (sendErr) {
       await serviceClient
         .from("profile_pin_recovery_requests")
         .delete()
@@ -232,10 +357,10 @@ serve(async (req) => {
         .eq("profile_id", profileId)
         .is("consumed_at", null);
 
-      const mapped = mapAuthError(resetErr);
+      const mapped = mapError(sendErr);
       return json(mapped.httpStatus, {
         status: mapped.status,
-        message: asErrorMessage(resetErr),
+        message: asErrorMessage(sendErr),
       });
     }
 
@@ -250,12 +375,12 @@ serve(async (req) => {
 
     const { data: requestRow, error: requestErr } = await serviceClient
       .from("profile_pin_recovery_requests")
-      .select("id, profile_id, email, created_at, consumed_at")
+      .select("id, profile_id, created_at, consumed_at, code_hash, code_expires_at, attempts")
       .eq("account_id", userId)
       .is("consumed_at", null)
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle();
+      .maybeSingle<PinRecoveryRequestRow>();
 
     if (requestErr || !requestRow) {
       return json(400, {
@@ -264,11 +389,8 @@ serve(async (req) => {
       });
     }
 
-    const requestCreatedAt = toIsoDate(requestRow.created_at);
-    if (
-      !requestCreatedAt ||
-      Date.now() - requestCreatedAt.getTime() > recoveryRequestLifetimeMs
-    ) {
+    const expiresAt = toIsoDate(requestRow.code_expires_at);
+    if (!expiresAt || expiresAt.getTime() <= Date.now()) {
       await serviceClient
         .from("profile_pin_recovery_requests")
         .update({ consumed_at: new Date().toISOString() })
@@ -276,23 +398,28 @@ serve(async (req) => {
       return json(400, { status: "expired" });
     }
 
-    const { error: verifyErr } = await publicClient.auth.verifyOtp({
-      email: requestRow.email,
-      token: code,
-      type: "recovery",
-    });
+    const attempts = requestRow.attempts ?? 0;
+    if (attempts >= maxVerifyAttempts) {
+      return json(429, { status: "too_many_attempts" });
+    }
 
-    if (verifyErr) {
-      const mapped = mapAuthError(verifyErr);
-      return json(mapped.httpStatus, {
-        status: mapped.status,
-        message: asErrorMessage(verifyErr),
-      });
+    const codeHash = await sha256Base64(code);
+    if (requestRow.code_hash !== codeHash) {
+      const nextAttempts = attempts + 1;
+      await serviceClient
+        .from("profile_pin_recovery_requests")
+        .update({ attempts: nextAttempts })
+        .eq("id", requestRow.id);
+
+      if (nextAttempts >= maxVerifyAttempts) {
+        return json(429, { status: "too_many_attempts" });
+      }
+      return json(400, { status: "invalid" });
     }
 
     const resetToken = createOpaqueResetToken();
     const resetTokenHash = await sha256Base64(resetToken);
-    const expiresAt = new Date(Date.now() + resetTokenLifetimeMs).toISOString();
+    const tokenExpiresAt = new Date(Date.now() + resetTokenLifetimeMs).toISOString();
 
     const { error: revokeTokensErr } = await serviceClient
       .from("profile_pin_recovery_tokens")
@@ -314,7 +441,7 @@ serve(async (req) => {
         account_id: userId,
         profile_id: requestRow.profile_id,
         token_hash: resetTokenHash,
-        expires_at: expiresAt,
+        expires_at: tokenExpiresAt,
       });
 
     if (tokenErr) {
