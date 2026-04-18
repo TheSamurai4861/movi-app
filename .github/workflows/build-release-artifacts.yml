@@ -19,6 +19,8 @@ concurrency:
 # - MOVI_STORE_PASSWORD
 # - MOVI_ALIAS
 # - MOVI_KEY_PASSWORD
+# - WINDOWS_SIGNING_CERT_BASE64
+# - WINDOWS_SIGNING_CERT_PASSWORD
 #
 # Notes:
 # - Android signing reuses the validated keystore path expected by
@@ -67,6 +69,38 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate deep-link protocol parity (Inno + MSIX)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          expected = {"movi", "movi-dev", "movi-staging"}
+
+          pubspec = Path("pubspec.yaml").read_text(encoding="utf-8")
+          match = re.search(r"^\s*protocol_activation:\s*([^\n]+)\s*$", pubspec, re.MULTILINE)
+          if not match:
+              raise SystemExit("Missing msix_config.protocol_activation in pubspec.yaml")
+          declared = {item.strip() for item in match.group(1).split(",") if item.strip()}
+          if declared != expected:
+              raise SystemExit(f"Invalid MSIX protocol_activation. Expected {sorted(expected)}, got {sorted(declared)}")
+
+          inno = Path("installer/movi.iss").read_text(encoding="utf-8")
+          required_keys = [
+              r'Software\\Classes\\movi"',
+              r'Software\\Classes\\movi-dev"',
+              r'Software\\Classes\\movi-staging"',
+          ]
+          for key in required_keys:
+              if key not in inno:
+                  raise SystemExit(f"Missing Inno protocol handler: {key}")
+
+          print("Deep-link protocol parity check passed.")
+          PY
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -241,6 +275,9 @@ jobs:
       APP_VERSION: ${{ needs.metadata.outputs.app_version }}
       BUILD_NAME: ${{ needs.metadata.outputs.build_name }}
       BUILD_NUMBER: ${{ needs.metadata.outputs.build_number }}
+      APP_PUBLISHER_URL: https://movi.app
+      APP_SUPPORT_URL: https://movi.app/support
+      APP_UPDATES_URL: https://movi.app/updates
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -288,12 +325,101 @@ jobs:
         run: |
           flutter build windows --release --build-name $env:BUILD_NAME --build-number $env:BUILD_NUMBER --dart-define-from-file=.env.ci
 
+      - name: Validate Windows runtime artifacts (app-local VC++)
+        shell: pwsh
+        run: |
+          ./scripts/windows/assert-windows-runtime-artifacts.ps1
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+
+      - name: Build Inno installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=$env:APP_VERSION" `
+            "/DMyAppPublisherURL=$env:APP_PUBLISHER_URL" `
+            "/DMyAppSupportURL=$env:APP_SUPPORT_URL" `
+            "/DMyAppUpdatesURL=$env:APP_UPDATES_URL" `
+            "installer/movi.iss"
+
+      - name: Verify Inno version alignment
+        shell: pwsh
+        run: |
+          $expected = "Movi-Setup-$env:APP_VERSION.exe"
+          $setup = Get-ChildItem -Path build/inno -Filter "Movi-Setup-*.exe" -File |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+          if ($null -eq $setup) {
+            throw "No Inno setup artifact found in build/inno."
+          }
+          if ($setup.Name -ne $expected) {
+            throw "Inno version mismatch. Expected '$expected' but found '$($setup.Name)'."
+          }
+
+      - name: Decode Windows signing certificate
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_CERT_BASE64: ${{ secrets.WINDOWS_SIGNING_CERT_BASE64 }}
+          WINDOWS_SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_CERT_BASE64)) {
+            throw "Missing required secret: WINDOWS_SIGNING_CERT_BASE64"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_CERT_PASSWORD)) {
+            throw "Missing required secret: WINDOWS_SIGNING_CERT_PASSWORD"
+          }
+          $certPath = Join-Path $env:RUNNER_TEMP "movi-signing.pfx"
+          [System.IO.File]::WriteAllBytes(
+            $certPath,
+            [System.Convert]::FromBase64String($env:WINDOWS_SIGNING_CERT_BASE64)
+          )
+          "WINDOWS_SIGNING_CERT_PATH=$certPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign Windows artifacts (exe + setup)
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD }}
+        run: |
+          ./scripts/windows/sign-windows-artifacts.ps1 `
+            -CertificatePath $env:WINDOWS_SIGNING_CERT_PATH `
+            -CertificatePassword $env:WINDOWS_SIGNING_CERT_PASSWORD `
+            -ArtifactVersion $env:APP_VERSION
+
+      - name: Verify Authenticode signature status
+        shell: pwsh
+        run: |
+          $setupPath = (Get-ChildItem -Path build/inno -Filter "Movi-Setup-*.exe" -File |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1).FullName
+          $targets = @(
+            "build/windows/x64/runner/Release/movi.exe",
+            $setupPath
+          )
+          foreach ($target in $targets) {
+            $signature = Get-AuthenticodeSignature -FilePath $target
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+              throw "Invalid Authenticode signature for '$target'. Status: $($signature.Status)."
+            }
+          }
+
       - name: Package Windows artifact
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item build/windows/x64/runner/Release/movi.exe ("dist/movi-" + $env:APP_VERSION + ".exe")
           Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath ("dist/movi-" + $env:APP_VERSION + "-windows.zip") -Force
+          Copy-Item build/inno/*.exe dist/
+
+      - name: Cleanup signing certificate
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_CERT_PATH) -and (Test-Path -LiteralPath $env:WINDOWS_SIGNING_CERT_PATH)) {
+            Remove-Item -LiteralPath $env:WINDOWS_SIGNING_CERT_PATH -Force
+          }
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
