@@ -1010,7 +1010,25 @@ class AppLocalizationsIt extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => 'Password dimenticata';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Inserisci la tua e-mail per ricevere un link per reimpostare la password.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'Un\'e-mail per reimpostare la password verrà inviata a questo indirizzo se esiste un account.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'Invia il link';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'Torna all\'accesso';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => 'Riprendi la riproduzione';
 

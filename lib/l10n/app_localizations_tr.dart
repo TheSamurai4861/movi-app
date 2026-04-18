@@ -994,7 +994,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => 'Şifremi unuttum';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Şifre sıfırlama bağlantısı almak için e-posta adresinizi girin.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'Hesap mevcutsa bu adrese şifre sıfırlama e-postası gönderilir.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'Bağlantıyı gönder';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'Girişe dön';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => 'Oynatmaya devam et';
 

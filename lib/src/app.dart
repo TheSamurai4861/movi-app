@@ -1,7 +1,13 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:window_manager/window_manager.dart';
 
+import 'package:movi/src/core/router/auth_recovery_deep_link_bridge.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as app_state;
 import 'package:movi/src/core/subscription/subscription.dart';
@@ -31,13 +37,80 @@ const List<LocalizationsDelegate<dynamic>> _appLocalizationsDelegates = [
 /// - locale / localization,
 /// and exposes them through a [MaterialApp.router].
 ///
-/// Because it is a [ConsumerWidget], it rebuilds automatically whenever
+/// Because it is a [ConsumerStatefulWidget], it rebuilds automatically whenever
 /// one of the watched providers (router, theme, locale, accent) changes.
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+class MyApp extends ConsumerStatefulWidget {
+  const MyApp({super.key, this.launchArgs = const <String>[]});
+
+  final List<String> launchArgs;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  AuthRecoveryDeepLinkBridge? _authRecoveryDeepLinkBridge;
+  bool _fullscreenEscapeHandlerRegistered = false;
+  bool _startedInWindowsFullScreen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authRecoveryDeepLinkBridge = AuthRecoveryDeepLinkBridge(
+      navigateTo: (location) => ref.read(appRouterProvider).go(location),
+      launchArgs: widget.launchArgs,
+    );
+    unawaited(_authRecoveryDeepLinkBridge!.start());
+    unawaited(_setupWindowsFullScreenMode());
+  }
+
+  @override
+  void dispose() {
+    if (_fullscreenEscapeHandlerRegistered) {
+      ServicesBinding.instance.keyboard.removeHandler(_handleGlobalKeyEvent);
+      _fullscreenEscapeHandlerRegistered = false;
+    }
+    unawaited(_authRecoveryDeepLinkBridge?.dispose());
+    super.dispose();
+  }
+
+  Future<void> _setupWindowsFullScreenMode() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.windows) return;
+
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(center: true);
+    windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+      await windowManager.setFullScreen(true);
+      _startedInWindowsFullScreen = true;
+    });
+
+    ServicesBinding.instance.keyboard.addHandler(_handleGlobalKeyEvent);
+    _fullscreenEscapeHandlerRegistered = true;
+  }
+
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    if (!_startedInWindowsFullScreen) return false;
+    if (event is! KeyDownEvent) return false;
+    if (event.logicalKey != LogicalKeyboardKey.escape) return false;
+
+    _startedInWindowsFullScreen = false;
+    unawaited(_exitFullScreenToMaximizedWindow());
+    return true;
+  }
+
+  Future<void> _exitFullScreenToMaximizedWindow() async {
+    final isFullScreen = await windowManager.isFullScreen();
+    if (isFullScreen) {
+      await windowManager.setFullScreen(false);
+    }
+    await windowManager.maximize();
+    await windowManager.focus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // --- Global app state ---------------------------------------------------
 
     // Router configuration (navigation graph) provided by Riverpod.

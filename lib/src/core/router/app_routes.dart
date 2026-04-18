@@ -13,7 +13,9 @@ import 'package:movi/src/core/router/launch_redirect_guard.dart';
 import 'package:movi/src/core/router/not_found_page.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/parental/presentation/pages/pin_recovery_page.dart';
+import 'package:movi/src/features/auth/presentation/auth_forgot_password_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_password_page.dart';
+import 'package:movi/src/features/auth/presentation/auth_update_password_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_otp_page.dart';
 import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
@@ -154,6 +156,25 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
               : AuthPasswordPage(returnOnSuccess: returnOnSuccess),
         );
       },
+    ),
+    GoRoute(
+      path: AppRoutePaths.authForgotPassword,
+      name: AppRouteIds.authForgotPassword,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: AuthForgotPasswordPage()),
+    ),
+    GoRoute(
+      path: AppRoutePaths.authUpdatePasswordCallback,
+      name: AppRouteIds.authUpdatePasswordCallback,
+      redirect: (context, state) => AppRoutePaths.authUpdatePassword,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: SizedBox.shrink()),
+    ),
+    GoRoute(
+      path: AppRoutePaths.authUpdatePassword,
+      name: AppRouteIds.authUpdatePassword,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: AuthUpdatePasswordPage()),
     ),
 
     GoRoute(

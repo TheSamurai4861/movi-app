@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "ru",
   "welcomeTitle": "Добро пожаловать!",
   "welcomeSubtitle": "Заполните предпочтения, чтобы персонализировать Movi.",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "Условия использования",
-  "settingsCloudSyncPremiumRequiredMessage": "Для облачной синхронизации нужен Movi Premium."
+  "settingsCloudSyncPremiumRequiredMessage": "Для облачной синхронизации нужен Movi Premium.",
+  "authForgotPasswordTitle": "Забыли пароль",   "authForgotPasswordSubtitle": "Введите свой e-mail, чтобы получить ссылку для сброса пароля.",   "authForgotPasswordInfoNeutral": "Письмо для сброса пароля будет отправлено на этот адрес, если аккаунт существует.",   "authForgotPasswordPrimarySubmit": "Отправить ссылку",   "authForgotPasswordBackToSignIn": "Вернуться ко входу"
 }
+

@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "ko",
   "pinRecoveryRequestCodeButton": "코드 보내기",
   "pinRecoveryCodeSentHint": "계정 이메일로 코드가 전송되었습니다. 메시지를 확인한 뒤 아래에 입력하세요.",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "이용 약관",
-  "settingsCloudSyncPremiumRequiredMessage": "클라우드 동기화에는 Movi Premium이 필요합니다."
+  "settingsCloudSyncPremiumRequiredMessage": "클라우드 동기화에는 Movi Premium이 필요합니다.",
+  "authForgotPasswordTitle": "비밀번호를 잊으셨나요",   "authForgotPasswordSubtitle": "비밀번호 재설정 링크를 받으려면 이메일을 입력하세요.",   "authForgotPasswordInfoNeutral": "계정이 존재하면 이 주소로 비밀번호 재설정 이메일이 전송됩니다.",   "authForgotPasswordPrimarySubmit": "링크 보내기",   "authForgotPasswordBackToSignIn": "로그인으로 돌아가기"
 }
+

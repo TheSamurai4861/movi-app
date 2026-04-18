@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "nl",
   "welcomeTitle": "Welkom!",
   "welcomeSubtitle": "Vul je voorkeuren in om Movi te personaliseren.",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "Gebruiksvoorwaarden",
-  "settingsCloudSyncPremiumRequiredMessage": "Movi Premium is vereist voor cloudsynchronisatie."
+  "settingsCloudSyncPremiumRequiredMessage": "Movi Premium is vereist voor cloudsynchronisatie.",
+  "authForgotPasswordTitle": "Wachtwoord vergeten",   "authForgotPasswordSubtitle": "Voer je e-mailadres in om een link voor het opnieuw instellen van je wachtwoord te ontvangen.",   "authForgotPasswordInfoNeutral": "Er wordt een e-mail voor het opnieuw instellen van het wachtwoord naar dit adres gestuurd als er een account bestaat.",   "authForgotPasswordPrimarySubmit": "Link verzenden",   "authForgotPasswordBackToSignIn": "Terug naar aanmelden"
 }
+

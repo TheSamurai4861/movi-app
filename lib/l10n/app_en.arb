@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "en",
   "welcomeTitle": "Welcome!",
   "welcomeSubtitle": "Fill your preferences to personalize Movi.",
@@ -529,6 +529,7 @@
   "authPasswordPrimarySubmit": "Sign in",
   "authPasswordForgotPassword": "Forgot password?",
   "authPasswordResetSent": "Password reset email sent.",
+  "authForgotPasswordTitle": "Forgot password",   "authForgotPasswordSubtitle": "Enter your email to receive a password reset link.",   "authForgotPasswordInfoNeutral": "A password reset email will be sent to this address if an account exists.",   "authForgotPasswordPrimarySubmit": "Send link",   "authForgotPasswordBackToSignIn": "Back to sign in",
   "authPasswordUseOtp": "Use email code instead",
   "resumePlayback": "Resume playback",
   "settingsCloudSyncSection": "Cloud sync",
@@ -663,3 +664,4 @@
   "settingsTermsOfUseTitle": "Terms of use",
   "settingsCloudSyncPremiumRequiredMessage": "Movi Premium is required for cloud sync."
 }
+

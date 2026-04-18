@@ -1919,6 +1919,36 @@ abstract class AppLocalizations {
   /// **'Password reset email sent.'**
   String get authPasswordResetSent;
 
+  /// No description provided for @authForgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password'**
+  String get authForgotPasswordTitle;
+
+  /// No description provided for @authForgotPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email to receive a password reset link.'**
+  String get authForgotPasswordSubtitle;
+
+  /// No description provided for @authForgotPasswordInfoNeutral.
+  ///
+  /// In en, this message translates to:
+  /// **'A password reset email will be sent to this address if an account exists.'**
+  String get authForgotPasswordInfoNeutral;
+
+  /// No description provided for @authForgotPasswordPrimarySubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Send link'**
+  String get authForgotPasswordPrimarySubmit;
+
+  /// No description provided for @authForgotPasswordBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get authForgotPasswordBackToSignIn;
+
   /// No description provided for @authPasswordUseOtp.
   ///
   /// In en, this message translates to:

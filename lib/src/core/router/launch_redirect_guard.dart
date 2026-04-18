@@ -83,6 +83,11 @@ class LaunchRedirectGuard extends ChangeNotifier {
   late final void Function() _removeAppStateListener;
   late final StreamSubscription _authSubscription;
 
+  bool _isAuthRecoveryRoute(String path) =>
+      path == AppRoutePaths.authForgotPassword ||
+      path == AppRoutePaths.authUpdatePassword ||
+      path == AppRoutePaths.authUpdatePasswordCallback;
+
   /// Méthode appelée par [GoRouter.redirect].
   FutureOr<String?> handle(BuildContext _, GoRouterState state) {
     final current = state.matchedLocation;
@@ -95,6 +100,7 @@ class LaunchRedirectGuard extends ChangeNotifier {
 
     final onLaunch = current == AppRoutePaths.launch;
     final onAuth = current == AppRoutePaths.authOtp;
+    final onAuthRecovery = _isAuthRecoveryRoute(current);
     final onBootstrap = current == AppRoutePaths.bootstrap;
     final onWelcomeSourceLoading =
         current == AppRoutePaths.welcomeSourceLoading;
@@ -104,16 +110,24 @@ class LaunchRedirectGuard extends ChangeNotifier {
     final launchState = _launchRegistry.state;
 
     if (!_authResolved) {
-      return onLaunch ? null : AppRoutePaths.launch;
+      return (onLaunch || onAuthRecovery)
+          ? null
+          : AppRoutePaths.launch;
     }
 
     if (authReturnsToPrevious) {
       return null;
     }
 
+    // Recovery routes must remain reachable from any auth state.
+    if (onAuthRecovery) {
+      return null;
+    }
+
     if (_useProjectedRouting) {
       return _handleProjectedRouting(
         current: current,
+        onAuthRecovery: onAuthRecovery,
         onAuth: onAuth,
         isStartupRoute: isStartupRoute,
       );
@@ -200,9 +214,14 @@ class LaunchRedirectGuard extends ChangeNotifier {
 
   String? _handleProjectedRouting({
     required String current,
+    required bool onAuthRecovery,
     required bool onAuth,
     required bool isStartupRoute,
   }) {
+    if (onAuthRecovery) {
+      return null;
+    }
+
     final tunnelState = _tunnelStateRegistry.state;
     final surface = TunnelSurfaceMapper.fromTunnelState(tunnelState);
     final target = TunnelSurfaceRouteMapper.routeForSurface(

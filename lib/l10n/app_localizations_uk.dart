@@ -1007,7 +1007,25 @@ class AppLocalizationsUk extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => 'Забули пароль';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Введіть свою електронну адресу, щоб отримати посилання для скидання пароля.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'Лист для скидання пароля буде надіслано на цю адресу, якщо обліковий запис існує.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'Надіслати посилання';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'Повернутися до входу';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => 'Продовжити відтворення';
 

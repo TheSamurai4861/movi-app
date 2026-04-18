@@ -983,7 +983,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => 'パスワードをお忘れですか';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'パスワード再設定リンクを受け取るためにメールアドレスを入力してください。';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'アカウントが存在する場合、このアドレスにパスワード再設定メールが送信されます。';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'リンクを送信';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'サインインに戻る';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => '再生を再開';
 

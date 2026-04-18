@@ -984,7 +984,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => '비밀번호를 잊으셨나요';
+
+  @override
+  String get authForgotPasswordSubtitle => '비밀번호 재설정 링크를 받으려면 이메일을 입력하세요.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      '계정이 존재하면 이 주소로 비밀번호 재설정 이메일이 전송됩니다.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => '링크 보내기';
+
+  @override
+  String get authForgotPasswordBackToSignIn => '로그인으로 돌아가기';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => '재생 이어보기';
 

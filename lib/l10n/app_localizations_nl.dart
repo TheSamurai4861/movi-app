@@ -1007,7 +1007,25 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => 'Wachtwoord vergeten';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Voer je e-mailadres in om een link voor het opnieuw instellen van je wachtwoord te ontvangen.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'Er wordt een e-mail voor het opnieuw instellen van het wachtwoord naar dit adres gestuurd als er een account bestaat.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'Link verzenden';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'Terug naar aanmelden';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => 'Afspelen hervatten';
 

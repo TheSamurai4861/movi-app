@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "ja",
   "welcomeTitle": "ようこそ！",
   "welcomeSubtitle": "好みを入力して Movi をカスタマイズしましょう。",
@@ -649,5 +649,7 @@
     }
   },
   "settingsTermsOfUseTitle": "利用規約",
-  "settingsCloudSyncPremiumRequiredMessage": "クラウド同期にはMovi Premiumが必要です。"
+  "settingsCloudSyncPremiumRequiredMessage": "クラウド同期にはMovi Premiumが必要です。",
+  "authForgotPasswordTitle": "パスワードをお忘れですか",   "authForgotPasswordSubtitle": "パスワード再設定リンクを受け取るためにメールアドレスを入力してください。",   "authForgotPasswordInfoNeutral": "アカウントが存在する場合、このアドレスにパスワード再設定メールが送信されます。",   "authForgotPasswordPrimarySubmit": "リンクを送信",   "authForgotPasswordBackToSignIn": "サインインに戻る"
 }
+

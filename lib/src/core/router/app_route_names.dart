@@ -30,6 +30,10 @@ class AppRouteNames {
   static const home = AppRoutePaths.home;
 
   static const authOtp = AppRoutePaths.authOtp;
+  static const authForgotPassword = AppRoutePaths.authForgotPassword;
+  static const authUpdatePassword = AppRoutePaths.authUpdatePassword;
+  static const authUpdatePasswordCallback =
+      AppRoutePaths.authUpdatePasswordCallback;
 
   static const search = AppRoutePaths.search;
   static const searchResults = AppRoutePaths.searchResults;

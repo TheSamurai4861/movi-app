@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "zh_Hans",
   "welcomeTitle": "欢迎！",
   "welcomeSubtitle": "填写偏好设置以个性化 Movi。",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "使用条款",
-  "settingsCloudSyncPremiumRequiredMessage": "云同步需要 Movi Premium。"
+  "settingsCloudSyncPremiumRequiredMessage": "云同步需要 Movi Premium。",
+  "authForgotPasswordTitle": "忘记密码",   "authForgotPasswordSubtitle": "输入你的邮箱以接收密码重置链接。",   "authForgotPasswordInfoNeutral": "如果该账号存在，密码重置邮件将发送到此地址。",   "authForgotPasswordPrimarySubmit": "发送链接",   "authForgotPasswordBackToSignIn": "返回登录"
 }
+

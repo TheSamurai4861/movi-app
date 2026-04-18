@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "de",
   "welcomeTitle": "Willkommen!",
   "welcomeSubtitle": "Vervollständige deine Einstellungen, um Movi zu personalisieren.",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "Nutzungsbedingungen",
-  "settingsCloudSyncPremiumRequiredMessage": "Für die Cloud-Synchronisierung ist Movi Premium erforderlich."
+  "settingsCloudSyncPremiumRequiredMessage": "Für die Cloud-Synchronisierung ist Movi Premium erforderlich.",
+  "authForgotPasswordTitle": "Passwort vergessen",   "authForgotPasswordSubtitle": "Gib deine E-Mail-Adresse ein, um einen Link zum Zurücksetzen des Passworts zu erhalten.",   "authForgotPasswordInfoNeutral": "Eine E-Mail zum Zurücksetzen des Passworts wird an diese Adresse gesendet, falls ein Konto existiert.",   "authForgotPasswordPrimarySubmit": "Link senden",   "authForgotPasswordBackToSignIn": "Zurück zur Anmeldung"
 }
+

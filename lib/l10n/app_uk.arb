@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "uk",
   "welcomeTitle": "Ласкаво просимо!",
   "welcomeSubtitle": "Заповніть уподобання, щоб персоналізувати Movi.",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "Умови використання",
-  "settingsCloudSyncPremiumRequiredMessage": "Для хмарної синхронізації потрібен Movi Premium."
+  "settingsCloudSyncPremiumRequiredMessage": "Для хмарної синхронізації потрібен Movi Premium.",
+  "authForgotPasswordTitle": "Забули пароль",   "authForgotPasswordSubtitle": "Введіть свою електронну адресу, щоб отримати посилання для скидання пароля.",   "authForgotPasswordInfoNeutral": "Лист для скидання пароля буде надіслано на цю адресу, якщо обліковий запис існує.",   "authForgotPasswordPrimarySubmit": "Надіслати посилання",   "authForgotPasswordBackToSignIn": "Повернутися до входу"
 }
+

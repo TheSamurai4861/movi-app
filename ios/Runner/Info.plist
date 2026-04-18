@@ -45,6 +45,21 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>movi.auth.recovery</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>movi</string>
+				<string>movi-dev</string>
+				<string>movi-staging</string>
+			</array>
+		</dict>
+	</array>
     <!-- Enable iTunes/File app sharing for Documents directory -->
     <key>UIFileSharingEnabled</key>
     <true/>

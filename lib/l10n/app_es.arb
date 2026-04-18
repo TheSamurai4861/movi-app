@@ -1,4 +1,4 @@
-{
+﻿{
   "pinRecoveryRequestCodeButton": "Enviar código",
   "pinRecoveryCodeSentHint": "Hemos enviado un código al correo de tu cuenta. Revisa tus mensajes e introdúcelo abajo.",
   "pinRecoveryNotAvailable": "La recuperación del PIN por correo electrónico no está disponible actualmente.",
@@ -636,5 +636,7 @@
     }
   },
   "settingsTermsOfUseTitle": "Condiciones de uso",
-  "settingsCloudSyncPremiumRequiredMessage": "Movi Premium es necesario para la sincronización en la nube."
+  "settingsCloudSyncPremiumRequiredMessage": "Movi Premium es necesario para la sincronización en la nube.",
+  "authForgotPasswordTitle": "Olvidé mi contraseña",   "authForgotPasswordSubtitle": "Introduce tu correo electrónico para recibir un enlace de restablecimiento de contraseña.",   "authForgotPasswordInfoNeutral": "Se enviará un correo de restablecimiento de contraseña a esta dirección si existe una cuenta.",   "authForgotPasswordPrimarySubmit": "Enviar enlace",   "authForgotPasswordBackToSignIn": "Volver al inicio de sesión"
 }
+

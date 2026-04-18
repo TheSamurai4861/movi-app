@@ -999,7 +999,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => 'نسيت كلمة المرور';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'سيتم إرسال رسالة إعادة تعيين كلمة المرور إلى هذا البريد الإلكتروني إذا كان الحساب موجودًا.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'إرسال الرابط';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'العودة إلى تسجيل الدخول';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => 'متابعة التشغيل';
 

@@ -39,6 +39,25 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="movi"
+                    android:host="auth"
+                    android:pathPrefix="/update-password" />
+                <data
+                    android:scheme="movi-dev"
+                    android:host="auth"
+                    android:pathPrefix="/update-password" />
+                <data
+                    android:scheme="movi-staging"
+                    android:host="auth"
+                    android:pathPrefix="/update-password" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

@@ -1,4 +1,4 @@
-{
+﻿{
   "pinRecoveryRequestCodeButton": "Kodu gönder",
   "pinRecoveryCodeSentHint": "Kod, hesap e-posta adresinize gönderildi. Mesajlarınızı kontrol edin ve aşağıya girin.",
   "pinRecoveryNotAvailable": "E-posta ile PIN kurtarma şu anda kullanılamıyor.",
@@ -648,5 +648,7 @@
     }
   },
   "settingsTermsOfUseTitle": "Kullanım koşulları",
-  "settingsCloudSyncPremiumRequiredMessage": "Bulut senkronizasyonu için Movi Premium gerekir."
+  "settingsCloudSyncPremiumRequiredMessage": "Bulut senkronizasyonu için Movi Premium gerekir.",
+  "authForgotPasswordTitle": "Şifremi unuttum",   "authForgotPasswordSubtitle": "Şifre sıfırlama bağlantısı almak için e-posta adresinizi girin.",   "authForgotPasswordInfoNeutral": "Hesap mevcutsa bu adrese şifre sıfırlama e-postası gönderilir.",   "authForgotPasswordPrimarySubmit": "Bağlantıyı gönder",   "authForgotPasswordBackToSignIn": "Girişe dön"
 }
+

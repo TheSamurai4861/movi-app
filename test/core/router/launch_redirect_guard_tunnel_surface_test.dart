@@ -101,6 +101,118 @@ void main() {
     },
   );
 
+  testWidgets(
+    'keeps auth recovery route reachable from projected auth surface',
+    (tester) async {
+      final harness = _GuardHarness(
+        authRepository: _FakeAuthRepository.unauthenticatedResolved(),
+        tunnelStateRegistry: TunnelStateRegistry(
+          initial: const TunnelState(
+            stage: TunnelStage.authRequired,
+            executionMode: TunnelExecutionMode.cloud,
+            loadingState: TunnelLoadingState.completed,
+            reasonCode: 'auth_required',
+            hasSession: false,
+            hasSelectedProfile: false,
+            hasSelectedSource: false,
+            hasCatalogReady: false,
+            hasHomePreloaded: false,
+            hasLibraryReady: false,
+            profilesCount: 0,
+            sourcesCount: 0,
+            isShadowMode: false,
+            legacyDestination: BootstrapDestination.auth,
+          ),
+        ),
+      );
+      addTearDown(harness.dispose);
+
+      final router = harness.createRouter(
+        initialLocation: AppRoutePaths.authForgotPassword,
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(harness.buildApp(router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Forgot Password'), findsOneWidget);
+      expect(find.text('Auth'), findsNothing);
+    },
+  );
+
+  testWidgets('keeps update-password route reachable', (tester) async {
+    final harness = _GuardHarness(
+      authRepository: _FakeAuthRepository.unauthenticatedResolved(),
+      tunnelStateRegistry: TunnelStateRegistry(
+        initial: const TunnelState(
+          stage: TunnelStage.authRequired,
+          executionMode: TunnelExecutionMode.cloud,
+          loadingState: TunnelLoadingState.completed,
+          reasonCode: 'auth_required',
+          hasSession: false,
+          hasSelectedProfile: false,
+          hasSelectedSource: false,
+          hasCatalogReady: false,
+          hasHomePreloaded: false,
+          hasLibraryReady: false,
+          profilesCount: 0,
+          sourcesCount: 0,
+          isShadowMode: false,
+          legacyDestination: BootstrapDestination.auth,
+        ),
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    final updateRouter = harness.createRouter(
+      initialLocation: AppRoutePaths.authUpdatePassword,
+    );
+    addTearDown(updateRouter.dispose);
+
+    await tester.pumpWidget(harness.buildApp(updateRouter));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update Password'), findsOneWidget);
+  });
+
+  testWidgets(
+    'keeps update-password callback route reachable',
+    (tester) async {
+      final harness = _GuardHarness(
+        authRepository: _FakeAuthRepository.unauthenticatedResolved(),
+        tunnelStateRegistry: TunnelStateRegistry(
+          initial: const TunnelState(
+            stage: TunnelStage.authRequired,
+            executionMode: TunnelExecutionMode.cloud,
+            loadingState: TunnelLoadingState.completed,
+            reasonCode: 'auth_required',
+            hasSession: false,
+            hasSelectedProfile: false,
+            hasSelectedSource: false,
+            hasCatalogReady: false,
+            hasHomePreloaded: false,
+            hasLibraryReady: false,
+            profilesCount: 0,
+            sourcesCount: 0,
+            isShadowMode: false,
+            legacyDestination: BootstrapDestination.auth,
+          ),
+        ),
+      );
+      addTearDown(harness.dispose);
+
+      final callbackRouter = harness.createRouter(
+        initialLocation: AppRoutePaths.authUpdatePasswordCallback,
+      );
+      addTearDown(callbackRouter.dispose);
+
+      await tester.pumpWidget(harness.buildApp(callbackRouter));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Update Password Callback'), findsOneWidget);
+    },
+  );
+
   testWidgets('projects source selection route from projected source surface', (
     tester,
   ) async {
@@ -199,6 +311,9 @@ final class _GuardHarness {
   }
 
   GoRouter createRouter({required String initialLocation}) {
+    if (sl.isRegistered<LocalePreferences>()) {
+      sl.unregister<LocalePreferences>();
+    }
     sl.registerSingleton<LocalePreferences>(localePreferences);
     final appStateController = container.read(appStateControllerProvider);
 
@@ -225,6 +340,18 @@ final class _GuardHarness {
         GoRoute(
           path: AppRoutePaths.authOtp,
           builder: (context, state) => const Text('Auth'),
+        ),
+        GoRoute(
+          path: AppRoutePaths.authForgotPassword,
+          builder: (context, state) => const Text('Forgot Password'),
+        ),
+        GoRoute(
+          path: AppRoutePaths.authUpdatePassword,
+          builder: (context, state) => const Text('Update Password'),
+        ),
+        GoRoute(
+          path: AppRoutePaths.authUpdatePasswordCallback,
+          builder: (context, state) => const Text('Update Password Callback'),
         ),
         GoRoute(
           path: AppRoutePaths.bootstrap,

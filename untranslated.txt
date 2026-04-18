@@ -1,1 +1,225 @@
-{}
+{
+  "ar": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "de": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "es": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "it": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "ja": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "ko": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "nl": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "pl": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "pt": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "ru": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "tr": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "uk": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "zh": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ],
+
+  "zh_Hans": [
+    "authOtpUsePassword",
+    "authPasswordTitle",
+    "authPasswordSubtitle",
+    "authPasswordEmailLabel",
+    "authPasswordEmailHint",
+    "authPasswordEmailHelp",
+    "authPasswordPasswordLabel",
+    "authPasswordPasswordHint",
+    "authPasswordPasswordHelp",
+    "authPasswordPrimarySubmit",
+    "authPasswordForgotPassword",
+    "authPasswordResetSent",
+    "authPasswordUseOtp"
+  ]
+}

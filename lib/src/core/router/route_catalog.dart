@@ -12,6 +12,8 @@ class AppRouteCatalog {
   ];
 
   static const List<String> deepLinkRoutes = [
+    AppRoutePaths.authUpdatePassword,
+    AppRoutePaths.authUpdatePasswordCallback,
     AppRoutePaths.movieById,
     AppRoutePaths.tvById,
     AppRoutePaths.personById,

@@ -978,7 +978,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authPasswordResetSent => 'Password reset email sent.';
 
   @override
+  String get authForgotPasswordTitle => '忘记密码';
+
+  @override
+  String get authForgotPasswordSubtitle => '输入你的邮箱以接收密码重置链接。';
+
+  @override
+  String get authForgotPasswordInfoNeutral => '如果该账号存在，密码重置邮件将发送到此地址。';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => '发送链接';
+
+  @override
+  String get authForgotPasswordBackToSignIn => '返回登录';
+
+  @override
   String get authPasswordUseOtp => 'Use email code instead';
+
   @override
   String get resumePlayback => '继续播放';
 
@@ -2190,44 +2206,20 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get authOtpChangeEmail => '更换邮箱';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authForgotPasswordTitle => '忘记密码';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authForgotPasswordSubtitle => '输入你的邮箱以接收密码重置链接。';
 
   @override
-  String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+  String get authForgotPasswordInfoNeutral => '如果该账号存在，密码重置邮件将发送到此地址。';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authForgotPasswordPrimarySubmit => '发送链接';
 
   @override
-  String get authPasswordEmailHint => 'name@example.com';
+  String get authForgotPasswordBackToSignIn => '返回登录';
 
-  @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
-
-  @override
-  String get authPasswordPasswordLabel => 'Password';
-
-  @override
-  String get authPasswordPasswordHint => 'Your password';
-
-  @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
-
-  @override
-  String get authPasswordPrimarySubmit => 'Sign in';
-
-  @override
-  String get authPasswordForgotPassword => 'Forgot password?';
-
-  @override
-  String get authPasswordResetSent => 'Password reset email sent.';
-
-  @override
-  String get authPasswordUseOtp => 'Use email code instead';
   @override
   String get resumePlayback => '继续播放';
 

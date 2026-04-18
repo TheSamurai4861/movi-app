@@ -13,6 +13,9 @@ class AppRouteIds {
   static const welcomeSourceSelect = 'welcome_sources_select';
   static const welcomeSourceLoading = 'welcome_sources_loading';
   static const authOtp = 'auth_otp';
+  static const authForgotPassword = 'auth_forgot_password';
+  static const authUpdatePassword = 'auth_update_password';
+  static const authUpdatePasswordCallback = 'auth_update_password_callback';
   static const bootstrap = 'bootstrap';
   static const home = 'home';
 

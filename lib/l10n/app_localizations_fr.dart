@@ -989,7 +989,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get authPasswordEmailHelp =>
-      'Utilisez l\'adresse e-mail li�e � votre compte.';
+      'Utilisez l\'adresse e-mail liée à votre compte.';
 
   @override
   String get authPasswordPasswordLabel => 'Mot de passe';
@@ -999,19 +999,37 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get authPasswordPasswordHelp =>
-      'Votre mot de passe est sensible � la casse.';
+      'Votre mot de passe est sensible à la casse.';
 
   @override
   String get authPasswordPrimarySubmit => 'Se connecter';
 
   @override
-  String get authPasswordForgotPassword => 'Mot de passe oubli� ?';
+  String get authPasswordForgotPassword => 'Mot de passe oublié ?';
 
   @override
-  String get authPasswordResetSent => 'E-mail de r�initialisation envoy�.';
+  String get authPasswordResetSent => 'E-mail de réinitialisation envoyé.';
+
+  @override
+  String get authForgotPasswordTitle => 'Mot de passe oublié';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Saisissez votre e-mail pour recevoir un lien de réinitialisation.';
+
+  @override
+  String get authForgotPasswordInfoNeutral =>
+      'Un e-mail de réinitialisation sera envoyé à cette adresse si un compte existe.';
+
+  @override
+  String get authForgotPasswordPrimarySubmit => 'Envoyer le lien';
+
+  @override
+  String get authForgotPasswordBackToSignIn => 'Retour à la connexion';
 
   @override
   String get authPasswordUseOtp => 'Utiliser un code e-mail';
+
   @override
   String get resumePlayback => 'Reprendre lecture';
 

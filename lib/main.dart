@@ -62,7 +62,7 @@ Future<void> main(List<String> args) async {
   // - AppStartupGate: runs bootstrap logic before rendering MyApp.
   runApp(
     AppRestart(
-      child: const ProviderScope(child: AppStartupGate(child: MyApp())),
+      child: ProviderScope(child: AppStartupGate(child: MyApp(launchArgs: args))),
     ),
   );
 }

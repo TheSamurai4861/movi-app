@@ -42,6 +42,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
   final _otpFallbackFocusNode = FocusNode(debugLabel: 'AuthPasswordUseOtp');
 
   bool _handledSuccessfulAuth = false;
+  bool _isPasswordVisible = false;
 
   @override
   void dispose() {
@@ -103,11 +104,6 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
           null => null,
         };
 
-    final noticeText = switch (state.noticeKey) {
-      AuthPasswordNotice.resetEmailSent => l10n.authPasswordResetSent,
-      null => null,
-    };
-
     ref.listen<AuthStatus>(authStatusProvider, (previous, next) {
       if (previous != AuthStatus.authenticated &&
           next == AuthStatus.authenticated &&
@@ -126,8 +122,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
     }
 
     final isSigningIn = state.status == AuthPasswordStatus.signingIn;
-    final isSendingReset = state.status == AuthPasswordStatus.sendingReset;
-    final isBusy = isSigningIn || isSendingReset;
+    final isBusy = isSigningIn;
 
     return PopScope(
       canPop: false,
@@ -155,6 +150,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.xl,
+                      horizontal: AppSpacing.md,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -162,6 +158,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                         WelcomeHeader(
                           title: l10n.authPasswordTitle,
                           subtitle: l10n.authPasswordSubtitle,
+                          adaptLogoToNarrowScreen: true,
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         Column(
@@ -176,8 +173,8 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                               textInputAction: TextInputAction.next,
                               autofillHints: const [AutofillHints.email],
                               hintText: l10n.authPasswordEmailHint,
-                              helpText: l10n.authPasswordEmailHelp,
                               errorText: emailErrorText,
+                              decoration: _buildAuthInputDecoration(context),
                               enableFocusWrapper: true,
                               verticalAlignment: 0.4,
                               nextDownFocus: _passwordFocusNode,
@@ -204,8 +201,30 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                               hintText: l10n.authPasswordPasswordHint,
                               helpText: l10n.authPasswordPasswordHelp,
                               errorText: passwordErrorText,
-                              obscureText: true,
+                              obscureText: !_isPasswordVisible,
                               showHelpTextWhenError: true,
+                              decoration: _buildAuthInputDecoration(
+                                context,
+                                suffixIcon: IconButton(
+                                  onPressed: isBusy
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _isPasswordVisible =
+                                                !_isPasswordVisible;
+                                          });
+                                        },
+                                  tooltip: _isPasswordVisible
+                                      ? 'Masquer le mot de passe'
+                                      : 'Afficher le mot de passe',
+                                  icon: Icon(
+                                    _isPasswordVisible
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
                               enableFocusWrapper: true,
                               verticalAlignment: 0.22,
                               nextUpFocus: _emailFocusNode,
@@ -236,74 +255,56 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                 ),
                               ),
                             ],
-                            if (noticeText != null) ...[
-                              const SizedBox(height: AppSpacing.md),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                ),
-                                child: Text(
-                                  noticeText,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                ),
-                              ),
-                            ],
                             const SizedBox(height: 32),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              child: MoviEnsureVisibleOnFocus(
-                                verticalAlignment: 0.22,
-                                child: Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) =>
-                                      FocusDirectionalNavigation.handleDirectionalKey(
-                                        event,
-                                        up: _passwordFocusNode,
-                                        down: _forgotPasswordFocusNode,
-                                        blockLeft: true,
-                                        blockRight: true,
-                                      ),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: MoviPrimaryButton(
-                                      focusNode: _primaryActionFocusNode,
-                                      label: l10n.authPasswordPrimarySubmit,
-                                      loading: isSigningIn,
-                                      onPressed: isBusy ? null : _onSignIn,
+                            MoviEnsureVisibleOnFocus(
+                              verticalAlignment: 0.22,
+                              child: Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) =>
+                                    FocusDirectionalNavigation.handleDirectionalKey(
+                                      event,
+                                      up: _passwordFocusNode,
+                                      down: _forgotPasswordFocusNode,
+                                      blockLeft: true,
+                                      blockRight: true,
                                     ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: MoviPrimaryButton(
+                                    focusNode: _primaryActionFocusNode,
+                                    label: l10n.authPasswordPrimarySubmit,
+                                    loading: isSigningIn,
+                                    onPressed: isBusy ? null : _onSignIn,
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: AppSpacing.md),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              child: MoviEnsureVisibleOnFocus(
-                                verticalAlignment: 0.22,
-                                child: Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) =>
-                                      FocusDirectionalNavigation.handleDirectionalKey(
-                                        event,
-                                        up: _primaryActionFocusNode,
-                                        down: _otpFallbackFocusNode,
-                                        blockLeft: true,
-                                        blockRight: true,
-                                      ),
+                            MoviEnsureVisibleOnFocus(
+                              verticalAlignment: 0.22,
+                              child: Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) =>
+                                    FocusDirectionalNavigation.handleDirectionalKey(
+                                      event,
+                                      up: _primaryActionFocusNode,
+                                      blockDown: true,
+                                      blockLeft: true,
+                                      blockRight: true,
+                                    ),
+                                child: Center(
                                   child: TextButton(
                                     focusNode: _forgotPasswordFocusNode,
                                     onPressed: isBusy
                                         ? null
                                         : _onForgotPassword,
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: const Size(0, 40),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
+                                    ),
                                     child: Text(
                                       l10n.authPasswordForgotPassword,
                                     ),
@@ -311,30 +312,12 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              child: MoviEnsureVisibleOnFocus(
-                                verticalAlignment: 0.22,
-                                child: Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) =>
-                                      FocusDirectionalNavigation.handleDirectionalKey(
-                                        event,
-                                        up: _forgotPasswordFocusNode,
-                                        blockDown: true,
-                                        blockLeft: true,
-                                        blockRight: true,
-                                      ),
-                                  child: TextButton(
-                                    focusNode: _otpFallbackFocusNode,
-                                    onPressed: isBusy
-                                        ? null
-                                        : _onUseOtpFallback,
-                                    child: Text(l10n.authPasswordUseOtp),
-                                  ),
-                                ),
+                            Offstage(
+                              offstage: true,
+                              child: TextButton(
+                                focusNode: _otpFallbackFocusNode,
+                                onPressed: isBusy ? null : _onUseOtpFallback,
+                                child: Text(l10n.authPasswordUseOtp),
                               ),
                             ),
                           ],
@@ -356,7 +339,32 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
   }
 
   void _onForgotPassword() {
-    ref.read(authPasswordControllerProvider.notifier).sendPasswordReset();
+    if (!mounted) return;
+    context.push(AppRoutePaths.authForgotPassword);
+  }
+
+  InputDecoration _buildAuthInputDecoration(
+    BuildContext context, {
+    Widget? suffixIcon,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    InputBorder border(Color color, {double width = 1}) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(999),
+      borderSide: BorderSide(color: color, width: width),
+    );
+
+    return InputDecoration(
+      filled: true,
+      fillColor: scheme.surfaceContainerHigh,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      border: border(scheme.outlineVariant),
+      enabledBorder: border(scheme.outlineVariant),
+      focusedBorder: border(scheme.primary, width: 2),
+      suffixIcon: suffixIcon,
+      suffixIconColor: scheme.onSurfaceVariant,
+    );
   }
 
   void _onUseOtpFallback() {

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/supabase/supabase_error_mapper.dart';
-import 'package:movi/src/core/supabase/supabase_providers.dart';
 
 @immutable
 class AuthPasswordState {
@@ -15,7 +14,6 @@ class AuthPasswordState {
     this.passwordError,
     this.globalErrorKey,
     this.globalError,
-    this.noticeKey,
   });
 
   final AuthPasswordStatus status;
@@ -26,7 +24,6 @@ class AuthPasswordState {
   final AuthPasswordPasswordError? passwordError;
   final AuthPasswordGlobalError? globalErrorKey;
   final String? globalError;
-  final AuthPasswordNotice? noticeKey;
 
   static const Object _unset = Object();
 
@@ -38,7 +35,6 @@ class AuthPasswordState {
     Object? passwordError = _unset,
     Object? globalErrorKey = _unset,
     Object? globalError = _unset,
-    Object? noticeKey = _unset,
   }) {
     return AuthPasswordState(
       status: status ?? this.status,
@@ -56,32 +52,17 @@ class AuthPasswordState {
       globalError: identical(globalError, _unset)
           ? this.globalError
           : globalError as String?,
-      noticeKey: identical(noticeKey, _unset)
-          ? this.noticeKey
-          : noticeKey as AuthPasswordNotice?,
     );
   }
 }
 
-enum AuthPasswordStatus { idle, signingIn, sendingReset }
+enum AuthPasswordStatus { idle, signingIn }
 
 enum AuthPasswordEmailError { invalid }
 
 enum AuthPasswordPasswordError { required }
 
 enum AuthPasswordGlobalError { supabaseUnavailable }
-
-enum AuthPasswordNotice { resetEmailSent }
-
-typedef AuthPasswordResetSender = Future<void> Function(String email);
-
-final authPasswordResetSenderProvider = Provider<AuthPasswordResetSender?>((
-  ref,
-) {
-  final client = ref.watch(supabaseClientProvider);
-  if (client == null) return null;
-  return (email) => client.auth.resetPasswordForEmail(email);
-});
 
 class AuthPasswordController extends Notifier<AuthPasswordState> {
   @override
@@ -94,7 +75,6 @@ class AuthPasswordController extends Notifier<AuthPasswordState> {
       emailError: null,
       globalError: null,
       globalErrorKey: null,
-      noticeKey: null,
     );
   }
 
@@ -104,7 +84,6 @@ class AuthPasswordController extends Notifier<AuthPasswordState> {
       passwordError: null,
       globalError: null,
       globalErrorKey: null,
-      noticeKey: null,
     );
   }
 
@@ -126,8 +105,7 @@ class AuthPasswordController extends Notifier<AuthPasswordState> {
   }
 
   Future<bool> signIn() async {
-    if (state.status == AuthPasswordStatus.signingIn ||
-        state.status == AuthPasswordStatus.sendingReset) {
+    if (state.status == AuthPasswordStatus.signingIn) {
       return false;
     }
 
@@ -141,7 +119,6 @@ class AuthPasswordController extends Notifier<AuthPasswordState> {
       status: AuthPasswordStatus.signingIn,
       globalError: null,
       globalErrorKey: null,
-      noticeKey: null,
     );
 
     try {
@@ -149,51 +126,6 @@ class AuthPasswordController extends Notifier<AuthPasswordState> {
           .read(authRepositoryProvider)
           .signInWithPassword(email: state.email, password: state.password);
       state = state.copyWith(status: AuthPasswordStatus.idle);
-      return true;
-    } catch (error, stackTrace) {
-      final failure = mapSupabaseError(error, stackTrace: stackTrace);
-      state = state.copyWith(
-        status: AuthPasswordStatus.idle,
-        globalError: failure.message,
-        globalErrorKey: null,
-      );
-      return false;
-    }
-  }
-
-  Future<bool> sendPasswordReset() async {
-    if (state.status == AuthPasswordStatus.signingIn ||
-        state.status == AuthPasswordStatus.sendingReset) {
-      return false;
-    }
-
-    if (!_validateEmail()) {
-      return false;
-    }
-
-    final resetSender = ref.read(authPasswordResetSenderProvider);
-    if (resetSender == null) {
-      state = state.copyWith(
-        globalErrorKey: AuthPasswordGlobalError.supabaseUnavailable,
-        globalError: null,
-        noticeKey: null,
-      );
-      return false;
-    }
-
-    state = state.copyWith(
-      status: AuthPasswordStatus.sendingReset,
-      globalError: null,
-      globalErrorKey: null,
-      noticeKey: null,
-    );
-
-    try {
-      await resetSender(state.email);
-      state = state.copyWith(
-        status: AuthPasswordStatus.idle,
-        noticeKey: AuthPasswordNotice.resetEmailSent,
-      );
       return true;
     } catch (error, stackTrace) {
       final failure = mapSupabaseError(error, stackTrace: stackTrace);

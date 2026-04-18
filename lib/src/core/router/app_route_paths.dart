@@ -24,6 +24,9 @@ class AppRoutePaths {
   static const home = '/';
 
   static const authOtp = '/auth/otp';
+  static const authForgotPassword = '/auth/forgot-password';
+  static const authUpdatePassword = '/auth/update-password';
+  static const authUpdatePasswordCallback = '/update-password';
 
   static const search = '/search';
   static const searchResults = '/search_results';
