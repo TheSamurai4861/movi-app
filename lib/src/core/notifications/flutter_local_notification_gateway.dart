@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -227,10 +226,7 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
       }
       await file.writeAsBytes(bytes, flush: true);
       return file.path;
-    } catch (error, stackTrace) {
-      debugPrint(
-        '[SeriesNotifications] attachment download failed: $error\n$stackTrace',
-      );
+    } catch (_) {
       return null;
     }
   }

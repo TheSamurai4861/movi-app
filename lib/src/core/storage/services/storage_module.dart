@@ -28,20 +28,21 @@ class StorageModule {
 
   static Future<void> register({bool? allowInMemoryFallback}) async {
     final stopwatch = Stopwatch()..start();
-    _logDebug('StorageModule.register: START');
+    _logDebug('register start');
 
     try {
       await _registerPersistentDatabase(stopwatch: stopwatch);
       _registerRepositories();
       _logDebug(
-        'StorageModule.register: COMPLETE '
-        '(total: ${stopwatch.elapsedMilliseconds}ms)',
+        'register complete durationMs=${stopwatch.elapsedMilliseconds}',
       );
     } catch (error, stackTrace) {
       _logError(
-        'StorageModule.register: failed to initialize persistent storage',
-        error,
-        stackTrace,
+        action: 'register',
+        code: 'storage_init_failed',
+        context: 'stage=persistent_storage',
+        error: error,
+        stackTrace: stackTrace,
       );
 
       final isFallbackAllowed = _resolveAllowInMemoryFallback(
@@ -79,7 +80,7 @@ class StorageModule {
       return;
     }
 
-    _logDebug('StorageModule.register: initializing LocalDatabase');
+    _logDebug('register_persistent_database start');
     final database = await LocalDatabase.instance().timeout(
       const Duration(seconds: 10),
       onTimeout: () {
@@ -92,8 +93,7 @@ class StorageModule {
 
     sl.registerSingleton<Database>(database);
     _logDebug(
-      'StorageModule.register: LocalDatabase registered '
-      '(${stopwatch.elapsedMilliseconds}ms)',
+      'register_persistent_database success durationMs=${stopwatch.elapsedMilliseconds}',
     );
   }
 
@@ -102,21 +102,28 @@ class StorageModule {
     required Object originalError,
   }) async {
     _logWarning(
-      'StorageModule.register: using in-memory fallback because '
-      'featureFlags.allowInMemoryStorageFallback is enabled. '
-      'Original error: $originalError',
+      action: 'register',
+      result: 'degraded',
+      code: 'storage_in_memory_fallback_enabled',
+      context: 'reason=feature_flag errorType=${originalError.runtimeType}',
     );
 
     if (!sl.isRegistered<Database>()) {
       final database = await _createInMemoryDatabase();
       sl.registerSingleton<Database>(database);
-      _logWarning('StorageModule.register: in-memory database registered');
+      _logWarning(
+        action: 'register',
+        result: 'degraded',
+        code: 'storage_in_memory_database_registered',
+      );
     }
 
     _registerRepositories();
     _logWarning(
-      'StorageModule.register: COMPLETE in degraded mode '
-      '(total: ${stopwatch.elapsedMilliseconds}ms)',
+      action: 'register',
+      result: 'degraded',
+      code: 'storage_register_completed_degraded',
+      context: 'durationMs=${stopwatch.elapsedMilliseconds}',
     );
   }
 
@@ -261,18 +268,40 @@ class StorageModule {
       sl<AppLogger>().debug(message, category: 'storage');
       return;
     }
-    debugPrint('[StorageModule][DEBUG] $message');
+    debugPrint('[Storage][debug] $message');
   }
 
-  static void _logWarning(String message) {
+  static void _logWarning({
+    required String action,
+    required String result,
+    String? code,
+    String? context,
+  }) {
+    final codePart = (code == null || code.isEmpty) ? '' : ' code=$code';
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
+    final message =
+        '[Storage] action=$action result=$result$codePart$contextPart';
     if (sl.isRegistered<AppLogger>()) {
       sl<AppLogger>().warn(message, category: 'storage');
       return;
     }
-    debugPrint('[StorageModule][WARN] $message');
+    debugPrint(message);
   }
 
-  static void _logError(String message, Object error, StackTrace stackTrace) {
+  static void _logError({
+    required String action,
+    required String code,
+    String? context,
+    required Object error,
+    required StackTrace stackTrace,
+  }) {
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
+    final message =
+        '[Storage] action=$action result=failure code=$code$contextPart';
     if (sl.isRegistered<AppLogger>()) {
       sl<AppLogger>().log(
         LogLevel.error,
@@ -284,8 +313,12 @@ class StorageModule {
       return;
     }
 
-    debugPrint('[StorageModule][ERROR] $message');
-    debugPrint('[StorageModule][ERROR] $error');
-    debugPrint('[StorageModule][ERROR] $stackTrace');
+    debugPrint(message);
+    if (kDebugMode) {
+      debugPrint(
+        '[Storage][debug] action=$action result=failure code=$code '
+        'error=$error stackTrace=$stackTrace',
+      );
+    }
   }
 }

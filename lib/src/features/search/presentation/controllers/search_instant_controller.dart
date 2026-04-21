@@ -21,7 +21,7 @@ const Duration _searchInputDebounce = Duration(milliseconds: 1400);
 
 void _debugSearchController(String message) {
   assert(() {
-    debugPrint('[DEBUG][SearchCtrl] $message');
+    debugPrint('[SearchCtrl][debug] $message');
     return true;
   }());
 }

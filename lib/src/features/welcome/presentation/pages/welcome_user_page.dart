@@ -181,9 +181,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     final created = await ref
         .read(profilesControllerProvider.notifier)
         .createProfile(name: profileName, color: profileColor);
-    if (created == null) {
-      debugPrint('[WelcomeUserPage] createProfile failed');
-    }
+    if (created == null) return;
   }
 
   bool _isRestrictedProfile(Profile profile) {
@@ -389,13 +387,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                               child: CircularProgressIndicator(),
                             ),
                             error: (err, stackTrace) {
-                              final errString = err.toString();
-                              if (kDebugMode) {
-                                debugPrint(
-                                  '[WelcomeUserPage] Error: $errString',
-                                );
-                              }
-
                               // Pour les autres erreurs, afficher un message localisé
                               return Padding(
                                 padding: const EdgeInsets.symmetric(

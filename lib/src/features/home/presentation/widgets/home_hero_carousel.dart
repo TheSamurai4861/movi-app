@@ -449,7 +449,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final oldIndex = _index;
     if (kDebugMode) {
       debugPrint(
-        '[DEBUG][HomeHeroCarousel] _triggerNext: index $oldIndex -> ${(_index + 1) % len}',
+        '[HomeHeroCarousel][debug] _triggerNext: index $oldIndex -> ${(_index + 1) % len}',
       );
     }
 

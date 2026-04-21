@@ -23,18 +23,20 @@ class SupabaseModule {
 
   static Future<void> register(GetIt sl) async {
     final sw = Stopwatch()..start();
-    debugPrint('[DEBUG][Startup] SupabaseModule.register: START');
+    _logDebug('register start');
 
     final config = SupabaseConfig.fromEnvironment;
 
     // Vérifier si Supabase est configuré avant de valider
     if (!config.isConfigured) {
-      debugPrint(
-        '[SupabaseModule] Not configured. '
-        'Provide --dart-define=SUPABASE_URL=... and --dart-define=SUPABASE_ANON_KEY=... to enable.',
+      _logWarn(
+        action: 'bootstrap',
+        result: 'skipped',
+        code: 'supabase_not_configured',
+        context: 'reason=missing_env',
       );
-      debugPrint(
-        '[DEBUG][Startup] SupabaseModule.register: SKIPPED (not configured) (${sw.elapsedMilliseconds}ms)',
+      _logDebug(
+        'register skipped reason=missing_env durationMs=${sw.elapsedMilliseconds}',
       );
       sw.stop();
       return;
@@ -43,61 +45,55 @@ class SupabaseModule {
     // Valider la configuration
     try {
       config.ensureValid();
-      debugPrint(
-        '[DEBUG][Startup] SupabaseModule.register: config validated (${sw.elapsedMilliseconds}ms)',
+      _logDebug(
+        'validate_config success durationMs=${sw.elapsedMilliseconds}',
       );
     } catch (e, st) {
       sw.stop();
-      debugPrint(
-        '[DEBUG][Startup] SupabaseModule.register: ERROR - config validation failed after ${sw.elapsedMilliseconds}ms: $e',
+      _logError(
+        action: 'validate_config',
+        code: 'supabase_config_invalid',
+        context: 'type=${e.runtimeType}',
       );
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: Stack trace: $st');
+      _logDebug('validate_config error=$e');
+      _logDebug('validate_config stackTrace=$st');
       rethrow;
     }
 
     if (kDebugMode) {
-      debugPrint('[SupabaseModule] ${config.toString()}');
-      debugPrint(
-        '[SupabaseModule] NOTE: Ensure SUPABASE_URL matches the project where you see your profiles.',
-      );
+      _logDebug('config=${config.toString()}');
+      _logDebug('note=verify_supabase_url_matches_expected_project');
     }
 
     // Initialize Supabase once (idempotent guard).
     if (!_initialized) {
-      debugPrint(
-        '[DEBUG][Startup] SupabaseModule.register: initializing Supabase',
-      );
+      _logDebug('initialize start');
       try {
         await Supabase.initialize(
           url: config.supabaseUrl.trim(),
           anonKey: config.supabaseAnonKey.trim(),
         );
         _initialized = true;
-        debugPrint(
-          '[DEBUG][Startup] SupabaseModule.register: Supabase.initialize DONE (${sw.elapsedMilliseconds}ms)',
-        );
-        debugPrint('[Supabase] Initialized.');
+        _logDebug('initialize success durationMs=${sw.elapsedMilliseconds}');
       } catch (e, st) {
         sw.stop();
-        debugPrint(
-          '[DEBUG][Startup] SupabaseModule.register: ERROR - Supabase.initialize failed after ${sw.elapsedMilliseconds}ms: $e',
+        _logError(
+          action: 'initialize',
+          code: 'supabase_initialize_failed',
+          context: 'type=${e.runtimeType}',
         );
-        debugPrint(
-          '[DEBUG][Startup] SupabaseModule.register: Stack trace: $st',
-        );
-        debugPrint('[Supabase] Initialization failed: $e\n$st');
+        _logDebug('initialize error=$e');
+        _logDebug('initialize stackTrace=$st');
         rethrow;
       }
     } else {
-      debugPrint(
-        '[DEBUG][Startup] SupabaseModule.register: Supabase already initialized, skipping (${sw.elapsedMilliseconds}ms)',
+      _logDebug(
+        'initialize skipped reason=already_initialized durationMs=${sw.elapsedMilliseconds}',
       );
     }
 
     // Register a SINGLE SupabaseClient into GetIt.
-    debugPrint(
-      '[DEBUG][Startup] SupabaseModule.register: registering SupabaseClient in GetIt',
-    );
+    _logDebug('register_client start');
     final client = Supabase.instance.client;
 
     if (sl.isRegistered<SupabaseClient>()) {
@@ -109,20 +105,22 @@ class SupabaseModule {
         sl.unregister<SupabaseClient>();
         sl.registerSingleton<SupabaseClient>(client);
 
-        if (kDebugMode) {
-          debugPrint(
-            '[SupabaseModule] SupabaseClient mismatch detected. Replaced GetIt client with Supabase.instance.client.',
-          );
-        }
+        _logWarn(
+          action: 'register_client',
+          result: 'degraded',
+          code: 'supabase_client_mismatch_replaced',
+          context: 'strategy=replace_getit_instance',
+        );
       } else {
-        debugPrint(
-          '[DEBUG][Startup] SupabaseModule.register: SupabaseClient already registered and identical (${sw.elapsedMilliseconds}ms)',
+        _logDebug(
+          'register_client skipped reason=already_registered_identical '
+          'durationMs=${sw.elapsedMilliseconds}',
         );
       }
     } else {
       sl.registerSingleton<SupabaseClient>(client);
-      debugPrint(
-        '[DEBUG][Startup] SupabaseModule.register: SupabaseClient registered in GetIt (${sw.elapsedMilliseconds}ms)',
+      _logDebug(
+        'register_client success durationMs=${sw.elapsedMilliseconds}',
       );
     }
 
@@ -130,14 +128,46 @@ class SupabaseModule {
     // We do NOT fetch user data here, just a lightweight auth/session check.
     if (kDebugMode) {
       final session = client.auth.currentSession;
-      debugPrint(
-        '[SupabaseModule] session=${session == null ? "null" : "present"} userId=${session?.user.id ?? "n/a"}',
+      _logDebug(
+        'session=${session == null ? "null" : "present"} '
+        'userId=${session?.user.id ?? "n/a"}',
       );
     }
 
     sw.stop();
+    _logDebug('register complete durationMs=${sw.elapsedMilliseconds}');
+  }
+
+  static void _logDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[Supabase][debug] $message');
+  }
+
+  static void _logWarn({
+    required String action,
+    required String result,
+    String? code,
+    String? context,
+  }) {
+    final codePart = (code == null || code.isEmpty) ? '' : ' code=$code';
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
     debugPrint(
-      '[DEBUG][Startup] SupabaseModule.register: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
+      '[Supabase] action=$action result=$result$codePart$contextPart',
+    );
+  }
+
+  static void _logError({
+    required String action,
+    required String code,
+    String? context,
+  }) {
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
+    debugPrint(
+      '[Supabase] action=$action result=failure code=$code$contextPart',
     );
   }
 }

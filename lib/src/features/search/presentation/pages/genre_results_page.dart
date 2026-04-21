@@ -253,16 +253,6 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
         if (!hasMore) break;
       }
 
-      // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-      final finalCount = _isMovie
-          ? collectedMovies.length
-          : collectedShows.length;
-      if (finalCount < desiredCount && finalCount > 0) {
-        debugPrint(
-          '[GenreResultsPage] Only found $finalCount items out of $desiredCount requested for genre ${args.genreId}',
-        );
-      }
-
       if (!mounted) return;
       setState(() {
         if (_isMovie) {

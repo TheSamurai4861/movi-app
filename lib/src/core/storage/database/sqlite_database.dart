@@ -37,46 +37,36 @@ class LocalDatabase {
     }
 
     final sw = Stopwatch()..start();
-    debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: Initializing database...',
-    );
+    _logDebug('instance start');
 
     final path = await LocalDatabasePaths.resolvePath();
 
-    debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: opening database (version 24)',
-    );
+    _logDebug('open_database start version=23');
     _instance = await openDatabase(
       path,
       version: 23,
       onConfigure: (db) async {
-        debugPrint('[DEBUG][Startup] LocalDatabase.instance: onConfigure');
+        _logDebug('open_database onConfigure');
         await LocalDatabaseMaintenance.onConfigure(db);
       },
       onOpen: (db) async {
-        debugPrint(
-          '[DEBUG][Startup] LocalDatabase.instance: onOpen (ensuring columns)',
-        );
+        _logDebug('open_database onOpen');
         await LocalDatabaseMaintenance.onOpen(db);
       },
       onCreate: (db, version) async {
-        debugPrint(
-          '[DEBUG][Startup] LocalDatabase.instance: onCreate (version $version)',
-        );
+        _logDebug('open_database onCreate version=$version');
         await LocalDatabaseSchema.create(db, version);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        debugPrint(
-          '[DEBUG][Startup] LocalDatabase.instance: onUpgrade (from $oldVersion to $newVersion)',
+        _logDebug(
+          'open_database onUpgrade from=$oldVersion to=$newVersion',
         );
         await LocalDatabaseMigrations.upgrade(db, oldVersion, newVersion);
       },
     );
 
     sw.stop();
-    debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
-    );
+    _logDebug('instance complete durationMs=${sw.elapsedMilliseconds}');
 
     return _instance!;
   }
@@ -85,5 +75,10 @@ class LocalDatabase {
     if (_instance == null) return;
     await _instance!.close();
     _instance = null;
+  }
+
+  static void _logDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[StorageDb][debug] $message');
   }
 }

@@ -53,7 +53,6 @@ class AppStartupGate extends ConsumerWidget {
 
     // --- Loading state -----------------------------------------------------
     if (state.isLoading) {
-      debugPrint('[Startup] loading...');
       return _buildStartupMaterialApp(const _StartupLoadingScreen());
     }
 
@@ -64,7 +63,11 @@ class AppStartupGate extends ConsumerWidget {
       // Only show verbose details in dev builds or if forced at compile-time.
       final showDetails = !kReleaseMode || forceStartupDetails;
 
-      debugPrint('[Startup] error: $rawDetails');
+      _logStartupError(
+        action: 'bootstrap',
+        code: 'startup_gate_error',
+        context: 'type=${state.error.runtimeType}',
+      );
 
       return _buildStartupMaterialApp(
         _StartupErrorScreen(
@@ -81,7 +84,12 @@ class AppStartupGate extends ConsumerWidget {
     // --- Success state ------------------------------------------------------
     final result = state.asData?.value;
     if (result != null && result.kind == StartupOutcomeKind.safeMode) {
-      debugPrint('[Startup] safeMode, keep app alive with reduced UX');
+      _logStartupWarn(
+        action: 'bootstrap',
+        result: 'degraded',
+        code: 'startup_safe_mode',
+        context: 'reasonCode=${result.failure?.reasonCode ?? 'unknown'}',
+      );
       // SafeMode must stay actionable in production with minimal diagnostics.
       final showDetails = !kReleaseMode || forceStartupDetails;
       return _buildStartupMaterialApp(
@@ -98,7 +106,6 @@ class AppStartupGate extends ConsumerWidget {
     final appUpdateState = ref.watch(appUpdateDecisionProvider);
 
     if (appUpdateState.isLoading) {
-      debugPrint('[AppUpdate] loading...');
       return _buildStartupMaterialApp(const _StartupLoadingScreen());
     }
 
@@ -106,7 +113,11 @@ class AppStartupGate extends ConsumerWidget {
       final rawDetails =
           appUpdateState.error?.toString() ?? 'Unknown app update error';
       final showDetails = !kReleaseMode || forceStartupDetails;
-      debugPrint('[AppUpdate] error: $rawDetails');
+      _logStartupError(
+        action: 'app_update',
+        code: 'app_update_gate_error',
+        context: 'type=${appUpdateState.error.runtimeType}',
+      );
       return _buildStartupMaterialApp(
         _StartupErrorScreen(
           displayDetails: rawDetails,
@@ -120,9 +131,13 @@ class AppStartupGate extends ConsumerWidget {
 
     final appUpdateDecision = appUpdateState.asData?.value;
     if (appUpdateDecision != null && appUpdateDecision.isBlocking) {
-      debugPrint(
-        '[AppUpdate] blocked status=${appUpdateDecision.status.name} '
-        'reasonCode=${appUpdateDecision.reasonCode ?? 'n/a'}',
+      _logStartupWarn(
+        action: 'app_update',
+        result: 'blocked',
+        code: 'app_update_blocking',
+        context:
+            'status=${appUpdateDecision.status.name} '
+            'reasonCode=${appUpdateDecision.reasonCode ?? 'n/a'}',
       );
       return _buildStartupMaterialApp(
         AppUpdateBlockedScreen(
@@ -133,10 +148,34 @@ class AppStartupGate extends ConsumerWidget {
         ),
       );
     }
-
-    debugPrint('[Startup] ready, navigate to Home');
     return child;
   }
+}
+
+void _logStartupWarn({
+  required String action,
+  required String result,
+  String? code,
+  String? context,
+}) {
+  final codePart = (code == null || code.isEmpty) ? '' : ' code=$code';
+  final contextPart = (context == null || context.isEmpty)
+      ? ''
+      : ' context=$context';
+  debugPrint('[Startup] action=$action result=$result$codePart$contextPart');
+}
+
+void _logStartupError({
+  required String action,
+  required String code,
+  String? context,
+}) {
+  final contextPart = (context == null || context.isEmpty)
+      ? ''
+      : ' context=$context';
+  debugPrint(
+    '[Startup] action=$action result=failure code=$code$contextPart',
+  );
 }
 
 /// Builds a minimal MaterialApp used only during the startup phase.

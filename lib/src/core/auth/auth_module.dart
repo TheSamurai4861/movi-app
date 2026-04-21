@@ -71,9 +71,16 @@ class AuthModule {
 
   static void _logWarning(GetIt sl, String message) {
     if (sl.isRegistered<AppLogger>()) {
-      sl<AppLogger>().warn(message, category: 'auth');
+      sl<AppLogger>().warn(
+        '[Auth] action=register_repository result=degraded '
+        'code=auth_stub_fallback context=$message',
+        category: 'auth',
+      );
       return;
     }
-    debugPrint('[AuthModule][WARN] $message');
+    debugPrint(
+      '[Auth] action=register_repository result=degraded '
+      'code=auth_stub_fallback context=$message',
+    );
   }
 }

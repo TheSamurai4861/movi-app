@@ -80,7 +80,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   void _debugSearchFocus(String message) {
     assert(() {
-      debugPrint('[DEBUG][SearchFocus] $message');
+      debugPrint('[SearchFocus][debug] $message');
       return true;
     }());
   }

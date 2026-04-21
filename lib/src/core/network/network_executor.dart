@@ -168,7 +168,8 @@ class NetworkExecutor {
         }
 
         logger?.warn(
-          'Ignoring incompatible cached payload for dedupKey=$dedupKey',
+          '[Network] action=read_cache result=degraded '
+          'code=incompatible_cached_payload context=dedupKey=$dedupKey',
         );
       }
     }
@@ -188,7 +189,8 @@ class NetworkExecutor {
           return mapper(response);
         } on TimeoutException {
           logger?.warn(
-            'In-flight join timeout for dedupKey=$dedupKey, running an independent request',
+            '[Network] action=join_inflight result=timeout '
+            'code=inflight_join_timeout context=dedupKey=$dedupKey strategy=run_independent',
           );
         } on DioException catch (error) {
           throw mapDioToFailure(error);
@@ -217,7 +219,8 @@ class NetworkExecutor {
           return mapper(response);
         } on TimeoutException {
           logger?.warn(
-            'Late in-flight join timeout for dedupKey=$dedupKey, running an independent request',
+            '[Network] action=join_inflight result=timeout '
+            'code=late_inflight_join_timeout context=dedupKey=$dedupKey strategy=run_independent',
           );
           inflightRegistration = null;
         } on DioException catch (error) {
@@ -261,8 +264,9 @@ class NetworkExecutor {
               }
 
               logger?.warn(
-                'Request timeout after ${requestTimeout.inSeconds}s '
-                'for concurrencyKey=$concurrencyBucket dedupKey=$dedupKey',
+                '[Network] action=run_request result=timeout '
+                'code=request_timeout context=timeoutS=${requestTimeout.inSeconds} '
+                'concurrencyKey=$concurrencyBucket dedupKey=$dedupKey',
               );
 
               throw DioException(
@@ -346,7 +350,8 @@ class NetworkExecutor {
           stopwatch.stop();
 
           logger?.warn(
-            'Limiter acquire timeout for concurrencyKey=$concurrencyBucket: ${error.message}',
+            '[Network] action=acquire_limiter result=timeout '
+            'code=limiter_acquire_timeout context=concurrencyKey=$concurrencyBucket',
           );
           _logPerformance(concurrencyBucket, stopwatch.elapsed, success: false);
 
@@ -367,7 +372,8 @@ class NetworkExecutor {
           stopwatch.stop();
 
           logger?.warn(
-            'Limiter disposed while waiting for concurrencyKey=$concurrencyBucket',
+            '[Network] action=acquire_limiter result=degraded '
+            'code=limiter_disposed context=concurrencyKey=$concurrencyBucket',
           );
           _logPerformance(concurrencyBucket, stopwatch.elapsed, success: false);
 
@@ -378,7 +384,12 @@ class NetworkExecutor {
         } on UnknownFailure catch (failure, stackTrace) {
           stopwatch.stop();
 
-          logger?.error('Unexpected network error', failure, stackTrace);
+          logger?.error(
+            '[Network] action=run_request result=failure '
+            'code=unexpected_network_failure',
+            failure,
+            stackTrace,
+          );
           _logPerformance(concurrencyBucket, stopwatch.elapsed, success: false);
 
           inflightRegistration?.completeError(failure, stackTrace);
@@ -387,7 +398,12 @@ class NetworkExecutor {
         } catch (error, stackTrace) {
           stopwatch.stop();
 
-          logger?.error('Unexpected network error', error, stackTrace);
+          logger?.error(
+            '[Network] action=run_request result=failure '
+            'code=unexpected_network_error',
+            error,
+            stackTrace,
+          );
           _logPerformance(concurrencyBucket, stopwatch.elapsed, success: false);
 
           final failure = UnknownFailure(error.toString());
@@ -633,19 +649,26 @@ class NetworkExecutor {
       return;
     }
 
-    logger?.error('Network call failed', error, stackTrace);
+    logger?.error(
+      '[Network] action=call result=failure code=network_call_failed',
+      error,
+      stackTrace,
+    );
   }
 
   void _logPerformance(String? key, Duration elapsed, {required bool success}) {
     final effectiveKey = key ?? 'default';
 
     logger?.debug(
-      '[Network] key=$effectiveKey elapsed=${elapsed.inMilliseconds}ms success=$success',
+      '[Network][debug] key=$effectiveKey '
+      'elapsedMs=${elapsed.inMilliseconds} success=$success',
     );
 
     if (elapsed > const Duration(seconds: 5)) {
       logger?.warn(
-        '[Network] SLOW REQUEST: key=$effectiveKey elapsed=${elapsed.inMilliseconds}ms success=$success',
+        '[Network] action=observe_latency result=degraded '
+        'code=slow_request context=key=$effectiveKey '
+        'elapsedMs=${elapsed.inMilliseconds} success=$success',
       );
     }
   }

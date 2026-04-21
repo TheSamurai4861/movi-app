@@ -642,10 +642,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       final hasSelectedProfile = meta.selectedProfileId != null;
       final hasSelectedSource = meta.selectedSourceId != null;
 
-      await LoggingService.log(
-        '[Preload] step=$step hasAccount=$hasAccount profiles=$pc '
+      _logStartupDebug(
+        'step=$step hasAccount=$hasAccount profiles=$pc '
         'sources=$sc local=$lc hasSelectedProfile=$hasSelectedProfile '
-        'hasSelectedSource=$hasSelectedSource dest=$dest :: $message',
+        'hasSelectedSource=$hasSelectedSource dest=$dest detail=$message',
       );
     }
 
@@ -711,9 +711,12 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
 
       unawaited(
-        LoggingService.log(
-          '[Preload][ERROR] step=$step uid=${meta.accountId ?? 'null'} '
-          'type=${error.runtimeType} code=$code msg=$error',
+        _logStartupError(
+          action: 'launch_step',
+          code: 'app_launch_step_failed',
+          context:
+              'step=$step uid=${meta.accountId ?? 'null'} '
+              'type=${error.runtimeType} errorCode=$code',
         ),
       );
 
@@ -976,8 +979,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
             await logStep('sources fetched');
           } catch (e, st) {
             if (kDebugMode) {
-              debugPrint(
-                '[Bootstrap] Remote sources fetch failed, continuing local-first: $e\n$st',
+              _logStartupDebug(
+                'step=sources_fetch result=remote_sources_fetch_failed '
+                'strategy=local_only_fallback error=$e\n$st',
               );
             }
             await logStep('sources fetch failed -> local-only fallback');
@@ -1067,8 +1071,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           await logStep('user prefs pulled from cloud (iptv selection)');
         } catch (e, st) {
           if (kDebugMode) {
-            debugPrint(
-              '[Bootstrap] pullUserPreferences before iptv selection: $e\n$st',
+            _logStartupDebug(
+              'step=iptv_source_selection result=pull_user_preferences_failed '
+              'attempt=initial error=$e\n$st',
             );
           }
           await logStep('pullUserPreferences failed (ignored)');
@@ -1102,8 +1107,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           await logStep('user prefs pulled from cloud (iptv selection retry)');
         } catch (e, st) {
           if (kDebugMode) {
-            debugPrint(
-              '[Bootstrap] pullUserPreferences retry before iptv selection: $e\n$st',
+            _logStartupDebug(
+              'step=iptv_source_selection result=pull_user_preferences_failed '
+              'attempt=retry error=$e\n$st',
             );
           }
           await logStep('pullUserPreferences retry failed (ignored)');
@@ -1129,7 +1135,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       }
       if (kDebugMode) {
         debugPrint(
-          '[BOOTSTRAP] Preferred source present=${preferredFinal != null} '
+          '[Startup][debug] preferred_source_present=${preferredFinal != null} '
           'validIds=${validIds.length}',
         );
       }
@@ -1363,7 +1369,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       final msg = e.toString().toLowerCase();
       if (msg.contains('not registered') || msg.contains('bad state')) {
         await LoggingService.log(
-          '[Preload][WARN] library preload skipped: dependency unavailable',
+          '[Startup] action=preload_library result=skipped '
+          'code=library_dependency_unavailable',
+          level: LogLevel.warn,
+          category: 'startup',
         );
         return;
       }
@@ -1449,7 +1458,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     final runIdPart = runId == null ? '' : ' runId=$runId';
     unawaited(
       LoggingService.log(
-        '[Launch] ts=$ts phase=${phase.name} status=${status.name} step=$step$runIdPart',
+        '[Startup] action=phase_transition result=${status.name} '
+        'context=ts=$ts phase=${phase.name} step=$step$runIdPart',
+        category: 'startup',
       ),
     );
   }
@@ -1464,7 +1475,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         : selectedSourceId;
     unawaited(
       LoggingService.log(
-        '[Launch][Criteria] context=$context '
+        '[Startup] action=evaluate_home_criteria result=observed '
+        'context=name=$context '
         'session=${criteria.hasSession} '
         'profile=${criteria.hasSelectedProfile} '
         'source=${criteria.hasSelectedSource} '
@@ -1473,6 +1485,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         'library=${criteria.hasLibraryReady} '
         'isHomeReady=${criteria.isHomeReady} '
         'selectedSourceId=$source',
+        category: 'startup',
       ),
     );
   }
@@ -1546,7 +1559,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     final runId = state.runId == null ? '' : ' runId=${state.runId}';
     unawaited(
       LoggingService.log(
-        '[IptvSync] ts=$ts reason=$reason action=$action$extra$runId',
+        '[Startup] action=iptv_sync_$action result=observed '
+        'context=ts=$ts reason=$reason$extra$runId',
         category: 'startup',
       ),
     );
@@ -1570,7 +1584,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     final extra = detail == null || detail.isEmpty ? '' : ' detail=$detail';
     unawaited(
       LoggingService.log(
-        '[IptvContext] context=$context '
+        '[Startup] action=iptv_context result=observed '
+        'context=name=$context '
         'currentUserId=$userId '
         'selectedSourceId=$selectedId '
         'activeSourceIds=$activeIds '
@@ -1578,6 +1593,26 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         'sourceOwner=$owner$extra',
         category: 'startup',
       ),
+    );
+  }
+
+  void _logStartupDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[Startup][debug] $message');
+  }
+
+  Future<void> _logStartupError({
+    required String action,
+    required String code,
+    String? context,
+  }) {
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
+    return LoggingService.log(
+      '[Startup] action=$action result=failure code=$code$contextPart',
+      level: LogLevel.error,
+      category: 'startup',
     );
   }
 
@@ -1680,7 +1715,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       try {
         if (xtreamIds.contains(id)) {
           if (kDebugMode) {
-            debugPrint('[BOOTSTRAP] Refresh Xtream');
+            debugPrint('[Startup][debug] refresh_xtream start');
           }
           final result = await _refreshXtreamCatalog(id);
           result.fold(
@@ -1688,8 +1723,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
               refreshed = true;
               unawaited(
                 LoggingService.log(
-                  '[IptvSync] source=${_redactIptvSourceId(id)} action=refresh_xtream '
-                  'result=success movies=${snapshot.movieCount} '
+                  '[Startup] action=refresh_xtream result=success '
+                  'context=source=${_redactIptvSourceId(id)} '
+                  'movies=${snapshot.movieCount} '
                   'series=${snapshot.seriesCount}',
                   category: 'startup',
                 ),
@@ -1701,22 +1737,22 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           );
         } else if (stalkerIds.contains(id)) {
           if (kDebugMode) {
-            debugPrint('[BOOTSTRAP] Refresh Stalker');
+            debugPrint('[Startup][debug] refresh_stalker start');
           }
           final result = await _refreshStalkerCatalog(id);
           result.fold(
             ok: (snapshot) {
               if (kDebugMode) {
-                debugPrint('[BOOTSTRAP] Stalker refresh OK');
+                debugPrint('[Startup][debug] refresh_stalker success');
                 debugPrint(
-                  '[BOOTSTRAP] Films: ${snapshot.movieCount}, '
+                  '[Startup][debug] refresh_stalker counts movies=${snapshot.movieCount} '
                   'Series: ${snapshot.seriesCount}',
                 );
               }
             },
             err: (error) {
               if (kDebugMode) {
-                debugPrint('[BOOTSTRAP] Stalker refresh error: $error');
+                debugPrint('[Startup][debug] refresh_stalker error=$error');
               }
             },
           );
@@ -1724,7 +1760,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('[BOOTSTRAP] Refresh error: $e');
+          debugPrint('[Startup][debug] refresh_catalog error=$e');
         }
         if (e is _LaunchStepException) {
           rethrow;
@@ -1736,7 +1772,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       accountIds: activeIds,
     );
     if (kDebugMode) {
-      debugPrint('[BOOTSTRAP] hasAnyPlaylistItems: $nowHasAny');
+      debugPrint('[Startup][debug] has_any_playlist_items=$nowHasAny');
     }
 
     if (!nowHasAny) {
@@ -1765,7 +1801,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     ].join(' ');
     unawaited(
       LoggingService.log(
-        '[IptvSync] action=refresh_xtream result=failure $details',
+        '[Startup] action=refresh_xtream result=failure context=$details',
         category: 'startup',
         level: LogLevel.warn,
       ),
@@ -1830,15 +1866,21 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
   Future<void> _runIptvBackgroundSync(AppLaunchMeta meta) async {
     const step = 'iptv_sync_background';
-    await LoggingService.log(
-      '[Preload] step=$step uid=${meta.accountId ?? 'null'} :: start',
-    );
+    _logStartupDebug('action=preload_iptv_background step=$step result=start');
 
     final result = await _ensureIptvCatalogReady(reason: 'background')
         .timeout(
           const Duration(seconds: 18),
           onTimeout: () {
-            debugPrint('[Preload] IPTV sync timeout after 18s (background)');
+            unawaited(
+              LoggingService.log(
+                '[Startup] action=preload_iptv_background result=timeout '
+                'code=iptv_background_sync_timeout '
+                'context=step=$step timeoutS=18 uid=${meta.accountId ?? 'null'}',
+                level: LogLevel.warn,
+                category: 'startup',
+              ),
+            );
             return const _IptvPreloadResult(
               catalogReady: false,
               refreshed: false,
@@ -1848,11 +1890,17 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         .catchError((e) {
           unawaited(
             LoggingService.log(
-              '[Preload][WARN] step=$step uid=${meta.accountId} '
-              'type=${e.runtimeType}',
+              '[Startup] action=preload_iptv_background result=degraded '
+              'code=iptv_background_sync_failed '
+              'context=step=$step uid=${meta.accountId} type=${e.runtimeType}',
+              level: LogLevel.warn,
+              category: 'startup',
             ),
           );
-          debugPrint('[Bootstrap] iptv sync failed (background): $e');
+          _logStartupDebug(
+            'action=preload_iptv_background result=error '
+            'step=$step error=$e',
+          );
           return const _IptvPreloadResult(
             catalogReady: false,
             refreshed: false,
@@ -1866,14 +1914,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     );
 
     if (result.catalogReady) {
-      await LoggingService.log(
-        '[Preload] step=$step uid=${meta.accountId ?? 'null'} '
-        ':: catalog ready',
+      _logStartupDebug(
+        'action=preload_iptv_background step=$step result=catalog_ready '
+        'uid=${meta.accountId ?? 'null'}',
       );
     } else {
-      await LoggingService.log(
-        '[Preload] step=$step uid=${meta.accountId ?? 'null'} '
-        ':: catalog not ready',
+      _logStartupDebug(
+        'action=preload_iptv_background step=$step result=catalog_not_ready '
+        'uid=${meta.accountId ?? 'null'}',
       );
     }
   }
@@ -1908,9 +1956,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     final profileId = _resolveCloudSyncProfileId(meta);
     if (profileId == null) {
-      await LoggingService.log(
-        '[Preload] step=cloud_sync_background uid=$accountId '
-        ':: skipped (no cloud profile id)',
+      _logStartupDebug(
+        'action=cloud_sync_background result=skipped '
+        'code=missing_cloud_profile_id uid=$accountId',
       );
       return;
     }
@@ -1920,9 +1968,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       return;
     }
 
-    await LoggingService.log(
-      '[Preload] step=cloud_sync_background uid=$accountId '
-      'profile=$profileId :: start',
+    _logStartupDebug(
+      'action=cloud_sync_background result=start '
+      'uid=$accountId profile=$profileId',
     );
 
     try {
@@ -1938,17 +1986,23 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         context: 'bootstrap_auto_resync',
       );
       _appEventBus.emit(const AppEvent(AppEventType.librarySynced));
-      await LoggingService.log(
-        '[Preload] step=cloud_sync_background uid=$accountId '
-        'profile=$profileId :: success',
+      _logStartupDebug(
+        'action=cloud_sync_background result=success '
+        'uid=$accountId profile=$profileId',
       );
     } catch (error) {
       await LoggingService.log(
-        '[Preload][WARN] step=cloud_sync_background uid=$accountId '
-        'profile=$profileId type=${error.runtimeType}',
+        '[Startup] action=cloud_sync_background result=degraded '
+        'code=cloud_sync_background_failed '
+        'context=uid=$accountId profile=$profileId type=${error.runtimeType}',
+        level: LogLevel.warn,
+        category: 'startup',
       );
       if (kDebugMode) {
-        debugPrint('[Bootstrap] cloud sync failed (background): $error');
+        _logStartupDebug(
+          'action=cloud_sync_background result=error '
+          'uid=$accountId profile=$profileId error=$error',
+        );
       }
     }
   }
@@ -1992,9 +2046,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           remoteLocalId.isNotEmpty &&
           suppressedLocalIds.contains(remoteLocalId)) {
         if (kDebugMode) {
-          debugPrint(
-            '[Bootstrap] Skipping suppressed remote source ${s.id} '
-            '(localId=$remoteLocalId)',
+          _logStartupDebug(
+            'action=hydrate_remote_sources result=skip_suppressed '
+            'sourceId=${s.id} localId=$remoteLocalId',
           );
         }
         continue;
@@ -2011,29 +2065,29 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           ciphertext == null ||
           ciphertext.isEmpty) {
         if (kDebugMode) {
-          debugPrint(
-            '[Bootstrap] Skipping source ${s.id}: missing data '
-            '(serverUrl=${serverUrl?.isEmpty == false}, '
-            'username=${username?.isEmpty == false}, '
-            'ciphertext=${ciphertext?.isEmpty == false})',
+          _logStartupDebug(
+            'action=hydrate_remote_sources result=skip_missing_data '
+            'sourceId=${s.id} hasServerUrl=${serverUrl?.isEmpty == false} '
+            'hasUsername=${username?.isEmpty == false} '
+            'hasCiphertext=${ciphertext?.isEmpty == false}',
           );
         }
         continue;
       }
 
       if (kDebugMode) {
-        debugPrint(
-          '[Bootstrap] Attempting to parse serverUrl for source ${s.id}: '
-          '"$serverUrl"',
+        _logStartupDebug(
+          'action=hydrate_remote_sources result=parse_server_url '
+          'sourceId=${s.id} serverUrl="$serverUrl"',
         );
       }
 
       final endpoint = XtreamEndpoint.tryParse(serverUrl);
       if (endpoint == null) {
         if (kDebugMode) {
-          debugPrint(
-            '[Bootstrap] Failed to parse serverUrl for source ${s.id}: '
-            '"$serverUrl" (invalid format)',
+          _logStartupDebug(
+            'action=hydrate_remote_sources result=skip_invalid_server_url '
+            'sourceId=${s.id} serverUrl="$serverUrl"',
           );
         }
         continue;
@@ -2093,9 +2147,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       return await prefs.readSuppressedLocalIds(accountId: accountId);
     } catch (error) {
       if (kDebugMode) {
-        debugPrint(
-          '[Bootstrap] Failed to read remote source suppression state '
-          'for accountId=$accountId: $error',
+        _logStartupDebug(
+          'action=read_remote_source_suppression_state result=failed '
+          'accountId=$accountId error=$error',
         );
       }
       return <String>{};

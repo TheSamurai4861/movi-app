@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -19,9 +20,7 @@ final class LocalDatabasePaths {
     _ensureFlutterBindingInitialized();
     _configurePlatformDatabaseFactory();
 
-    debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: getting application support directory',
-    );
+    _logDebug('resolve_path get_application_support_directory');
     final newDir = await getApplicationSupportDirectory();
 
     try {
@@ -29,9 +28,7 @@ final class LocalDatabasePaths {
     } catch (_) {}
 
     final newPath = p.join(newDir.path, fileName);
-    debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: database path = $newPath',
-    );
+    _logDebug('resolve_path target=$newPath');
 
     await _migrateDatabaseIfNeeded(newPath);
     return newPath;
@@ -46,9 +43,7 @@ final class LocalDatabasePaths {
   static void _configurePlatformDatabaseFactory() {
     if (!Platform.isWindows) return;
 
-    debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: initializing sqflite_ffi for Windows',
-    );
+    _logDebug('configure_factory platform=windows init=sqflite_ffi');
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
@@ -64,9 +59,7 @@ final class LocalDatabasePaths {
     }
 
     try {
-      debugPrint(
-        '[DB] Migrating database from Documents to Application Support',
-      );
+      _logDebug('migrate_database start source=documents target=app_support');
       await oldDbFile.copy(newPath);
       await _migrateCompanionFile(
         sourcePath: '$oldPath-wal',
@@ -77,9 +70,15 @@ final class LocalDatabasePaths {
         destinationPath: '$newPath-shm',
       );
       await oldDbFile.delete();
-      debugPrint('[DB] Database migration completed successfully');
+      _logDebug('migrate_database success');
     } catch (error) {
-      debugPrint('[DB] Failed to migrate database: $error');
+      _logWarn(
+        action: 'migrate_database',
+        result: 'degraded',
+        code: 'db_path_migration_failed',
+        context: 'type=${error.runtimeType}',
+      );
+      _logDebug('migrate_database error=$error');
     }
   }
 
@@ -93,4 +92,24 @@ final class LocalDatabasePaths {
     await sourceFile.copy(destinationPath);
     await sourceFile.delete();
   }
+}
+
+void _logDebug(String message) {
+  if (!kDebugMode) return;
+  debugPrint('[StorageDbPath][debug] $message');
+}
+
+void _logWarn({
+  required String action,
+  required String result,
+  String? code,
+  String? context,
+}) {
+  final codePart = (code == null || code.isEmpty) ? '' : ' code=$code';
+  final contextPart = (context == null || context.isEmpty)
+      ? ''
+      : ' context=$context';
+  debugPrint(
+    '[StorageDbPath] action=$action result=$result$codePart$contextPart',
+  );
 }

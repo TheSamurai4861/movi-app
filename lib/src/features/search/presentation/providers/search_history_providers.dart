@@ -1,5 +1,4 @@
-import 'dart:developer' as dev;
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
@@ -46,10 +45,7 @@ class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
       await _addHistory(trimmed);
       await refresh();
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryController] add("$trimmed") failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('[SearchHistoryController] add("$trimmed") failed: $e\n$st');
       // On ne met pas l’état en erreur : l’UI garde l’ancien historique.
     }
   }
@@ -60,10 +56,7 @@ class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
       await _removeHistory(query);
       await refresh();
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryController] remove("$query") failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('[SearchHistoryController] remove("$query") failed: $e\n$st');
       // Là non plus, on ne touche pas à l'état en cas d'erreur.
     }
   }
@@ -74,10 +67,7 @@ class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
       await _repo.clear();
       await refresh();
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryController] clearAll() failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('[SearchHistoryController] clearAll() failed: $e\n$st');
     }
   }
 
@@ -107,10 +97,7 @@ class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
       final items = await _listHistory();
       return items;
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryController] _safeLoad() failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('[SearchHistoryController] _safeLoad() failed: $e\n$st');
 
       if (fallback != null && fallback.hasValue) {
         return fallback.value!;
@@ -127,3 +114,10 @@ final searchHistoryControllerProvider =
     AsyncNotifierProvider<SearchHistoryController, List<SearchHistoryItem>>(
       SearchHistoryController.new,
     );
+
+void _debugLog(String message) {
+  assert(() {
+    debugPrint(message);
+    return true;
+  }());
+}

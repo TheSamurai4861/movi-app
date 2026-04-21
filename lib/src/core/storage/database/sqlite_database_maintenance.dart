@@ -106,19 +106,29 @@ final class LocalDatabaseMaintenance {
 
   static Future<void> _tryEnableWal(Database db) async {
     if (Platform.isIOS) {
-      debugPrint('[DB] Skipping PRAGMA journal_mode = WAL on iOS');
+      _logDebug('enable_wal skipped reason=ios');
       return;
     }
 
     try {
       final result = await db.rawQuery('PRAGMA journal_mode = WAL;');
-      debugPrint('[DB] WAL journal_mode result: $result');
+      _logDebug('enable_wal success result=$result');
     } on DatabaseException catch (error) {
-      debugPrint('[DB] Failed to enable WAL, continuing without WAL: $error');
-    } catch (error) {
-      debugPrint(
-        '[DB] Unexpected error while enabling WAL, continuing: $error',
+      _logWarn(
+        action: 'enable_wal',
+        result: 'degraded',
+        code: 'db_enable_wal_failed',
+        context: 'type=${error.runtimeType}',
       );
+      _logDebug('enable_wal error=$error');
+    } catch (error) {
+      _logWarn(
+        action: 'enable_wal',
+        result: 'degraded',
+        code: 'db_enable_wal_unexpected_error',
+        context: 'type=${error.runtimeType}',
+      );
+      _logDebug('enable_wal unexpected_error=$error');
     }
   }
 
@@ -143,7 +153,13 @@ final class LocalDatabaseMaintenance {
 
       await db.execute('ALTER TABLE $table ADD COLUMN $column $ddlType;');
     } catch (error) {
-      debugPrint('[DB] _ensureColumn($table.$column) failed: $error');
+      _logWarn(
+        action: 'ensure_column',
+        result: 'degraded',
+        code: 'db_ensure_column_failed',
+        context: 'table=$table column=$column type=${error.runtimeType}',
+      );
+      _logDebug('ensure_column error=$error table=$table column=$column');
     }
   }
 
@@ -160,9 +176,35 @@ final class LocalDatabaseMaintenance {
       if (tableExists.isNotEmpty) return;
 
       await db.execute(ddl);
-      debugPrint('[DB] Created table $table');
+      _logDebug('ensure_table created table=$table');
     } catch (error) {
-      debugPrint('[DB] _ensureTable($table) failed: $error');
+      _logWarn(
+        action: 'ensure_table',
+        result: 'degraded',
+        code: 'db_ensure_table_failed',
+        context: 'table=$table type=${error.runtimeType}',
+      );
+      _logDebug('ensure_table error=$error table=$table');
     }
   }
+}
+
+void _logDebug(String message) {
+  if (!kDebugMode) return;
+  debugPrint('[StorageDbMaintenance][debug] $message');
+}
+
+void _logWarn({
+  required String action,
+  required String result,
+  String? code,
+  String? context,
+}) {
+  final codePart = (code == null || code.isEmpty) ? '' : ' code=$code';
+  final contextPart = (context == null || context.isEmpty)
+      ? ''
+      : ' context=$context';
+  debugPrint(
+    '[StorageDbMaintenance] action=$action result=$result$codePart$contextPart',
+  );
 }

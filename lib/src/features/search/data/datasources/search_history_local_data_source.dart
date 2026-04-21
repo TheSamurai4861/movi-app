@@ -1,6 +1,5 @@
 // lib/src/features/search/data/datasources/search_history_local_data_source.dart
-import 'dart:developer' as dev;
-
+import 'package:flutter/foundation.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
 
@@ -19,9 +18,8 @@ class SearchHistoryLocalDataSource {
       final suffix = (name != null && name.isNotEmpty) ? name : 'default';
       return 'search_history_$suffix';
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryLocalDataSource] _userScopedKey: fallback default (error: $e)',
-        stackTrace: st,
+      _debugLog(
+        '_userScopedKey fallback_default error=$e\n$st',
       );
       return 'search_history_default';
     }
@@ -47,10 +45,7 @@ class SearchHistoryLocalDataSource {
 
       await _cache.put(key: key, type: _type, payload: {'items': list});
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryLocalDataSource] add("$query") failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('add("$query") failed error=$e\n$st');
       // On n'échoue pas vers l’UI : on ignore l’erreur.
     }
   }
@@ -73,9 +68,8 @@ class SearchHistoryLocalDataSource {
           .where((i) => i.query.isNotEmpty)
           .toList(growable: false);
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryLocalDataSource] list() failed, returning []. Error: $e',
-        stackTrace: st,
+      _debugLog(
+        'list() failed_returning_empty error=$e\n$st',
       );
       return const [];
     }
@@ -92,10 +86,7 @@ class SearchHistoryLocalDataSource {
 
       await _cache.put(key: key, type: _type, payload: {'items': list});
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryLocalDataSource] remove("$query") failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('remove("$query") failed error=$e\n$st');
       // Là aussi, on ne remonte pas l'erreur à l'UI.
     }
   }
@@ -105,10 +96,7 @@ class SearchHistoryLocalDataSource {
       final key = await _userScopedKey();
       await _cache.put(key: key, type: _type, payload: {'items': []});
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryLocalDataSource] clear() failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('clear() failed error=$e\n$st');
     }
   }
 
@@ -120,10 +108,7 @@ class SearchHistoryLocalDataSource {
       if (value == null) return null;
       return value;
     } catch (e, st) {
-      dev.log(
-        '[SearchHistoryLocalDataSource] _safeGet("$key") failed: $e',
-        stackTrace: st,
-      );
+      _debugLog('_safeGet("$key") failed error=$e\n$st');
       return null;
     }
   }
@@ -142,9 +127,8 @@ class SearchHistoryLocalDataSource {
         try {
           result.add(item.cast<String, dynamic>());
         } catch (e, st) {
-          dev.log(
-            '[SearchHistoryLocalDataSource] _decodeItems: cast error for $item: $e',
-            stackTrace: st,
+          _debugLog(
+            '_decodeItems cast_error item=$item error=$e\n$st',
           );
         }
       }
@@ -160,5 +144,12 @@ class SearchHistoryLocalDataSource {
     }
     return DateTime.tryParse(s)?.toUtc() ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  }
+
+  void _debugLog(String message) {
+    assert(() {
+      debugPrint('[SearchHistoryLocalDataSource] $message');
+      return true;
+    }());
   }
 }

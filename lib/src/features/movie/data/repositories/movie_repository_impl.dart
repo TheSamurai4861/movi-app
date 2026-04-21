@@ -1,5 +1,4 @@
-import 'dart:developer' as dev;
-
+import 'package:flutter/foundation.dart';
 import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/storage/storage.dart';
@@ -223,15 +222,10 @@ class MovieRepositoryImpl implements MovieRepository {
         language: _languageCode,
       );
       await _persistMoviePayload(movieId, dto);
-      dev.log('movie_detail_saved', name: 'MovieRepositoryImpl');
+      _debugLog('movie_detail_saved');
       return dto;
     } catch (e, st) {
-      dev.log(
-        'getMovie_failed',
-        name: 'MovieRepositoryImpl',
-        error: e,
-        stackTrace: st,
-      );
+      _debugLog('getMovie_failed error=$e\n$st');
       throw Failure.fromException(
         e,
         stackTrace: st,
@@ -284,9 +278,8 @@ class MovieRepositoryImpl implements MovieRepository {
           );
         })
         .catchError((Object error, StackTrace stackTrace) {
-          dev.log(
+          _debugLog(
             'background_refresh_failed resource=movie_detail_full movieId=$movieId lang=$_languageCode',
-            name: 'MovieRepositoryImpl',
             error: error,
             stackTrace: stackTrace,
           );
@@ -304,11 +297,19 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   void _logCache(String resource, String event, int movieId, {String? source}) {
-    dev.log(
+    _debugLog(
       '$event resource=$resource movieId=$movieId lang=$_languageCode'
       '${source == null ? '' : ' source=$source'}',
-      name: 'MovieRepositoryImpl',
     );
+  }
+
+  void _debugLog(String message, {Object? error, StackTrace? stackTrace}) {
+    assert(() {
+      final suffix = error == null ? '' : ' error=$error';
+      final stack = stackTrace == null ? '' : '\n$stackTrace';
+      debugPrint('[MovieRepositoryImpl] $message$suffix$stack');
+      return true;
+    }());
   }
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {

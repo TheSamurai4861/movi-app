@@ -14,27 +14,28 @@ import 'package:movi/src/core/performance/domain/resolve_performance_profile.dar
 class PerformanceModule {
   static Future<void> register(GetIt sl) async {
     final sw = Stopwatch()..start();
-    debugPrint('[DEBUG][Startup] PerformanceModule.register: START');
+    _logDebug('register start');
 
     try {
       if (!sl.isRegistered<DeviceCapabilitiesRepository>()) {
         sl.registerLazySingleton<DeviceCapabilitiesRepository>(
           () => const ProcfsDeviceCapabilitiesRepository(),
         );
-        debugPrint(
-          '[DEBUG][Startup] PerformanceModule.register: DeviceCapabilitiesRepository registered (${sw.elapsedMilliseconds}ms)',
+        _logDebug(
+          'register_repository success durationMs=${sw.elapsedMilliseconds}',
         );
       }
 
       final capsRepo = sl<DeviceCapabilitiesRepository>();
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule.register: reading capabilities',
-      );
+      _logDebug('read_capabilities start');
       final caps = await capsRepo.readCapabilities().timeout(
         const Duration(seconds: 5),
         onTimeout: () {
-          debugPrint(
-            '[DEBUG][Startup] PerformanceModule.register: WARNING - readCapabilities timeout, using defaults',
+          _logWarn(
+            action: 'read_capabilities',
+            result: 'timeout',
+            code: 'performance_capabilities_timeout',
+            context: 'fallback=default_tuning',
           );
           throw TimeoutException(
             'readCapabilities timeout',
@@ -42,14 +43,15 @@ class PerformanceModule {
           );
         },
       );
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule.register: capabilities read DONE (${sw.elapsedMilliseconds}ms)',
+      _logDebug(
+        'read_capabilities success durationMs=${sw.elapsedMilliseconds}',
       );
 
       final profile = const ResolvePerformanceProfile()(caps);
       final tuning = PerformanceTuning.fromProfile(profile);
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule.register: profile resolved (${sw.elapsedMilliseconds}ms)',
+      _logDebug(
+        'resolve_profile success profile=${tuning.profile.name} '
+        'durationMs=${sw.elapsedMilliseconds}',
       );
 
       if (sl.isRegistered<PerformanceTuning>()) {
@@ -76,17 +78,16 @@ class PerformanceModule {
       }
 
       sw.stop();
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule.register: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
-      );
+      _logDebug('register complete durationMs=${sw.elapsedMilliseconds}');
     } catch (e, st) {
       sw.stop();
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule.register: ERROR after ${sw.elapsedMilliseconds}ms: $e',
+      _logError(
+        action: 'bootstrap',
+        code: 'performance_bootstrap_failed',
+        context: 'type=${e.runtimeType}',
       );
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule.register: Stack trace: $st',
-      );
+      _logDebug('bootstrap error=$e');
+      _logDebug('bootstrap stackTrace=$st');
       // Ne pas faire échouer le startup si PerformanceModule échoue
       // Utiliser des valeurs par défaut
       if (!sl.isRegistered<PerformanceTuning>()) {
@@ -94,8 +95,11 @@ class PerformanceModule {
           PerformanceProfile.normal,
         );
         sl.registerSingleton<PerformanceTuning>(defaultTuning);
-        debugPrint(
-          '[DEBUG][Startup] PerformanceModule.register: Using default tuning as fallback',
+        _logWarn(
+          action: 'bootstrap',
+          result: 'degraded',
+          code: 'performance_default_tuning_fallback',
+          context: 'reason=bootstrap_failure',
         );
         if (!sl.isRegistered<PerformanceDiagnosticLogger>() &&
             sl.isRegistered<AppLogger>()) {
@@ -113,8 +117,11 @@ class PerformanceModule {
   /// Configure le NetworkExecutor avec les paramètres de tuning
   static void _configureNetworkExecutor(GetIt sl, PerformanceTuning tuning) {
     if (!sl.isRegistered<NetworkExecutor>()) {
-      debugPrint(
-        '[DEBUG][Startup] PerformanceModule: NetworkExecutor not registered, skipping configuration',
+      _logWarn(
+        action: 'configure_network_executor',
+        result: 'skipped',
+        code: 'network_executor_missing',
+        context: 'reason=not_registered',
       );
       return;
     }
@@ -132,13 +139,46 @@ class PerformanceModule {
           : const Duration(seconds: 30),
     );
 
-    debugPrint(
-      '[DEBUG][Startup] PerformanceModule: NetworkExecutor configured (profile=${tuning.profile.name})',
+    _logDebug(
+      'configure_network_executor success profile=${tuning.profile.name}',
     );
   }
 
   static void reapplyNetworkExecutorTuning(GetIt sl) {
     if (!sl.isRegistered<PerformanceTuning>()) return;
     _configureNetworkExecutor(sl, sl<PerformanceTuning>());
+  }
+
+  static void _logDebug(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[Performance][debug] $message');
+  }
+
+  static void _logWarn({
+    required String action,
+    required String result,
+    String? code,
+    String? context,
+  }) {
+    final codePart = (code == null || code.isEmpty) ? '' : ' code=$code';
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
+    debugPrint(
+      '[Performance] action=$action result=$result$codePart$contextPart',
+    );
+  }
+
+  static void _logError({
+    required String action,
+    required String code,
+    String? context,
+  }) {
+    final contextPart = (context == null || context.isEmpty)
+        ? ''
+        : ' context=$context';
+    debugPrint(
+      '[Performance] action=$action result=failure code=$code$contextPart',
+    );
   }
 }
