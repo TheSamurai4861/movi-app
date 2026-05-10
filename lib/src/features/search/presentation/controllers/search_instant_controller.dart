@@ -17,7 +17,6 @@ import 'package:movi/src/core/profile/presentation/providers/current_profile_pro
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 const int _minSearchQueryLength = 3;
-const Duration _searchInputDebounce = Duration(milliseconds: 1400);
 
 void _debugSearchController(String message) {
   assert(() {
@@ -26,42 +25,92 @@ void _debugSearchController(String message) {
   }());
 }
 
+enum SearchUiMode {
+  discovery,
+  readyToSubmit,
+  loadingResults,
+  showingResults,
+  error,
+}
+
 class SearchState {
   const SearchState({
-    this.query = '',
+    this.draftQuery = '',
+    this.submittedQuery = '',
     this.movies = const <MovieSummary>[],
     this.shows = const <TvShowSummary>[],
     this.people = const <PersonSummary>[],
     this.sagas = const <SagaSummary>[],
     this.isLoading = false,
+    this.hasSearched = false,
     this.error,
   });
 
-  final String query;
+  static const Object _sentinel = Object();
+
+  final String draftQuery;
+  final String submittedQuery;
   final List<MovieSummary> movies;
   final List<TvShowSummary> shows;
   final List<PersonSummary> people;
   final List<SagaSummary> sagas;
   final bool isLoading;
+  final bool hasSearched;
   final String? error;
 
+  String get query => submittedQuery;
+
+  bool get canSubmitDraft => draftQuery.trim().length >= _minSearchQueryLength;
+
+  bool get hasAnyResults =>
+      movies.isNotEmpty ||
+      shows.isNotEmpty ||
+      people.isNotEmpty ||
+      sagas.isNotEmpty;
+
+  SearchUiMode get uiMode {
+    final normalizedDraft = draftQuery.trim();
+    final normalizedSubmitted = submittedQuery.trim();
+    if (normalizedDraft.length < _minSearchQueryLength) {
+      return SearchUiMode.discovery;
+    }
+    final hasCommittedDraft =
+        hasSearched &&
+        normalizedSubmitted.length >= _minSearchQueryLength &&
+        normalizedDraft == normalizedSubmitted;
+    if (!hasCommittedDraft) {
+      return SearchUiMode.readyToSubmit;
+    }
+    if (isLoading) {
+      return SearchUiMode.loadingResults;
+    }
+    if (error != null) {
+      return SearchUiMode.error;
+    }
+    return SearchUiMode.showingResults;
+  }
+
   SearchState copyWith({
-    String? query,
+    String? draftQuery,
+    String? submittedQuery,
     List<MovieSummary>? movies,
     List<TvShowSummary>? shows,
     List<PersonSummary>? people,
     List<SagaSummary>? sagas,
     bool? isLoading,
-    String? error,
+    bool? hasSearched,
+    Object? error = _sentinel,
   }) {
     return SearchState(
-      query: query ?? this.query,
+      draftQuery: draftQuery ?? this.draftQuery,
+      submittedQuery: submittedQuery ?? this.submittedQuery,
       movies: movies ?? this.movies,
       shows: shows ?? this.shows,
       people: people ?? this.people,
       sagas: sagas ?? this.sagas,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      hasSearched: hasSearched ?? this.hasSearched,
+      error: identical(error, _sentinel) ? this.error : error as String?,
     );
   }
 }
@@ -71,7 +120,6 @@ class SearchInstantController extends Notifier<SearchState> {
   late final SearchSagas _searchSagas;
 
   Future<void> Function(String query)? _addToHistory;
-  Timer? _debounce;
   bool _profileListenerAttached = false;
   int _queryRevision = 0;
 
@@ -100,72 +148,62 @@ class SearchInstantController extends Notifier<SearchState> {
             previous?.pegiLimit != next?.pegiLimit;
         if (!changed) return;
 
-        final q = state.query.trim();
+        final q = state.submittedQuery.trim();
         if (q.length < _minSearchQueryLength) return;
-        _debounce?.cancel();
-        _debounce = null;
-        final revision = _queryRevision;
+        if (!state.hasSearched) return;
+        final revision = ++_queryRevision;
         unawaited(
           _performSearch(q, requestRevision: revision, addToHistory: false),
         );
       });
     }
-
-    ref.onDispose(() {
-      _debounce?.cancel();
-      _debounce = null;
-    });
     return const SearchState();
   }
 
-  void setQuery(String q) {
+  void setDraftQuery(String q) {
     final query = q.trim();
-    final revision = ++_queryRevision;
-    _debugSearchController(
-      'setQuery query="$query" len=${query.length} rev=$revision',
+    _debugSearchController('setDraftQuery query="$query" len=${query.length}');
+    state = state.copyWith(
+      draftQuery: query,
+      error: query == state.submittedQuery ? state.error : null,
     );
-    state = state.copyWith(query: query);
-    _debounce?.cancel();
     if (query.length < _minSearchQueryLength) {
       _debugSearchController(
-        'setQuery cleared results (below min=$_minSearchQueryLength)',
+        'setDraftQuery discovery mode (below min=$_minSearchQueryLength)',
       );
-      state = state.copyWith(
-        movies: const [],
-        shows: const [],
-        people: const [],
-        sagas: const [],
-        isLoading: false,
-        error: null,
-      );
-      return;
+      state = state.copyWith(error: null);
     }
-    _debounce = Timer(_searchInputDebounce, () {
-      _debugSearchController('debounce fired query="$query" rev=$revision');
-      _performSearch(query, requestRevision: revision, addToHistory: false);
-    });
   }
 
-  void setQueryImmediate(String q) {
+  Future<void> submitCurrentQuery() async {
+    await submitQuery(state.draftQuery);
+  }
+
+  Future<void> submitQuery(String q) async {
     final query = q.trim();
     final revision = ++_queryRevision;
     _debugSearchController(
-      'setQueryImmediate query="$query" len=${query.length} rev=$revision',
+      'submitQuery query="$query" len=${query.length} rev=$revision',
     );
-    _debounce?.cancel();
-    state = state.copyWith(query: query);
     if (query.length < _minSearchQueryLength) {
-      state = state.copyWith(
-        movies: const [],
-        shows: const [],
-        people: const [],
-        sagas: const [],
-        isLoading: false,
-        error: null,
+      _debugSearchController(
+        'submitQuery ignored (below min=$_minSearchQueryLength)',
       );
       return;
     }
-    _performSearch(query, requestRevision: revision);
+    state = state.copyWith(
+      draftQuery: query,
+      submittedQuery: query,
+      hasSearched: true,
+      error: null,
+    );
+    await _performSearch(query, requestRevision: revision);
+  }
+
+  void clear() {
+    final revision = ++_queryRevision;
+    _debugSearchController('clear rev=$revision');
+    state = const SearchState();
   }
 
   Future<void> _performSearch(
@@ -173,9 +211,9 @@ class SearchInstantController extends Notifier<SearchState> {
     required int requestRevision,
     bool addToHistory = true,
   }) async {
-    if (requestRevision != _queryRevision || state.query != query) {
+    if (requestRevision != _queryRevision || state.submittedQuery != query) {
       _debugSearchController(
-        'skip stale search query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.query}"',
+        'skip stale search query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.submittedQuery}"',
       );
       return;
     }
@@ -190,9 +228,9 @@ class SearchInstantController extends Notifier<SearchState> {
         _instant.people(query),
         _searchSagas(query),
       ]);
-      if (requestRevision != _queryRevision || state.query != query) {
+      if (requestRevision != _queryRevision || state.submittedQuery != query) {
         _debugSearchController(
-          'drop stale response query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.query}"',
+          'drop stale response query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.submittedQuery}"',
         );
         return;
       }
@@ -249,14 +287,16 @@ class SearchInstantController extends Notifier<SearchState> {
         people: people,
         sagas: sagas,
         isLoading: false,
+        hasSearched: true,
+        error: null,
       );
       _debugSearchController(
         'search success query="$query" movies=${movies.length} shows=${shows.length} people=${people.length} sagas=${sagas.length}',
       );
     } catch (e) {
-      if (requestRevision != _queryRevision || state.query != query) {
+      if (requestRevision != _queryRevision || state.submittedQuery != query) {
         _debugSearchController(
-          'drop stale error query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.query}"',
+          'drop stale error query="$query" requestRev=$requestRevision currentRev=$_queryRevision stateQuery="${state.submittedQuery}"',
         );
         return;
       }
@@ -268,7 +308,7 @@ class SearchInstantController extends Notifier<SearchState> {
     } finally {
       final add = _addToHistory;
       if (requestRevision == _queryRevision &&
-          state.query == query &&
+          state.submittedQuery == query &&
           addToHistory &&
           add != null &&
           query.trim().length >= _minSearchQueryLength) {
