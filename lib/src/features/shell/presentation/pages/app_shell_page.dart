@@ -45,6 +45,7 @@ class AppShellPage extends ConsumerStatefulWidget {
     this.largeBreakpoint = 900,
     this.forceTvMode,
     this.sidebarLogo,
+    this.pageBuildersOverride,
   });
 
   /// Large breakpoint (px) : < => mobile, >= => large/TV.
@@ -59,6 +60,7 @@ class AppShellPage extends ConsumerStatefulWidget {
 
   /// Logo optionnel affiché en haut de la sidebar.
   final Widget? sidebarLogo;
+  final List<WidgetBuilder>? pageBuildersOverride;
 
   @override
   ConsumerState<AppShellPage> createState() => _AppShellPageState();
@@ -89,10 +91,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
 
   ScreenType _resolveScreenType(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final detected = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final detected = context.resolveScreenType(size.width, size.height);
     final override = widget.forceTvMode;
     if (override == true) return ScreenType.tv;
     if (override == false && detected == ScreenType.tv) {
@@ -102,7 +101,11 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   }
 
   List<WidgetBuilder> _buildPageBuilders() {
-    // Ordre doit correspondre à shellDestinations (ShellTab.values).
+    final pageBuildersOverride = widget.pageBuildersOverride;
+    if (pageBuildersOverride != null) {
+      return pageBuildersOverride;
+    }
+
     return const <WidgetBuilder>[
       _homeBuilder,
       _searchBuilder,

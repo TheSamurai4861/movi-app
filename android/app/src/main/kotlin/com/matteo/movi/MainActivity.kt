@@ -1,6 +1,10 @@
 package com.matteo.movi
 
+import android.app.UiModeManager
 import android.app.PictureInPictureParams
+import android.content.Context
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Rational
 import io.flutter.embedding.android.FlutterActivity
@@ -8,13 +12,15 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "movi/native_pip"
+    private val PIP_CHANNEL = "movi/native_pip"
+    private val DEVICE_CAPABILITIES_CHANNEL = "movi/device_capabilities"
     private var pipChannel: MethodChannel? = null
+    private var deviceCapabilitiesChannel: MethodChannel? = null
     private var isInPictureInPictureMode = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL)
         pipChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "isSupported" -> {
@@ -32,6 +38,17 @@ class MainActivity : FlutterActivity() {
                 else -> {
                     result.notImplemented()
                 }
+            }
+        }
+
+        deviceCapabilitiesChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            DEVICE_CAPABILITIES_CHANNEL
+        )
+        deviceCapabilitiesChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isTelevisionDevice" -> result.success(isTelevisionDevice())
+                else -> result.notImplemented()
             }
         }
     }
@@ -66,5 +83,15 @@ class MainActivity : FlutterActivity() {
                 enterPictureInPictureMode(params)
             }
         }
+    }
+
+    private fun isTelevisionDevice(): Boolean {
+        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+        val isTelevisionUiMode =
+            uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        val hasLeanbackFeature =
+            packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+
+        return isTelevisionUiMode || hasLeanbackFeature
     }
 }

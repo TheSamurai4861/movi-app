@@ -1335,7 +1335,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                               tmdbId: tmdbId,
                               contentTitle: mediaTitle,
                               originRegionId: AppFocusRegionId.tvDetailPrimary,
-                              fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
+                              fallbackRegionId:
+                                  AppFocusRegionId.tvDetailPrimary,
                             );
                           },
                           child: Text(l10n.actionReportProblem),
@@ -1353,7 +1354,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
   ScreenType _screenTypeFor(BuildContext context) {
     final mq = MediaQuery.of(context);
-    return ScreenTypeResolver.instance.resolve(
+    return context.resolveScreenType(
       mq.size.width,
       mq.size.height == 0 ? 1 : mq.size.height,
     );
@@ -2343,7 +2344,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                               person: personSummary,
                               triggerFocusNode: _castFocusNode(index),
                               originRegionId: AppFocusRegionId.tvDetailPrimary,
-                              fallbackRegionId: AppFocusRegionId.tvDetailPrimary,
+                              fallbackRegionId:
+                                  AppFocusRegionId.tvDetailPrimary,
                             );
                           },
                         ),

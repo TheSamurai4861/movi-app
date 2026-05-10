@@ -10,6 +10,8 @@ import 'package:movi/src/app.dart';
 import 'package:movi/src/core/error/global_error_handler.dart';
 import 'package:movi/src/core/network/proxy/http_overrides.dart'
     as http_overrides;
+import 'package:movi/src/core/responsive/infrastructure/native_television_device.dart';
+import 'package:movi/src/core/state/device_capabilities_provider.dart';
 import 'package:movi/src/core/startup/app_startup_gate.dart';
 import 'package:movi/src/core/widgets/app_restart.dart';
 
@@ -56,13 +58,19 @@ Future<void> main(List<String> args) async {
   // Supabase initialization is handled by SupabaseModule during dependency injection.
   // This keeps the app runnable without Supabase during development while still
   // guaranteeing a single initialization point for SupabaseClient.
+  final isTelevisionDevice = await NativeTelevisionDevice.detect();
 
   // Root of the dependency graph:
   // - ProviderScope: Riverpod DI / state management.
   // - AppStartupGate: runs bootstrap logic before rendering MyApp.
   runApp(
     AppRestart(
-      child: ProviderScope(child: AppStartupGate(child: MyApp(launchArgs: args))),
+      child: ProviderScope(
+        overrides: [
+          isTelevisionDeviceProvider.overrideWith((ref) => isTelevisionDevice),
+        ],
+        child: AppStartupGate(child: MyApp(launchArgs: args)),
+      ),
     ),
   );
 }

@@ -128,7 +128,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
   }
 
   void _requestInitialMediaFocusIfNeeded(BuildContext context) {
-    final screenType = ScreenTypeResolver.instance.resolve(
+    final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
       MediaQuery.of(context).size.height,
     );
@@ -485,10 +485,10 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                                         context,
                                         ref,
                                         ContentRouteArgs.movie(x.id),
-                                        originRegionId:
-                                            AppFocusRegionId.genreResultsPrimary,
-                                        fallbackRegionId:
-                                            AppFocusRegionId.genreResultsPrimary,
+                                        originRegionId: AppFocusRegionId
+                                            .genreResultsPrimary,
+                                        fallbackRegionId: AppFocusRegionId
+                                            .genreResultsPrimary,
                                       ),
                                     );
                                   })
@@ -513,10 +513,10 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                                         context,
                                         ref,
                                         ContentRouteArgs.series(x.id),
-                                        originRegionId:
-                                            AppFocusRegionId.genreResultsPrimary,
-                                        fallbackRegionId:
-                                            AppFocusRegionId.genreResultsPrimary,
+                                        originRegionId: AppFocusRegionId
+                                            .genreResultsPrimary,
+                                        fallbackRegionId: AppFocusRegionId
+                                            .genreResultsPrimary,
                                       ),
                                     );
                                   })

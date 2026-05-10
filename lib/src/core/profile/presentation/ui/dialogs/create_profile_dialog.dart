@@ -93,10 +93,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
 
   bool _useDesktopTvLayout(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final screenType = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final screenType = context.resolveScreenType(size.width, size.height);
     return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 
@@ -765,10 +762,7 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
 
   bool _useDesktopTvLayout(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final screenType = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final screenType = context.resolveScreenType(size.width, size.height);
     return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 

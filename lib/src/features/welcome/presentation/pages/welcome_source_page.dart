@@ -15,6 +15,8 @@ import 'package:movi/src/core/focus/presentation/focus_directional_navigation.da
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -475,6 +477,12 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     final connectState = ref.watch(iptvConnectControllerProvider);
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
+    final screenSize = MediaQuery.sizeOf(context);
+    final screenType = context.resolveScreenType(
+      screenSize.width,
+      screenSize.height,
+    );
+    final contentMaxWidth = screenType == ScreenType.tv ? 760.0 : 520.0;
 
     final isBusy = _loadingSources || connectState.isLoading;
     final hasSavedSources =
@@ -510,7 +518,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg,
@@ -529,19 +537,20 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                             verticalAlignment: 0.18,
                             child: Focus(
                               canRequestFocus: false,
-                              onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
-                                event,
-                                down: _shouldDisplaySavedSourcesSection
-                                    ? (_sourcesError != null
-                                          ? _sourcesErrorRetryFocusNode
-                                          : hasSavedSources
-                                          ? _savedSourceFocusNodes.first
-                                          : _refreshFocusNode)
-                                    : _nameFocusNode,
-                                blockLeft: true,
-                                blockRight: true,
-                                blockUp: true,
-                              ),
+                              onKeyEvent: (_, event) =>
+                                  FocusDirectionalNavigation.handleDirectionalKey(
+                                    event,
+                                    down: _shouldDisplaySavedSourcesSection
+                                        ? (_sourcesError != null
+                                              ? _sourcesErrorRetryFocusNode
+                                              : hasSavedSources
+                                              ? _savedSourceFocusNodes.first
+                                              : _refreshFocusNode)
+                                        : _nameFocusNode,
+                                    blockLeft: true,
+                                    blockRight: true,
+                                    blockUp: true,
+                                  ),
                               child: LaunchRecoveryBanner(
                                 message: launchRecovery!.message,
                                 retryFocusNode: _retryFocusNode,
@@ -621,15 +630,16 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                               verticalAlignment: 0.22,
                               child: Focus(
                                 canRequestFocus: false,
-                                onKeyEvent: (_, event) => FocusDirectionalNavigation.handleDirectionalKey(
-                                  event,
-                                  up: launchRecovery?.isRetryable ?? false
-                                      ? _retryFocusNode
-                                      : _refreshFocusNode,
-                                  down: _nameFocusNode,
-                                  blockLeft: true,
-                                  blockRight: true,
-                                ),
+                                onKeyEvent: (_, event) =>
+                                    FocusDirectionalNavigation.handleDirectionalKey(
+                                      event,
+                                      up: launchRecovery?.isRetryable ?? false
+                                          ? _retryFocusNode
+                                          : _refreshFocusNode,
+                                      down: _nameFocusNode,
+                                      blockLeft: true,
+                                      blockRight: true,
+                                    ),
                                 child: _ErrorBox(
                                   message: _sourcesError!,
                                   retryFocusNode: _sourcesErrorRetryFocusNode,
@@ -661,11 +671,12 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 selectedId: _selectedSourceId,
                                 focusNodes: _savedSourceFocusNodes,
                                 focusVerticalAlignment: 0.22,
-                                onFirstItemUp: () => FocusDirectionalNavigation.requestFocus(
-                                  launchRecovery?.isRetryable ?? false
-                                      ? _retryFocusNode
-                                      : _refreshFocusNode,
-                                ),
+                                onFirstItemUp: () =>
+                                    FocusDirectionalNavigation.requestFocus(
+                                      launchRecovery?.isRetryable ?? false
+                                          ? _retryFocusNode
+                                          : _refreshFocusNode,
+                                    ),
                                 onLastItemDown: () => _enterFocusRegion(
                                   AppFocusRegionId.welcomeSourceForm,
                                 ),
@@ -716,7 +727,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_serverFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _serverFocusNode,
+                                          ),
                                     },
                                     child: TextField(
                                       controller: _nameCtrl,
@@ -752,11 +765,15 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_nameFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _nameFocusNode,
+                                          ),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_userFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _userFocusNode,
+                                          ),
                                     },
                                     child: TextField(
                                       controller: _serverCtrl,
@@ -792,11 +809,15 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_serverFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _serverFocusNode,
+                                          ),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_passFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _passFocusNode,
+                                          ),
                                     },
                                     child: TextField(
                                       controller: _userCtrl,
@@ -831,16 +852,21 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowUp,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_userFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _userFocusNode,
+                                          ),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowRight,
-                                      ): () => FocusDirectionalNavigation.requestFocus(
-                                        _passwordToggleFocusNode,
-                                      ),
+                                      ): () =>
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _passwordToggleFocusNode,
+                                          ),
                                       const SingleActivator(
                                         LogicalKeyboardKey.arrowDown,
                                       ): () =>
-                                          FocusDirectionalNavigation.requestFocus(_submitFocusNode),
+                                          FocusDirectionalNavigation.requestFocus(
+                                            _submitFocusNode,
+                                          ),
                                     },
                                     child: TextField(
                                       controller: _passCtrl,

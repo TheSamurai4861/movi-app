@@ -19,10 +19,7 @@ Future<void> showPremiumFeatureLockedSheet(
   final effectiveTriggerFocusNode =
       triggerFocusNode ?? FocusManager.instance.primaryFocus;
   final size = MediaQuery.sizeOf(context);
-  final screenType = ScreenTypeResolver.instance.resolve(
-    size.width,
-    size.height,
-  );
+  final screenType = context.resolveScreenType(size.width, size.height);
   final isDesktopLike =
       screenType == ScreenType.desktop || screenType == ScreenType.tv;
 

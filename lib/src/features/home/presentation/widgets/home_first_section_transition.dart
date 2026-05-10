@@ -15,7 +15,7 @@ class HomeFirstSectionTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenType = ScreenTypeResolver.instance.resolve(
+    final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
       MediaQuery.of(context).size.height,
     );

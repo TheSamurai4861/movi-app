@@ -77,7 +77,7 @@ class _HomeContinueWatchingSectionState
   @override
   Widget build(BuildContext context) {
     final inProgressAsync = ref.watch(hp.homeInProgressProvider);
-    final screenType = ScreenTypeResolver.instance.resolve(
+    final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
       MediaQuery.of(context).size.height,
     );

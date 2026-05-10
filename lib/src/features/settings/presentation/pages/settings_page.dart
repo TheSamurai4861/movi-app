@@ -904,7 +904,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+    return context.resolveScreenType(size.width, size.height);
   }
 
   bool _focusSidebarFromRegionExit() {

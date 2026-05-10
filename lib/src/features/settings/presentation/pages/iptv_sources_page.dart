@@ -167,7 +167,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+    return context.resolveScreenType(size.width, size.height);
   }
 
   bool _useTvModal(BuildContext context) {

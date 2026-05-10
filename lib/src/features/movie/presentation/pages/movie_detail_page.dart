@@ -410,7 +410,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   ScreenType _screenTypeFor(BuildContext context) {
     final mq = MediaQuery.of(context);
-    return ScreenTypeResolver.instance.resolve(
+    return context.resolveScreenType(
       mq.size.width,
       mq.size.height == 0 ? 1 : mq.size.height,
     );

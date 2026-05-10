@@ -59,7 +59,7 @@ class MoviHeroBackground extends StatelessWidget {
       return ScreenType.mobile;
     }
 
-    return ScreenTypeResolver.instance.resolve(
+    return context.resolveScreenType(
       mq.size.width,
       mq.size.height == 0 ? 1 : mq.size.height,
     );

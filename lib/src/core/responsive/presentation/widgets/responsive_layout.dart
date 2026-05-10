@@ -52,7 +52,7 @@ class ResponsiveLayout extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
-        final screenType = ScreenTypeResolver.instance.resolve(width, height);
+        final screenType = context.resolveScreenType(width, height);
 
         Widget content;
         switch (screenType) {

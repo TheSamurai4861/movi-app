@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -173,7 +175,11 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
                   return TextField(
                     controller: _textCtrl,
                     onChanged: (value) {
-                      ctrl.setQuery(value);
+                      if (value.trim().length < 3) {
+                        ctrl.setDraftQuery(value);
+                        return;
+                      }
+                      unawaited(ctrl.submitQuery(value));
                     },
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.searchHint,
@@ -196,7 +202,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
                               ),
                               onPressed: () {
                                 _textCtrl.clear();
-                                ctrl.setQuery('');
+                                ctrl.clear();
                               },
                               tooltip: AppLocalizations.of(context)!.clear,
                             )
@@ -240,7 +246,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
 
   Widget _buildResults(BuildContext context, SearchState state) {
     final l10n = AppLocalizations.of(context)!;
-    if (state.query.trim().length < 3) {
+    if (state.draftQuery.trim().length < 3) {
       return Center(
         child: Text(
           l10n.searchMinCharsHint,

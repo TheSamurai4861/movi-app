@@ -216,7 +216,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   KeyEventResult _handleSearchActionKey(KeyEvent event) {
     return FocusDirectionalNavigation.handleDirectionalTransition(
       event,
-      onRight: () => FocusDirectionalNavigation.requestFocus(_addActionFocusNode),
+      onRight: () =>
+          FocusDirectionalNavigation.requestFocus(_addActionFocusNode),
       onDown: () {
         _focusFirstPlaylist();
         return true;
@@ -563,13 +564,17 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowUp) {
-                                      FocusDirectionalNavigation.requestFocus(nameFocusNode);
+                                      FocusDirectionalNavigation.requestFocus(
+                                        nameFocusNode,
+                                      );
                                       return KeyEventResult.handled;
                                     }
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowRight) {
-                                      FocusDirectionalNavigation.requestFocus(submitFocusNode);
+                                      FocusDirectionalNavigation.requestFocus(
+                                        submitFocusNode,
+                                      );
                                       return KeyEventResult.handled;
                                     }
 
@@ -664,13 +669,17 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowUp) {
-                                      FocusDirectionalNavigation.requestFocus(nameFocusNode);
+                                      FocusDirectionalNavigation.requestFocus(
+                                        nameFocusNode,
+                                      );
                                       return KeyEventResult.handled;
                                     }
 
                                     if (event.logicalKey ==
                                         LogicalKeyboardKey.arrowLeft) {
-                                      FocusDirectionalNavigation.requestFocus(cancelFocusNode);
+                                      FocusDirectionalNavigation.requestFocus(
+                                        cancelFocusNode,
+                                      );
                                       return KeyEventResult.handled;
                                     }
 
@@ -1020,7 +1029,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   ScreenType _screenType(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+    return context.resolveScreenType(size.width, size.height);
   }
 
   bool _isLargeScreen(BuildContext context) {

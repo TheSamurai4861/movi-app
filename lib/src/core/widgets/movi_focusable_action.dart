@@ -54,7 +54,7 @@ class _MoviFocusableActionState extends State<MoviFocusableAction> {
     } catch (_) {
       final mq = MediaQuery.maybeOf(context);
       if (mq == null) return false;
-      final type = ScreenTypeResolver.instance.resolve(
+      final type = context.resolveScreenType(
         mq.size.width,
         mq.size.height == 0 ? 1 : mq.size.height,
       );

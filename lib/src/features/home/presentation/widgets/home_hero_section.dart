@@ -28,7 +28,7 @@ class HomeHeroSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(currentLanguageCodeProvider);
     final mediaSize = MediaQuery.of(context).size;
-    final screenType = ScreenTypeResolver.instance.resolve(
+    final screenType = context.resolveScreenType(
       mediaSize.width,
       mediaSize.height,
     );

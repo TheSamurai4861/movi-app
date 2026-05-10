@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/responsive/domain/entities/breakpoints.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/responsive/application/services/windows_host_detector.dart';
+import 'package:movi/src/core/state/device_capabilities_provider.dart';
 
 /// Resolves a [ScreenType] from logical viewport dimensions.
 class ScreenTypeResolver {
@@ -9,7 +12,12 @@ class ScreenTypeResolver {
 
   static final ScreenTypeResolver instance = ScreenTypeResolver._();
 
-  ScreenType resolve(double width, double height, {TargetPlatform? platform}) {
+  ScreenType resolve(
+    double width,
+    double height, {
+    TargetPlatform? platform,
+    required bool isTelevisionDevice,
+  }) {
     if (width <= 0 || height <= 0) return ScreenType.mobile;
     final effectivePlatform = platform ?? defaultTargetPlatform;
 
@@ -17,27 +25,14 @@ class ScreenTypeResolver {
       return ScreenType.tv;
     }
 
-    final shortestSide = width < height ? width : height;
-    final longestSide = width > height ? width : height;
-    final aspectRatio = longestSide / shortestSide;
-    final isTabletBand =
-        shortestSide > Breakpoints.mobileMax &&
-        shortestSide <= Breakpoints.tabletMaxShortestSide;
-
-    if (isTabletBand) {
-      if (_supportsTabletOrientationRule(effectivePlatform)) {
-        return width > height ? ScreenType.tv : ScreenType.mobile;
-      }
-      return ScreenType.desktop;
+    if (isTelevisionDevice) {
+      return ScreenType.tv;
     }
 
-    // TV detection:
-    // - wide aspect ratio,
-    // - enough logical size to exclude phones in landscape.
-    if (aspectRatio >= Breakpoints.tvAspectRatio &&
-        shortestSide >= Breakpoints.tvMinShortestSide &&
-        longestSide >= Breakpoints.tvMinLongestSide) {
-      return ScreenType.tv;
+    final shortestSide = width < height ? width : height;
+    if (shortestSide > Breakpoints.mobileMax &&
+        shortestSide <= Breakpoints.tabletMaxShortestSide) {
+      return ScreenType.tablet;
     }
 
     if (shortestSide > Breakpoints.tabletMaxShortestSide) {
@@ -47,13 +42,35 @@ class ScreenTypeResolver {
     return ScreenType.mobile;
   }
 
-  bool _supportsTabletOrientationRule(TargetPlatform platform) {
-    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
-  }
-
   bool _isForcedWindowsTv(TargetPlatform platform) {
     if (platform == TargetPlatform.windows) return true;
     if (!kIsWeb) return false;
     return isWindowsWebHost();
+  }
+}
+
+extension ScreenTypeResolutionContext on BuildContext {
+  bool get isTelevisionDevice {
+    try {
+      return ProviderScope.containerOf(
+        this,
+        listen: false,
+      ).read(isTelevisionDeviceProvider);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  ScreenType resolveScreenType(
+    double width,
+    double height, {
+    TargetPlatform? platform,
+  }) {
+    return ScreenTypeResolver.instance.resolve(
+      width,
+      height,
+      platform: platform,
+      isTelevisionDevice: isTelevisionDevice,
+    );
   }
 }

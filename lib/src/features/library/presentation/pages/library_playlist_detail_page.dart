@@ -284,7 +284,7 @@ class _LibraryPlaylistDetailPageState
 
   ScreenType _screenType(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+    return context.resolveScreenType(size.width, size.height);
   }
 
   bool _isLargeScreen(BuildContext context) {
@@ -770,109 +770,193 @@ class _LibraryPlaylistDetailPageState
         canRequestFocus: false,
         onKeyEvent: (_, event) => _handlePageBackKey(event),
         child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
-            children: [
-              // Hero section (350px)
-              itemsAsync.when(
-                loading: () => const SizedBox(height: 350),
-                error: (error, stackTrace) {
-                  // Afficher l'erreur pour le débogage
-                  return SizedBox(
-                    height: 350,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Colors.white70,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.errorGenericWithMessage(error.toString()),
-                            style: const TextStyle(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                // Hero section (350px)
+                itemsAsync.when(
+                  loading: () => const SizedBox(height: 350),
+                  error: (error, stackTrace) {
+                    // Afficher l'erreur pour le débogage
+                    return SizedBox(
+                      height: 350,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
                               color: Colors.white70,
-                              fontSize: 14,
+                              size: 48,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.errorGenericWithMessage(error.toString()),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  data: (items) => LibraryPlaylistHero(
+                    playlist: widget.playlist,
+                    accentColor: accentColor,
+                    itemCount: items.length,
+                    backdrop: items.isEmpty
+                        ? null
+                        : ref
+                              .watch(
+                                isLargeScreen
+                                    ? playlistItemHeroBackdropProvider(
+                                        items.first,
+                                      )
+                                    : playlistItemBackdropProvider(items.first),
+                              )
+                              .maybeWhen(
+                                data: (uri) => uri?.toString(),
+                                orElse: () => null,
+                              ),
+                    isLargeScreen: isLargeScreen,
+                    horizontalPadding: pagePadding,
+                    backFocusNode: _heroBackFocusNode,
+                    onBackKeyEvent: _handleHeroBackKey,
+                    actions: isLargeScreen
+                        ? Builder(
+                            builder: (context) {
+                              final isEmpty = items.isEmpty;
+                              final playlistItems = playlistItemsAsync?.value;
+                              final sortedItems = LibraryPlaylistSorter.sort(
+                                items,
+                                sortType: _sortType,
+                                playlistItems: playlistItems,
+                              );
+                              return LibraryPlaylistActionsBar(
+                                compact: true,
+                                isEmpty: isEmpty,
+                                playRandomFocusNode: _playRandomFocusNode,
+                                sortFocusNode: _sortFocusNode,
+                                onPlayRandomKeyEvent: _handlePlayRandomKey,
+                                onSortKeyEvent: _handleSortKey,
+                                onPlayRandom: isEmpty
+                                    ? null
+                                    : () => _playRandomly(context, sortedItems),
+                                onSortPressed: isEmpty
+                                    ? null
+                                    : () => _showSortMenu(context, ref),
+                              );
+                            },
+                          )
+                        : null,
+                    onBack: () => context.pop(),
+                    onMore:
+                        widget.playlist.type == LibraryPlaylistType.userPlaylist
+                        ? () => _showPlaylistMenu(context, ref)
+                        : null,
+                  ),
+                ),
+                // Boutons d'action (collés sous le hero)
+                if (!isLargeScreen) ...[
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: pagePadding),
+                    child: itemsAsync.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (items) {
+                        final isEmpty = items.isEmpty;
+                        final playlistItems = playlistItemsAsync?.value;
+                        final sortedItems = LibraryPlaylistSorter.sort(
+                          items,
+                          sortType: _sortType,
+                          playlistItems: playlistItems,
+                        );
+
+                        return LibraryPlaylistActionsBar(
+                          isEmpty: isEmpty,
+                          playRandomFocusNode: _playRandomFocusNode,
+                          sortFocusNode: _sortFocusNode,
+                          onPlayRandomKeyEvent: _handlePlayRandomKey,
+                          onSortKeyEvent: _handleSortKey,
+                          onPlayRandom: isEmpty
+                              ? null
+                              : () => _playRandomly(context, sortedItems),
+                          onSortPressed: isEmpty
+                              ? null
+                              : () => _showSortMenu(context, ref),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ] else
+                  const SizedBox(height: 20),
+                // Liste des médias
+                Expanded(
+                  child: itemsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stackTrace) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: Colors.white70,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              AppLocalizations.of(context)!.errorLoadingTitle,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              error.toString(),
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                },
-                data: (items) => LibraryPlaylistHero(
-                  playlist: widget.playlist,
-                  accentColor: accentColor,
-                  itemCount: items.length,
-                  backdrop: items.isEmpty
-                      ? null
-                      : ref
-                            .watch(
-                              isLargeScreen
-                                  ? playlistItemHeroBackdropProvider(
-                                      items.first,
-                                    )
-                                  : playlistItemBackdropProvider(items.first),
-                            )
-                            .maybeWhen(
-                              data: (uri) => uri?.toString(),
-                              orElse: () => null,
-                            ),
-                  isLargeScreen: isLargeScreen,
-                  horizontalPadding: pagePadding,
-                  backFocusNode: _heroBackFocusNode,
-                  onBackKeyEvent: _handleHeroBackKey,
-                  actions: isLargeScreen
-                      ? Builder(
-                          builder: (context) {
-                            final isEmpty = items.isEmpty;
-                            final playlistItems = playlistItemsAsync?.value;
-                            final sortedItems = LibraryPlaylistSorter.sort(
-                              items,
-                              sortType: _sortType,
-                              playlistItems: playlistItems,
-                            );
-                            return LibraryPlaylistActionsBar(
-                              compact: true,
-                              isEmpty: isEmpty,
-                              playRandomFocusNode: _playRandomFocusNode,
-                              sortFocusNode: _sortFocusNode,
-                              onPlayRandomKeyEvent: _handlePlayRandomKey,
-                              onSortKeyEvent: _handleSortKey,
-                              onPlayRandom: isEmpty
-                                  ? null
-                                  : () => _playRandomly(context, sortedItems),
-                              onSortPressed: isEmpty
-                                  ? null
-                                  : () => _showSortMenu(context, ref),
-                            );
-                          },
-                        )
-                      : null,
-                  onBack: () => context.pop(),
-                  onMore:
-                      widget.playlist.type == LibraryPlaylistType.userPlaylist
-                      ? () => _showPlaylistMenu(context, ref)
-                      : null,
-                ),
-              ),
-              // Boutons d'action (collés sous le hero)
-              if (!isLargeScreen) ...[
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: pagePadding),
-                  child: itemsAsync.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
                     data: (items) {
-                      final isEmpty = items.isEmpty;
+                      _syncItemFocusNodes(items.length);
+                      if (items.isNotEmpty && isLargeScreen) {
+                        _requestInitialActionFocus();
+                      }
+                      if (items.isEmpty) {
+                        return Center(
+                          child: Text(
+                            AppLocalizations.of(context)!.playlistEmptyMessage,
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: Colors.white70,
+                                ) ??
+                                const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                          ),
+                        );
+                      }
+
+                      // Pour les playlists utilisateur, récupérer les items complets pour le tri
                       final playlistItems = playlistItemsAsync?.value;
                       final sortedItems = LibraryPlaylistSorter.sort(
                         items,
@@ -880,152 +964,68 @@ class _LibraryPlaylistDetailPageState
                         playlistItems: playlistItems,
                       );
 
-                      return LibraryPlaylistActionsBar(
-                        isEmpty: isEmpty,
-                        playRandomFocusNode: _playRandomFocusNode,
-                        sortFocusNode: _sortFocusNode,
-                        onPlayRandomKeyEvent: _handlePlayRandomKey,
-                        onSortKeyEvent: _handleSortKey,
-                        onPlayRandom: isEmpty
-                            ? null
-                            : () => _playRandomly(context, sortedItems),
-                        onSortPressed: isEmpty
-                            ? null
-                            : () => _showSortMenu(context, ref),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ] else
-                const SizedBox(height: 20),
-              // Liste des médias
-              Expanded(
-                child: itemsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stackTrace) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: Colors.white70,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            AppLocalizations.of(context)!.errorLoadingTitle,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(color: Colors.white),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            error.toString(),
-                            style: const TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  data: (items) {
-                    _syncItemFocusNodes(items.length);
-                    if (items.isNotEmpty && isLargeScreen) {
-                      _requestInitialActionFocus();
-                    }
-                    if (items.isEmpty) {
-                      return Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.playlistEmptyMessage,
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white70,
-                              ) ??
-                              const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white70,
-                              ),
-                        ),
-                      );
-                    }
-
-                    // Pour les playlists utilisateur, récupérer les items complets pour le tri
-                    final playlistItems = playlistItemsAsync?.value;
-                    final sortedItems = LibraryPlaylistSorter.sort(
-                      items,
-                      sortType: _sortType,
-                      playlistItems: playlistItems,
-                    );
-
-                    return ListView.separated(
-                      key: ValueKey(_sortType?.name ?? 'default'),
-                      controller: _itemsScrollController,
-                      padding: EdgeInsets.symmetric(horizontal: pagePadding),
-                      itemCount: sortedItems.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final item = sortedItems[index];
-                        // Pour les playlists utilisateur, récupérer l'item complet avec position
-                        if (widget.playlist.type ==
-                                LibraryPlaylistType.userPlaylist &&
-                            widget.playlist.playlistId != null &&
-                            playlistItemsAsync != null) {
-                          return playlistItemsAsync.when(
-                            loading: () => _buildMediaItem(
-                              context,
-                              ref,
-                              item,
-                              index: index,
-                              itemCount: sortedItems.length,
-                            ),
-                            error: (_, __) => _buildMediaItem(
-                              context,
-                              ref,
-                              item,
-                              index: index,
-                              itemCount: sortedItems.length,
-                            ),
-                            data: (playlistItems) {
-                              final playlistItem = playlistItems.firstWhere(
-                                (pi) => pi.reference.id == item.id,
-                                orElse: () => PlaylistItem(reference: item),
-                              );
-                              return _buildMediaItem(
+                      return ListView.separated(
+                        key: ValueKey(_sortType?.name ?? 'default'),
+                        controller: _itemsScrollController,
+                        padding: EdgeInsets.symmetric(horizontal: pagePadding),
+                        itemCount: sortedItems.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final item = sortedItems[index];
+                          // Pour les playlists utilisateur, récupérer l'item complet avec position
+                          if (widget.playlist.type ==
+                                  LibraryPlaylistType.userPlaylist &&
+                              widget.playlist.playlistId != null &&
+                              playlistItemsAsync != null) {
+                            return playlistItemsAsync.when(
+                              loading: () => _buildMediaItem(
                                 context,
                                 ref,
                                 item,
                                 index: index,
                                 itemCount: sortedItems.length,
-                                playlistItem: playlistItem,
-                                playlistId: widget.playlist.playlistId,
-                              );
-                            },
+                              ),
+                              error: (_, __) => _buildMediaItem(
+                                context,
+                                ref,
+                                item,
+                                index: index,
+                                itemCount: sortedItems.length,
+                              ),
+                              data: (playlistItems) {
+                                final playlistItem = playlistItems.firstWhere(
+                                  (pi) => pi.reference.id == item.id,
+                                  orElse: () => PlaylistItem(reference: item),
+                                );
+                                return _buildMediaItem(
+                                  context,
+                                  ref,
+                                  item,
+                                  index: index,
+                                  itemCount: sortedItems.length,
+                                  playlistItem: playlistItem,
+                                  playlistId: widget.playlist.playlistId,
+                                );
+                              },
+                            );
+                          }
+                          return _buildMediaItem(
+                            context,
+                            ref,
+                            item,
+                            index: index,
+                            itemCount: sortedItems.length,
                           );
-                        }
-                        return _buildMediaItem(
-                          context,
-                          ref,
-                          item,
-                          index: index,
-                          itemCount: sortedItems.length,
-                        );
-                      },
-                    );
-                  },
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-      )
     );
   }
 

@@ -47,10 +47,7 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
     final effectiveTriggerFocusNode =
         triggerFocusNode ?? FocusManager.instance.primaryFocus;
     final size = MediaQuery.sizeOf(context);
-    final screenType = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final screenType = context.resolveScreenType(size.width, size.height);
     final isDesktopLike =
         screenType == ScreenType.desktop || screenType == ScreenType.tv;
     final dialog = RestrictedContentSheet(
@@ -164,10 +161,7 @@ class _RestrictedContentSheetState
     final colorScheme = theme.colorScheme;
     final accentColor = colorScheme.primary;
     final size = MediaQuery.sizeOf(context);
-    final screenType = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final screenType = context.resolveScreenType(size.width, size.height);
     final isDesktopLike =
         screenType == ScreenType.desktop || screenType == ScreenType.tv;
 

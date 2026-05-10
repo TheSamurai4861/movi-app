@@ -40,7 +40,7 @@ class HomeIptvSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final displayTitle = displayCategoryTitle(categoryTitle);
-    final screenType = ScreenTypeResolver.instance.resolve(
+    final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
       MediaQuery.of(context).size.height,
     );
@@ -153,7 +153,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenType = ScreenTypeResolver.instance.resolve(
+    final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
       MediaQuery.of(context).size.height,
     );

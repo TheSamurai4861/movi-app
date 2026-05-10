@@ -10,6 +10,8 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -123,6 +125,12 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
 
     final isSigningIn = state.status == AuthPasswordStatus.signingIn;
     final isBusy = isSigningIn;
+    final screenSize = MediaQuery.sizeOf(context);
+    final screenType = context.resolveScreenType(
+      screenSize.width,
+      screenSize.height,
+    );
+    final contentMaxWidth = screenType == ScreenType.tv ? 640.0 : 480.0;
 
     return PopScope(
       canPop: false,
@@ -146,7 +154,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.xl,

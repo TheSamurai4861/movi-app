@@ -79,10 +79,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
 
   int _previewLimit(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final screenType = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final screenType = context.resolveScreenType(size.width, size.height);
     return switch (screenType) {
       ScreenType.mobile => 10,
       ScreenType.tablet => 12,

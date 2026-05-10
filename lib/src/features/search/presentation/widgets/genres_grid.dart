@@ -51,7 +51,7 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+    return context.resolveScreenType(size.width, size.height);
   }
 
   int _columnCount(ScreenType screenType, double width, int itemCount) {

@@ -110,10 +110,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
 
   bool _useDesktopTvLayout(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final screenType = ScreenTypeResolver.instance.resolve(
-      size.width,
-      size.height,
-    );
+    final screenType = context.resolveScreenType(size.width, size.height);
     return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 
