@@ -311,6 +311,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
     super.build(context);
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
+    final degradationNotice = ref.watch(hp.homeDegradationNoticeProvider);
     final iptvFilter = ref.watch(hp.homeIptvMediaFilterProvider);
     final inProgressAsync = ref.watch(hp.homeInProgressProvider);
     final disableHero = ref.watch(
@@ -401,8 +402,14 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
             child: CustomScrollView(
               key: _scrollStorageKey,
               slivers: [
-                if (state.error != null)
-                  const SliverToBoxAdapter(child: HomeErrorBanner()),
+                if (state.error != null || degradationNotice != null)
+                  SliverToBoxAdapter(
+                    child: HomeErrorBanner(
+                      notice: degradationNotice,
+                      onAction: (action) =>
+                          handleHomeDegradationAction(ref, controller, action),
+                    ),
+                  ),
 
                 if (!disableHero) ...[
                   HomeHeroSection(

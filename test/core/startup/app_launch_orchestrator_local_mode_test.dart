@@ -14,6 +14,7 @@ import 'package:movi/src/core/config/models/feature_flags.dart';
 import 'package:movi/src/core/config/providers/overrides.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/network_failures.dart';
 import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
@@ -28,6 +29,8 @@ import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
 import 'package:movi/src/core/startup/entry_journey_orchestrator.dart';
+import 'package:movi/src/core/startup/domain/boot_contracts.dart';
+import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
@@ -37,6 +40,9 @@ import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/utils/result.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+import 'package:movi/src/features/home/domain/entities/in_progress_media.dart'
+    as domain;
+import 'package:movi/src/features/home/domain/usecases/load_continue_watching_media.dart';
 import 'package:movi/src/features/library/application/services/comprehensive_cloud_sync_service.dart';
 import 'package:movi/src/features/library/application/services/library_cloud_sync_service.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
@@ -820,7 +826,7 @@ void main() {
   );
 
   test(
-    'rehydrates a single remote source and preserves it as active before catalog failure',
+    'rehydrates a single remote source and routes to source recovery when catalog stays empty',
     () async {
       final credentialsVault = MemoryCredentialsVault();
       final harness = await _LaunchHarness.create(
@@ -856,12 +862,9 @@ void main() {
 
       final result = await harness.run();
 
-      expect(result.isSuccess, isFalse);
-      expect(result.failure, isNotNull);
-      expect(
-        result.failure!.failure.message.toLowerCase(),
-        contains('catalog'),
-      );
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(result.failure, isNull);
       final localAccounts = await harness.iptvLocal.getAccounts();
       expect(localAccounts.map((account) => account.id).toList(), [
         'cloud_local_source',
@@ -1097,7 +1100,246 @@ void main() {
     },
   );
 
-  test('fails launch when IPTV catalog is not ready before home', () async {
+  test(
+    'opens home from a local catalog snapshot even if foreground refresh would fail',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.result = const Err(UnknownFailure());
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_snapshot_first';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.meta.iptvCatalogReady, isTrue);
+      expect(harness.refreshXtreamCatalog.calls, 0);
+      expect(harness.homeController.loadCalls, 1);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(harness.xtreamSyncService.startCalls, 1);
+      expect(harness.xtreamSyncService.lastStartReason, 'background');
+    },
+  );
+
+  test(
+    'opens home from a local catalog snapshot even if foreground refresh would time out',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.result = const Err(TimeoutFailure());
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_snapshot_timeout';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(harness.refreshXtreamCatalog.calls, 0);
+      expect(harness.homeController.loadCalls, 1);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(harness.xtreamSyncService.startCalls, 1);
+      expect(harness.xtreamSyncService.lastStartReason, 'background');
+    },
+  );
+
+  test(
+    'opens home when blocking refresh creates the missing local snapshot',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_refresh_creates_snapshot';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      harness.refreshXtreamCatalog.beforeResult = (sourceId) async {
+        await harness.iptvLocal.savePlaylists(sourceId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_movies',
+            accountId: sourceId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: const <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film local',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      };
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.meta.iptvCatalogReady, isTrue);
+      expect(harness.refreshXtreamCatalog.calls, 1);
+      expect(harness.homeController.loadCalls, 1);
+    },
+  );
+
+  test(
+    'routes to source recovery when no snapshot exists and refresh times out',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.result = const Err(TimeoutFailure());
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_refresh_timeout';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(result.failure, isNull);
+      expect(harness.refreshXtreamCatalog.calls, 3);
+      expect(harness.homeController.loadCalls, 0);
+      expect(
+        harness.logger.events.map((event) => event.message).join('\n'),
+        contains('catalog_sync_timeout'),
+      );
+      expect(harness.container.read(homeDegradationNoticeProvider), isNull);
+    },
+  );
+
+  test(
+    'routes to source recovery when no snapshot exists and provider refresh fails',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.result = const Err(UnknownFailure());
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_provider_error';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(result.failure, isNull);
+      expect(harness.refreshXtreamCatalog.calls, 3);
+      expect(harness.homeController.loadCalls, 0);
+      expect(harness.xtreamSyncService.startCalls, 0);
+      expect(
+        harness.logger.events.map((event) => event.message).join('\n'),
+        contains('catalog_provider_error'),
+      );
+      expect(harness.container.read(homeDegradationNoticeProvider), isNull);
+    },
+  );
+
+  test('routes to source recovery when refresh leaves catalog empty', () async {
     final harness = await _LaunchHarness.create();
     addTearDown(harness.dispose);
 
@@ -1119,9 +1361,214 @@ void main() {
 
     final result = await harness.run();
 
-    expect(result.isSuccess, isFalse);
-    expect(result.failure, isNotNull);
-    expect(result.failure!.failure.message.toLowerCase(), contains('catalog'));
+    expect(result.isSuccess, isTrue);
+    expect(result.destination, BootstrapDestination.welcomeSources);
+    expect(result.failure, isNull);
+    expect(harness.refreshXtreamCatalog.calls, 3);
+    expect(harness.homeController.loadCalls, 0);
+    expect(
+      harness.container
+          .read(appLaunchOrchestratorProvider)
+          .criteria
+          .isHomeReady,
+      isFalse,
+    );
+    expect(
+      harness.logger.events.map((event) => event.message).join('\n'),
+      contains('catalog_empty'),
+    );
+    expect(harness.container.read(homeDegradationNoticeProvider), isNull);
+  });
+
+  test('opens Home partially when Home preload reports feed error', () async {
+    final harness = await _LaunchHarness.create();
+    addTearDown(harness.dispose);
+    harness.homeController.forcedPreloadError = 'home feed failed';
+
+    await harness.localProfiles.createProfile(
+      name: 'Offline Profile',
+      color: 0xFF2160AB,
+    );
+    const accountId = 'local_xtream_account_home_error';
+    await harness.iptvLocal.saveAccount(
+      XtreamAccount(
+        id: accountId,
+        alias: 'Offline Source',
+        endpoint: XtreamEndpoint.parse('http://example.com'),
+        username: 'demo',
+        status: XtreamAccountStatus.pending,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+    await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+      XtreamPlaylist(
+        id: 'pl_movies',
+        accountId: accountId,
+        title: 'Films',
+        type: XtreamPlaylistType.movies,
+        items: const <XtreamPlaylistItem>[
+          XtreamPlaylistItem(
+            accountId: accountId,
+            categoryId: 'cat_movies',
+            categoryName: 'Films',
+            streamId: 1001,
+            title: 'Film local',
+            type: XtreamPlaylistItemType.movie,
+            tmdbId: 550,
+          ),
+        ],
+      ),
+    ]);
+
+    final result = await harness.run();
+    final logMessages = harness.logger.events
+        .map((event) => event.message)
+        .join('\n');
+
+    expect(result.isSuccess, isTrue);
+    expect(result.destination, BootstrapDestination.home);
+    expect(result.failure, isNull);
+    expect(logMessages, contains('action=preload_home result=partial'));
+    expect(logMessages, contains('home_feed_failed'));
+    expect(logMessages, isNot(contains('catalog_readiness')));
+    expect(logMessages, isNot(contains('catalog_empty')));
+    expect(logMessages, isNot(contains('catalog_provider_error')));
+    expect(logMessages, isNot(contains('result=recovery_required')));
+    final notice = harness.container.read(homeDegradationNoticeProvider);
+    expect(notice, isNotNull);
+    expect(
+      notice!.reasonCodes,
+      contains(StartupRecoveryReasonCodes.homeFeedFailed),
+    );
+    expect(notice.actions, contains(RecoveryAction.retryHomeSections));
+  });
+
+  test(
+    'opens Home partially when IPTV Home sections are empty with openable catalog',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.homeController.forceEmptyIptvSections = true;
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_empty_home_sections';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+      final logMessages = harness.logger.events
+          .map((event) => event.message)
+          .join('\n');
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.failure, isNull);
+      expect(logMessages, contains('action=preload_home result=partial'));
+      expect(logMessages, contains('home_iptv_sections_empty'));
+      expect(logMessages, isNot(contains('catalog_empty')));
+      expect(logMessages, isNot(contains('catalog_provider_error')));
+      final notice = harness.container.read(homeDegradationNoticeProvider);
+      expect(notice, isNotNull);
+      expect(
+        notice!.reasonCodes,
+        contains(StartupRecoveryReasonCodes.homeIptvSectionsEmpty),
+      );
+      expect(notice.actions, contains(RecoveryAction.retryHomeSections));
+      expect(notice.actions, contains(RecoveryAction.resyncSource));
+    },
+  );
+
+  test('opens Home partially when library preload times out', () async {
+    final harness = await _LaunchHarness.create(
+      stallInProgress: true,
+      libraryPreloadTimeout: const Duration(milliseconds: 10),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.localProfiles.createProfile(
+      name: 'Offline Profile',
+      color: 0xFF2160AB,
+    );
+    const accountId = 'local_xtream_account_library_timeout';
+    await harness.iptvLocal.saveAccount(
+      XtreamAccount(
+        id: accountId,
+        alias: 'Offline Source',
+        endpoint: XtreamEndpoint.parse('http://example.com'),
+        username: 'demo',
+        status: XtreamAccountStatus.pending,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+    await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+      XtreamPlaylist(
+        id: 'pl_movies',
+        accountId: accountId,
+        title: 'Films',
+        type: XtreamPlaylistType.movies,
+        items: const <XtreamPlaylistItem>[
+          XtreamPlaylistItem(
+            accountId: accountId,
+            categoryId: 'cat_movies',
+            categoryName: 'Films',
+            streamId: 1001,
+            title: 'Film local',
+            type: XtreamPlaylistItemType.movie,
+            tmdbId: 550,
+          ),
+        ],
+      ),
+    ]);
+
+    final result = await harness.run();
+    final logMessages = harness.logger.events
+        .map((event) => event.message)
+        .join('\n');
+
+    expect(result.isSuccess, isTrue);
+    expect(result.destination, BootstrapDestination.home);
+    expect(result.failure, isNull);
+    expect(result.meta.libraryReady, isTrue);
+    expect(logMessages, contains('action=preload_library result=partial'));
+    expect(logMessages, contains('library_preload_timeout'));
+    expect(logMessages, contains('retryLibrary'));
+    final notice = harness.container.read(homeDegradationNoticeProvider);
+    expect(notice, isNotNull);
+    expect(
+      notice!.reasonCodes,
+      contains(StartupRecoveryReasonCodes.libraryPreloadTimeout),
+    );
+    expect(notice.actions, contains(RecoveryAction.retryLibrary));
   });
 
   test('run is idempotent when called concurrently', () async {
@@ -1229,51 +1676,58 @@ void main() {
     },
   );
 
-  test('retries home preload on transient invalid state', () async {
-    final harness = await _LaunchHarness.create();
-    addTearDown(harness.dispose);
+  test(
+    'does not retry preload for non-blocking Home section degradation',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
 
-    await harness.localProfiles.createProfile(
-      name: 'Offline Profile',
-      color: 0xFF2160AB,
-    );
-    const accountId = 'local_xtream_account_retry_home_preload';
-    await harness.iptvLocal.saveAccount(
-      XtreamAccount(
-        id: accountId,
-        alias: 'Offline Source',
-        endpoint: XtreamEndpoint.parse('http://example.com'),
-        username: 'demo',
-        status: XtreamAccountStatus.pending,
-        createdAt: DateTime(2026, 1, 1),
-      ),
-    );
-    await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
-      XtreamPlaylist(
-        id: 'pl_movies',
-        accountId: accountId,
-        title: 'Films',
-        type: XtreamPlaylistType.movies,
-        items: const <XtreamPlaylistItem>[
-          XtreamPlaylistItem(
-            accountId: accountId,
-            categoryId: 'cat_movies',
-            categoryName: 'Films',
-            streamId: 1001,
-            title: 'Film local',
-            type: XtreamPlaylistItemType.movie,
-            tmdbId: 550,
-          ),
-        ],
-      ),
-    ]);
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_retry_home_preload';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
 
-    harness.homeController.transientPreloadFailures = 1;
-    final result = await harness.run();
+      harness.homeController.transientPreloadFailures = 1;
+      final result = await harness.run();
 
-    expect(result.isSuccess, isTrue);
-    expect(harness.homeController.preloadLoadCalls, greaterThanOrEqualTo(2));
-  });
+      expect(result.isSuccess, isTrue);
+      expect(harness.homeController.preloadLoadCalls, 1);
+      expect(
+        harness.logger.events.map((event) => event.message).join('\n'),
+        contains('home_feed_failed'),
+      );
+    },
+  );
 }
 
 class _LaunchHarness {
@@ -1288,6 +1742,9 @@ class _LaunchHarness {
     required this.authRepository,
     required this.homeController,
     required this.logger,
+    required this.refreshXtreamCatalog,
+    required this.refreshStalkerCatalog,
+    required this.xtreamSyncService,
     this.trackingCloudSyncService,
     this.supabaseClient,
   });
@@ -1302,6 +1759,9 @@ class _LaunchHarness {
   final _FakeAuthRepository authRepository;
   final _FakeHomeController homeController;
   final _MemoryLogger logger;
+  final _FakeRefreshXtreamCatalog refreshXtreamCatalog;
+  final _FakeRefreshStalkerCatalog refreshStalkerCatalog;
+  final _NoopXtreamSyncService xtreamSyncService;
   final _TrackingComprehensiveCloudSyncService? trackingCloudSyncService;
   final SupabaseClient? supabaseClient;
 
@@ -1311,12 +1771,18 @@ class _LaunchHarness {
     bool enableEntryJourneyStateModelV2 = false,
     bool trackCloudSync = false,
     Object? cloudSyncFailure,
+    Object? inProgressFailure,
+    bool stallInProgress = false,
+    Duration? libraryPreloadTimeout,
     SecureStorageRepository? secureStorageRepository,
     CredentialsVault? credentialsVault,
     IptvCredentialsEdgeService? credentialsEdgeService,
     SupabaseIptvSourcesRepository? iptvSourcesRepository,
   }) async {
     await sl.reset();
+    if (libraryPreloadTimeout != null) {
+      AppLaunchOrchestrator.libraryPreloadTimeout = libraryPreloadTimeout;
+    }
 
     final db = await openDatabase(
       inMemoryDatabasePath,
@@ -1370,6 +1836,14 @@ class _LaunchHarness {
     sl.registerSingleton<TunnelStateRegistry>(TunnelStateRegistry());
     sl.registerSingleton<RefreshXtreamCatalog>(refreshXtreamCatalog);
     sl.registerSingleton<RefreshStalkerCatalog>(refreshStalkerCatalog);
+    if (inProgressFailure != null || stallInProgress) {
+      sl.registerSingleton<LoadContinueWatchingMedia>(
+        _FakeLoadContinueWatchingMedia(
+          failure: inProgressFailure,
+          neverComplete: stallInProgress,
+        ),
+      );
+    }
     if (secureStorageRepository != null) {
       sl.registerSingleton<SecureStorageRepository>(secureStorageRepository);
     }
@@ -1409,14 +1883,13 @@ class _LaunchHarness {
     );
 
     final appStateController = container.read(appStateControllerProvider);
-    sl.registerSingleton<XtreamSyncService>(
-      _NoopXtreamSyncService(
-        appStateController,
-        refreshXtreamCatalog,
-        XtreamCacheDataSource(contentCache),
-        logger,
-      ),
+    final xtreamSyncService = _NoopXtreamSyncService(
+      appStateController,
+      refreshXtreamCatalog,
+      XtreamCacheDataSource(contentCache),
+      logger,
     );
+    sl.registerSingleton<XtreamSyncService>(xtreamSyncService);
 
     return _LaunchHarness._(
       db: db,
@@ -1429,6 +1902,9 @@ class _LaunchHarness {
       authRepository: authRepository,
       homeController: homeController,
       logger: logger,
+      refreshXtreamCatalog: refreshXtreamCatalog,
+      refreshStalkerCatalog: refreshStalkerCatalog,
+      xtreamSyncService: xtreamSyncService,
       trackingCloudSyncService: trackingCloudSyncService,
       supabaseClient: supabaseClient,
     );
@@ -1446,6 +1922,7 @@ class _LaunchHarness {
     await selectedProfilePreferences.dispose();
     await selectedSourcePreferences.dispose();
     authRepository.dispose();
+    AppLaunchOrchestrator.libraryPreloadTimeout = const Duration(seconds: 15);
   }
 }
 
@@ -1454,6 +1931,8 @@ class _FakeHomeController extends HomeController {
   int preloadLoadCalls = 0;
   int bootstrapPreloadExecutions = 0;
   int transientPreloadFailures = 0;
+  String? forcedPreloadError;
+  bool forceEmptyIptvSections = false;
   bool _externalBootstrapPreloadInFlight = false;
   Completer<void>? _externalBootstrapPreloadCompleter;
 
@@ -1473,25 +1952,34 @@ class _FakeHomeController extends HomeController {
       if (transientPreloadFailures > 0) {
         transientPreloadFailures -= 1;
         loadCalls += 1;
-        state = const HomeState(
+        state = HomeState(
+          iptvLists: _filledIptvLists(),
           isLoading: false,
           isHeroEmpty: false,
           error: 'transient preload state',
         );
         return;
       }
+      final error = forcedPreloadError;
+      if (error != null) {
+        loadCalls += 1;
+        state = HomeState(
+          iptvLists: _filledIptvLists(),
+          isLoading: false,
+          isHeroEmpty: false,
+          error: error,
+        );
+        return;
+      }
+      if (forceEmptyIptvSections) {
+        loadCalls += 1;
+        state = const HomeState(isLoading: false, isHeroEmpty: false);
+        return;
+      }
     }
     loadCalls += 1;
     state = HomeState(
-      iptvLists: <String, List<ContentReference>>{
-        'Nouveautes': <ContentReference>[
-          ContentReference(
-            id: '1',
-            title: MediaTitle('Film test'),
-            type: ContentType.movie,
-          ),
-        ],
-      },
+      iptvLists: _filledIptvLists(),
       isLoading: false,
       isHeroEmpty: false,
     );
@@ -1506,15 +1994,7 @@ class _FakeHomeController extends HomeController {
     if (_externalBootstrapPreloadInFlight) {
       await _externalBootstrapPreloadCompleter?.future;
       state = HomeState(
-        iptvLists: <String, List<ContentReference>>{
-          'Nouveautes': <ContentReference>[
-            ContentReference(
-              id: '1',
-              title: MediaTitle('Film test'),
-              type: ContentType.movie,
-            ),
-          ],
-        },
+        iptvLists: _filledIptvLists(),
         isLoading: false,
         isHeroEmpty: false,
       );
@@ -1536,6 +2016,40 @@ class _FakeHomeController extends HomeController {
         }
       }),
     );
+  }
+
+  Map<String, List<ContentReference>> _filledIptvLists() {
+    return <String, List<ContentReference>>{
+      'Nouveautes': <ContentReference>[
+        ContentReference(
+          id: '1',
+          title: MediaTitle('Film test'),
+          type: ContentType.movie,
+        ),
+      ],
+    };
+  }
+}
+
+class _FakeLoadContinueWatchingMedia implements LoadContinueWatchingMedia {
+  const _FakeLoadContinueWatchingMedia({
+    this.failure,
+    this.neverComplete = false,
+  });
+
+  final Object? failure;
+  final bool neverComplete;
+
+  @override
+  Future<List<domain.InProgressMedia>> call({String userId = 'default'}) async {
+    if (neverComplete) {
+      return Completer<List<domain.InProgressMedia>>().future;
+    }
+    final failure = this.failure;
+    if (failure != null) {
+      throw failure;
+    }
+    return const <domain.InProgressMedia>[];
   }
 }
 
@@ -1782,8 +2296,18 @@ class _MemorySelectedIptvSourcePreferences
 class _FakeRefreshXtreamCatalog extends RefreshXtreamCatalog {
   _FakeRefreshXtreamCatalog() : super(_FakeIptvRepository());
 
+  int calls = 0;
+  Result<XtreamCatalogSnapshot, Failure>? result;
+  Future<void> Function(String accountId)? beforeResult;
+
   @override
   Future<Result<XtreamCatalogSnapshot, Failure>> call(String accountId) async {
+    calls += 1;
+    await beforeResult?.call(accountId);
+    final configuredResult = result;
+    if (configuredResult != null) {
+      return configuredResult;
+    }
     return Ok(
       XtreamCatalogSnapshot(
         accountId: accountId,
@@ -1798,8 +2322,11 @@ class _FakeRefreshXtreamCatalog extends RefreshXtreamCatalog {
 class _FakeRefreshStalkerCatalog extends RefreshStalkerCatalog {
   _FakeRefreshStalkerCatalog() : super(_FakeStalkerRepository());
 
+  int calls = 0;
+
   @override
   Future<Result<StalkerCatalogSnapshot, Failure>> call(String accountId) async {
+    calls += 1;
     return Ok(
       StalkerCatalogSnapshot(
         accountId: accountId,
@@ -1814,13 +2341,19 @@ class _FakeRefreshStalkerCatalog extends RefreshStalkerCatalog {
 class _NoopXtreamSyncService extends XtreamSyncService {
   _NoopXtreamSyncService(super.state, super.refresh, super.cache, super.logger);
 
+  int startCalls = 0;
+  String? lastStartReason;
+
   @override
   void start({
     bool skipInitialIfFresh = true,
     DateTime? initialRefreshAt,
     Duration? initialCooldown,
     String reason = 'service',
-  }) {}
+  }) {
+    startCalls += 1;
+    lastStartReason = reason;
+  }
 
   @override
   void stop() {}

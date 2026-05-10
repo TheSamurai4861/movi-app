@@ -7,6 +7,8 @@ import 'package:movi/src/core/config/providers/config_provider.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/domain/entry_journey_contracts.dart';
+import 'package:movi/src/core/startup/domain/resolve_entry_decision.dart';
+import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/core/startup/entry_journey_orchestrator.dart';
 import 'package:movi/src/core/startup/entry_journey_shadow_bridge.dart';
 import 'package:movi/src/core/logging/logging.dart';
@@ -36,6 +38,14 @@ final appLaunchRunnerProvider = Provider<AppLaunchRunner>((ref) {
     );
     return ref.read(appLaunchOrchestratorProvider.notifier).run();
   };
+});
+
+final startupRecoveryMapperProvider = Provider<StartupRecoveryMapper>((ref) {
+  return const StartupRecoveryMapper();
+});
+
+final resolveEntryDecisionProvider = Provider<ResolveEntryDecision>((ref) {
+  return const ResolveEntryDecision();
 });
 
 final entryJourneyShadowEnabledProvider = Provider<bool>((ref) {

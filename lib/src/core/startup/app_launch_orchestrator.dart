@@ -26,6 +26,14 @@ import 'package:movi/src/core/startup/app_launch_criteria.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
 import 'package:movi/src/core/startup/canonical_tunnel_state_projector.dart';
+import 'package:movi/src/core/startup/catalog_snapshot_reader.dart';
+import 'package:movi/src/core/startup/domain/boot_contracts.dart';
+import 'package:movi/src/core/startup/domain/catalog_snapshot_contracts.dart';
+import 'package:movi/src/core/startup/domain/entry_journey_contracts.dart';
+import 'package:movi/src/core/startup/domain/resolve_catalog_readiness.dart';
+import 'package:movi/src/core/startup/domain/resolve_entry_decision.dart';
+import 'package:movi/src/core/startup/domain/resolve_home_degradation.dart';
+import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/core/startup/entry_journey_shadow_bridge.dart';
 import 'package:movi/src/core/startup/entry_journey_telemetry.dart';
@@ -275,6 +283,9 @@ class _LaunchStepException implements Exception {
 class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   AppLaunchOrchestrator();
 
+  @visibleForTesting
+  static Duration libraryPreloadTimeout = const Duration(seconds: 15);
+
   static const Map<AppLaunchPhase, Set<AppLaunchPhase>>
   _allowedPhaseTransitions = <AppLaunchPhase, Set<AppLaunchPhase>>{
     AppLaunchPhase.init: <AppLaunchPhase>{AppLaunchPhase.startup},
@@ -330,6 +341,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   late final EntryJourneyTelemetry _entryJourneyTelemetry;
   late final LegacyTunnelStateBridge _legacyTunnelStateBridge;
   late final CanonicalTunnelStateProjector _canonicalTunnelStateProjector;
+  late final ResolveEntryDecision _resolveEntryDecision;
+  late final ResolveCatalogReadiness _resolveCatalogReadiness;
+  late final ResolveHomeDegradation _resolveHomeDegradation;
+  late final CatalogSnapshotReader _catalogSnapshotReader;
   late final bool _useCanonicalTunnelStateModel;
 
   Future<AppLaunchResult>? _ongoing;
@@ -389,6 +404,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     }
     _legacyTunnelStateBridge = const LegacyTunnelStateBridge();
     _canonicalTunnelStateProjector = const CanonicalTunnelStateProjector();
+    _resolveEntryDecision = const ResolveEntryDecision();
+    _resolveCatalogReadiness = const ResolveCatalogReadiness();
+    _resolveHomeDegradation = const ResolveHomeDegradation();
+    _catalogSnapshotReader = CatalogSnapshotReader(_iptvLocalRepository);
     _entryJourneyTelemetry = EntryJourneyTelemetry(
       enabled: entryJourneyTelemetryEnabled,
     );
@@ -649,7 +668,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
     }
 
-    AppLaunchResult completeSuccess(BootstrapDestination nextDestination) {
+    AppLaunchResult completeSuccess(
+      BootstrapDestination nextDestination, {
+      String? reasonCodeOverride,
+    }) {
       destination = nextDestination;
       _updateState(
         state.copyWith(
@@ -667,6 +689,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         runId: state.runId,
       );
       final reasonCode =
+          reasonCodeOverride ??
           state.recovery?.reasonCode ??
           _reasonCodeForDestination(nextDestination);
       if (nextDestination != BootstrapDestination.home) {
@@ -752,6 +775,102 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
     }
 
+    SessionContractSnapshot sessionSnapshot({
+      required bool isAuthenticated,
+      String? userId,
+      String reasonCode = 'session_unknown',
+    }) {
+      return SessionContractSnapshot(
+        status: isAuthenticated
+            ? SessionContractStatus.authenticated
+            : SessionContractStatus.unauthenticated,
+        userId: userId,
+        reasonCode: reasonCode,
+      );
+    }
+
+    ProfilesContractSnapshot profilesSnapshot({
+      required int count,
+      required bool hasValidSelection,
+      String? selectedProfileId,
+      required String reasonCode,
+    }) {
+      return ProfilesContractSnapshot(
+        count: count,
+        hasValidSelection: hasValidSelection,
+        selectedProfileId: selectedProfileId,
+        reasonCode: reasonCode,
+      );
+    }
+
+    SourcesContractSnapshot sourcesSnapshot({
+      required int localCount,
+      required bool hasValidSelection,
+      required bool requiresManualSelection,
+      String? selectedSourceId,
+      String reasonCode = 'sources_ready',
+    }) {
+      return SourcesContractSnapshot(
+        localCount: localCount,
+        remoteCount: 0,
+        hasValidSelection: hasValidSelection,
+        requiresManualSelection: requiresManualSelection,
+        selectedSourceId: selectedSourceId,
+        reasonCode: reasonCode,
+      );
+    }
+
+    EntryDecision resolveEntry({
+      required bool requiresAuthenticatedSession,
+      required SessionContractSnapshot session,
+      required ProfilesContractSnapshot profiles,
+      required SourcesContractSnapshot sources,
+      required String? resolvedProfileId,
+      required String? resolvedSourceId,
+      CatalogMode catalogMode = CatalogMode.cached,
+    }) {
+      return _resolveEntryDecision(
+        EntryDecisionInput(
+          requiresAuthenticatedSession: requiresAuthenticatedSession,
+          session: session,
+          profiles: profiles,
+          sources: sources,
+          resolvedProfileId: resolvedProfileId,
+          resolvedSourceId: resolvedSourceId,
+          catalogMode: catalogMode,
+        ),
+      );
+    }
+
+    BootstrapDestination destinationForEntryDecision(EntryDecision decision) {
+      return switch (decision) {
+        RequireAuth() => BootstrapDestination.auth,
+        RequireProfile() => BootstrapDestination.welcomeUser,
+        RequireSource() => BootstrapDestination.welcomeSources,
+        RequireSourceSelection() => BootstrapDestination.chooseSource,
+        OpenHome() => BootstrapDestination.home,
+        TechnicalBootFailure() => BootstrapDestination.auth,
+      };
+    }
+
+    AppLaunchResult completeEntryDecision(EntryDecision decision) {
+      destination = destinationForEntryDecision(decision);
+      return completeSuccess(destination);
+    }
+
+    final readyEntryProfile = profilesSnapshot(
+      count: 1,
+      hasValidSelection: true,
+      selectedProfileId: '__entry_profile_ready__',
+      reasonCode: 'entry_profile_ready',
+    );
+    final readyEntrySource = sourcesSnapshot(
+      localCount: 1,
+      hasValidSelection: true,
+      requiresManualSelection: false,
+      selectedSourceId: '__entry_source_ready__',
+    );
+
     try {
       step = 'startup';
       _setPhase(AppLaunchPhase.startup, stepName: step);
@@ -814,8 +933,18 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           elapsedMs: _elapsedSinceStartMs(),
           fields: <String, Object?>{'hasSession': false},
         );
-        destination = BootstrapDestination.auth;
-        return completeSuccess(destination);
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: true,
+          session: sessionSnapshot(
+            isAuthenticated: false,
+            reasonCode: recovery?.reasonCode ?? 'auth_required',
+          ),
+          profiles: readyEntryProfile,
+          sources: readyEntrySource,
+          resolvedProfileId: '__entry_profile_ready__',
+          resolvedSourceId: '__entry_source_ready__',
+        );
+        return completeEntryDecision(entryDecision);
       } else if (isCloudAuthEnabled && authResult.isDegradedRetryable) {
         final recovery = _buildAuthRecovery(authResult);
         setRecovery(recovery);
@@ -858,8 +987,21 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           elapsedMs: _elapsedSinceStartMs(),
           fields: <String, Object?>{'hasSession': false},
         );
-        destination = BootstrapDestination.auth;
-        return completeSuccess(destination);
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: true,
+          session: sessionSnapshot(
+            isAuthenticated: false,
+            reasonCode:
+                authResult.reasonCode ??
+                state.recovery?.reasonCode ??
+                'auth_required',
+          ),
+          profiles: readyEntryProfile,
+          sources: readyEntrySource,
+          resolvedProfileId: '__entry_profile_ready__',
+          resolvedSourceId: '__entry_source_ready__',
+        );
+        return completeEntryDecision(entryDecision);
       } else {
         setRecovery(null);
         await logStep('no validated session -> local mode');
@@ -912,11 +1054,28 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
 
       if (profiles.isEmpty) {
-        destination = BootstrapDestination.welcomeUser;
         await logStep(
           'profiles empty -> welcomeUser (REAL EMPTY if fetch succeeded)',
         );
-        return completeSuccess(destination);
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: false,
+          session: sessionSnapshot(
+            isAuthenticated: meta.accountId != null,
+            userId: meta.accountId,
+            reasonCode: meta.accountId == null
+                ? 'local_mode'
+                : 'session_authenticated',
+          ),
+          profiles: profilesSnapshot(
+            count: profiles.length,
+            hasValidSelection: false,
+            reasonCode: 'profile_required',
+          ),
+          sources: readyEntrySource,
+          resolvedProfileId: null,
+          resolvedSourceId: '__entry_source_ready__',
+        );
+        return completeEntryDecision(entryDecision);
       }
 
       step = 'profiles_select';
@@ -1036,9 +1195,32 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       }
 
       if (localAccounts.isEmpty && localStalkerAccounts.isEmpty) {
-        destination = BootstrapDestination.welcomeSources;
         await logStep('no local accounts available -> welcomeSources');
-        return completeSuccess(destination);
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: false,
+          session: sessionSnapshot(
+            isAuthenticated: meta.accountId != null,
+            userId: meta.accountId,
+            reasonCode: meta.accountId == null
+                ? 'local_mode'
+                : 'session_authenticated',
+          ),
+          profiles: profilesSnapshot(
+            count: profiles.length,
+            hasValidSelection: true,
+            selectedProfileId: selectedProfileId,
+            reasonCode: 'profiles_ready',
+          ),
+          sources: sourcesSnapshot(
+            localCount: 0,
+            hasValidSelection: false,
+            requiresManualSelection: false,
+            reasonCode: 'source_required',
+          ),
+          resolvedProfileId: selectedProfileId,
+          resolvedSourceId: null,
+        );
+        return completeEntryDecision(entryDecision);
       }
 
       step = 'iptv_source_selection';
@@ -1194,9 +1376,33 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           elapsedMs: _elapsedSinceStartMs(),
           fields: <String, Object?>{'sourcesCount': validIds.length},
         );
-        destination = BootstrapDestination.chooseSource;
         await logStep('multiple sources + no valid selection -> chooseSource');
-        return completeSuccess(destination);
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: false,
+          session: sessionSnapshot(
+            isAuthenticated: meta.accountId != null,
+            userId: meta.accountId,
+            reasonCode: meta.accountId == null
+                ? 'local_mode'
+                : 'session_authenticated',
+          ),
+          profiles: profilesSnapshot(
+            count: profiles.length,
+            hasValidSelection: true,
+            selectedProfileId: selectedProfileId,
+            reasonCode: 'profiles_ready',
+          ),
+          sources: sourcesSnapshot(
+            localCount: validIds.length,
+            hasValidSelection: false,
+            requiresManualSelection: true,
+            selectedSourceId: preferredTrimmed,
+            reasonCode: 'source_selection_required',
+          ),
+          resolvedProfileId: selectedProfileId,
+          resolvedSourceId: null,
+        );
+        return completeEntryDecision(entryDecision);
       }
       _entryJourneyTelemetry.event(
         name: 'entry_journey_stage_completed',
@@ -1210,37 +1416,117 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
       step = 'preload_complete_home';
       _setPhase(AppLaunchPhase.preloadCompleteHome, stepName: step);
-      final iptvPreload = await _ensureIptvCatalogReadyForLaunch();
-      meta = meta.copyWith(iptvCatalogReady: iptvPreload.catalogReady);
+      final selectedSourceIdForCatalog = meta.selectedSourceId?.trim();
+      if (selectedSourceIdForCatalog == null ||
+          selectedSourceIdForCatalog.isEmpty) {
+        throw const _LaunchStepException(
+          AppLaunchErrorCode.invalidTransition,
+          'Cannot preload Home without a selected IPTV source',
+        );
+      }
+
+      var catalogSnapshot = await _readCatalogSnapshotForLaunch(
+        selectedSourceIdForCatalog,
+        reason: 'launch_initial',
+      );
+      var catalogRefreshed = false;
+      var catalogReadiness = _resolveCatalogReadiness(
+        CatalogReadinessInput(snapshot: catalogSnapshot),
+      );
+
+      if (catalogReadiness is SourceRecoveryRequired) {
+        var refreshOutcome = CatalogRefreshOutcome.empty;
+        try {
+          final iptvPreload = await _ensureIptvCatalogReadyForLaunch();
+          catalogRefreshed = iptvPreload.refreshed;
+          refreshOutcome = iptvPreload.catalogReady
+              ? CatalogRefreshOutcome.succeeded
+              : CatalogRefreshOutcome.empty;
+        } on _LaunchStepException catch (error) {
+          refreshOutcome = _catalogRefreshOutcomeForLaunchError(error.code);
+        }
+        catalogSnapshot = await _readCatalogSnapshotForLaunch(
+          selectedSourceIdForCatalog,
+          reason: 'launch_after_blocking_refresh',
+        );
+        catalogReadiness = _resolveCatalogReadiness(
+          CatalogReadinessInput(
+            snapshot: catalogSnapshot,
+            refreshOutcome: refreshOutcome,
+          ),
+        );
+      }
+
+      if (catalogReadiness is SourceRecoveryRequired) {
+        await logStep(
+          'catalog recovery required -> ${catalogReadiness.reasonCode}',
+        );
+        await LoggingService.log(
+          '[Startup] action=catalog_readiness result=recovery_required '
+          'code=${catalogReadiness.reasonCode} '
+          'context=mode=${catalogSnapshot.mode.name} '
+          'refreshed=$catalogRefreshed '
+          'actions=${catalogReadiness.actions.map((a) => a.name).join(',')}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
+        _entryJourneyTelemetry.event(
+          name: 'catalog_minimal_ready',
+          runId: state.runId ?? 'missing',
+          result: 'recovery_required',
+          phase: AppLaunchPhase.preloadCompleteHome.name,
+          step: step,
+          reasonCode: catalogReadiness.reasonCode,
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{
+            'catalogMode': catalogSnapshot.mode.name,
+            'refreshed': catalogRefreshed,
+            'actions': catalogReadiness.actions.map((a) => a.name).join(','),
+          },
+        );
+        return completeSuccess(
+          BootstrapDestination.welcomeSources,
+          reasonCodeOverride: catalogReadiness.reasonCode,
+        );
+      }
+
+      meta = meta.copyWith(iptvCatalogReady: true);
       updateCriteria();
-      await logStep('iptv catalog ready for launch');
+      await logStep('iptv catalog snapshot ready for launch');
       _entryJourneyTelemetry.event(
         name: 'catalog_minimal_ready',
         runId: state.runId ?? 'missing',
-        result: iptvPreload.catalogReady ? 'success' : 'failure',
+        result: 'success',
         phase: AppLaunchPhase.preloadCompleteHome.name,
         step: step,
-        reasonCode: iptvPreload.catalogReady
-            ? 'catalog_minimal_ready'
-            : 'catalog_minimal_not_ready',
+        reasonCode: catalogReadiness.reasonCode,
         elapsedMs: _elapsedSinceStartMs(),
-        fields: <String, Object?>{'refreshed': iptvPreload.refreshed},
+        fields: <String, Object?>{
+          'catalogMode': catalogSnapshot.mode.name,
+          'refreshed': catalogRefreshed,
+        },
       );
 
       await _runWithRetry<void>(
         attempts: 2,
         initialDelay: const Duration(milliseconds: 200),
         actionName: 'home_preload',
-        action: (_) => _preloadHomeForLaunch(),
+        action: (_) => _preloadHomeForLaunch(catalogMode: catalogSnapshot.mode),
       );
       meta = meta.copyWith(homePreloaded: true);
       updateCriteria();
       await logStep('home preload done');
 
-      await _ensureLibraryReadyForLaunch();
+      final libraryReadiness = await _ensureLibraryReadyForLaunch(
+        catalogMode: catalogSnapshot.mode,
+      );
       meta = meta.copyWith(libraryReady: true);
       updateCriteria();
-      await logStep('library preload done');
+      await logStep(
+        libraryReadiness is HomePartial
+            ? 'library preload degraded -> ${libraryReadiness.reasonCode}'
+            : 'library preload done',
+      );
       _entryJourneyTelemetry.event(
         name: 'catalog_full_load_completed',
         runId: state.runId ?? 'missing',
@@ -1249,7 +1535,11 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         step: step,
         reasonCode: 'catalog_full_load_completed',
         elapsedMs: _elapsedSinceStartMs(),
-        fields: <String, Object?>{'homePreloaded': true, 'libraryReady': true},
+        fields: <String, Object?>{
+          'catalogMode': catalogSnapshot.mode.name,
+          'homePreloaded': true,
+          'libraryReady': true,
+        },
       );
       _entryJourneyTelemetry.event(
         name: 'entry_journey_stage_completed',
@@ -1261,8 +1551,36 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         elapsedMs: _elapsedSinceStartMs(),
       );
 
-      destination = BootstrapDestination.home;
-      await logStep('complete preload done -> home');
+      final entryDecision = resolveEntry(
+        requiresAuthenticatedSession: false,
+        session: sessionSnapshot(
+          isAuthenticated: meta.accountId != null,
+          userId: meta.accountId,
+          reasonCode: meta.accountId == null
+              ? 'local_mode'
+              : 'session_authenticated',
+        ),
+        profiles: profilesSnapshot(
+          count: profiles.length,
+          hasValidSelection: true,
+          selectedProfileId: selectedProfileId,
+          reasonCode: 'profiles_ready',
+        ),
+        sources: sourcesSnapshot(
+          localCount: validIds.length,
+          hasValidSelection:
+              meta.selectedSourceId != null &&
+              validIds.contains(meta.selectedSourceId),
+          requiresManualSelection: false,
+          selectedSourceId: meta.selectedSourceId,
+          reasonCode: 'sources_ready',
+        ),
+        resolvedProfileId: selectedProfileId,
+        resolvedSourceId: meta.selectedSourceId,
+        catalogMode: catalogSnapshot.mode,
+      );
+      destination = destinationForEntryDecision(entryDecision);
+      await logStep('complete preload done -> ${destination.name}');
       final result = completeSuccess(destination);
 
       _startIptvBackgroundSync(meta);
@@ -1271,6 +1589,51 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     } catch (e, st) {
       return completeFailure(e, st);
     }
+  }
+
+  Future<CatalogSnapshot> _readCatalogSnapshotForLaunch(
+    String sourceId, {
+    required String reason,
+  }) async {
+    final snapshot = await _catalogSnapshotReader.readForSource(sourceId);
+    unawaited(
+      LoggingService.log(
+        '[Startup] action=catalog_snapshot result=success '
+        'code=${_reasonCodeForCatalogSnapshot(snapshot)} '
+        'context=reason=$reason mode=${snapshot.mode.name} '
+        'exists=${snapshot.exists} hasPlaylists=${snapshot.hasPlaylists} '
+        'hasItems=${snapshot.hasItems}',
+        category: 'startup',
+      ),
+    );
+    return snapshot;
+  }
+
+  String _reasonCodeForCatalogSnapshot(CatalogSnapshot snapshot) {
+    return switch (snapshot.mode) {
+      CatalogMode.fresh => StartupRecoveryReasonCodes.catalogSnapshotFresh,
+      CatalogMode.cached => StartupRecoveryReasonCodes.catalogSnapshotCached,
+      CatalogMode.stale => StartupRecoveryReasonCodes.catalogSnapshotStale,
+      CatalogMode.missing => StartupRecoveryReasonCodes.catalogSnapshotMissing,
+      CatalogMode.empty => StartupRecoveryReasonCodes.catalogEmpty,
+      CatalogMode.unavailable =>
+        StartupRecoveryReasonCodes.catalogSnapshotUnavailable,
+    };
+  }
+
+  CatalogRefreshOutcome _catalogRefreshOutcomeForLaunchError(
+    AppLaunchErrorCode code,
+  ) {
+    return switch (code) {
+      AppLaunchErrorCode.iptvNetworkTimeout => CatalogRefreshOutcome.timedOut,
+      AppLaunchErrorCode.iptvProviderError =>
+        CatalogRefreshOutcome.providerError,
+      AppLaunchErrorCode.iptvEmptyData => CatalogRefreshOutcome.empty,
+      AppLaunchErrorCode.invalidTransition ||
+      AppLaunchErrorCode.homePreloadInvalidState ||
+      AppLaunchErrorCode.libraryPreloadTimeout =>
+        CatalogRefreshOutcome.providerError,
+    };
   }
 
   Future<_IptvPreloadResult> _ensureIptvCatalogReadyForLaunch() async {
@@ -1302,7 +1665,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     );
   }
 
-  Future<void> _preloadHomeForLaunch() async {
+  Future<HomeReadiness> _preloadHomeForLaunch({
+    CatalogMode catalogMode = CatalogMode.cached,
+  }) async {
     if (!_homeController.bootstrapPreloadInFlight) {
       await _homePreload(
         awaitIptv: true,
@@ -1340,31 +1705,81 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         'Home preload still loading after awaited preload',
       );
     }
+    final degradations = <HomeDegradation>[];
     if (homeState.error != null && homeState.error!.trim().isNotEmpty) {
-      throw _LaunchStepException(
-        AppLaunchErrorCode.homePreloadInvalidState,
-        'Home preload failed: ${homeState.error}',
-      );
+      degradations.add(const HomeDegradation(HomeDegradationKind.feedFailed));
     }
     final hasActiveSources = _appStateController.activeIptvSourceIds.isNotEmpty;
     if (hasActiveSources && homeState.iptvLists.isEmpty) {
-      throw const _LaunchStepException(
-        AppLaunchErrorCode.homePreloadInvalidState,
-        'Home preload finished without IPTV sections',
+      degradations.add(
+        const HomeDegradation(HomeDegradationKind.iptvSectionsEmpty),
       );
+    }
+    final readiness = _resolveHomeDegradation(
+      HomeDegradationInput(
+        catalogMode: catalogMode,
+        degradations: degradations,
+      ),
+    );
+    await _logHomeReadiness(readiness);
+    return readiness;
+  }
+
+  Future<void> _logHomeReadiness(HomeReadiness readiness) async {
+    switch (readiness) {
+      case HomeReady():
+        _clearHomeDegradationNotice();
+        await LoggingService.log(
+          '[Startup] action=preload_home result=ready '
+          'code=${readiness.reasonCode} '
+          'context=catalogMode=${readiness.catalogMode.name}',
+          category: 'startup',
+        );
+      case HomePartial():
+        _setHomeDegradationNotice(readiness, merge: false);
+        await LoggingService.log(
+          '[Startup] action=preload_home result=partial '
+          'code=${readiness.reasonCode} '
+          'context=catalogMode=${readiness.catalogMode.name} '
+          'actions=${readiness.actions.map((a) => a.name).join(',')}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
+      case SourceRecoveryRequired():
+        _clearHomeDegradationNotice();
+        await LoggingService.log(
+          '[Startup] action=preload_home result=recovery_required '
+          'code=${readiness.reasonCode} '
+          'context=actions=${readiness.actions.map((a) => a.name).join(',')}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
     }
   }
 
-  Future<void> _ensureLibraryReadyForLaunch() async {
+  Future<HomeReadiness> _ensureLibraryReadyForLaunch({
+    CatalogMode catalogMode = CatalogMode.cached,
+  }) async {
     try {
       await ref
           .read(homeInProgressProvider.future)
-          .timeout(const Duration(seconds: 15));
-    } on TimeoutException {
-      throw const _LaunchStepException(
-        AppLaunchErrorCode.libraryPreloadTimeout,
-        'Library preload timed out',
+          .timeout(libraryPreloadTimeout);
+      final readiness = _resolveHomeDegradation(
+        HomeDegradationInput(catalogMode: catalogMode),
       );
+      await _logLibraryReadiness(readiness);
+      return readiness;
+    } on TimeoutException {
+      final readiness = _resolveHomeDegradation(
+        HomeDegradationInput(
+          catalogMode: catalogMode,
+          degradations: const <HomeDegradation>[
+            HomeDegradation(HomeDegradationKind.libraryPreloadTimeout),
+          ],
+        ),
+      );
+      await _logLibraryReadiness(readiness);
+      return readiness;
     } catch (e) {
       final msg = e.toString().toLowerCase();
       if (msg.contains('not registered') || msg.contains('bad state')) {
@@ -1374,13 +1789,66 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           level: LogLevel.warn,
           category: 'startup',
         );
-        return;
+        final readiness = _resolveHomeDegradation(
+          HomeDegradationInput(catalogMode: catalogMode),
+        );
+        return readiness;
       }
-      throw _LaunchStepException(
-        AppLaunchErrorCode.libraryPreloadTimeout,
-        'Library preload failed: $e',
+      final readiness = _resolveHomeDegradation(
+        HomeDegradationInput(
+          catalogMode: catalogMode,
+          degradations: const <HomeDegradation>[
+            HomeDegradation(HomeDegradationKind.libraryPreloadFailed),
+          ],
+        ),
       );
+      await _logLibraryReadiness(readiness);
+      return readiness;
     }
+  }
+
+  Future<void> _logLibraryReadiness(HomeReadiness readiness) async {
+    switch (readiness) {
+      case HomeReady():
+        await LoggingService.log(
+          '[Startup] action=preload_library result=ready '
+          'code=${readiness.reasonCode} '
+          'context=catalogMode=${readiness.catalogMode.name}',
+          category: 'startup',
+        );
+      case HomePartial():
+        _setHomeDegradationNotice(readiness, merge: true);
+        await LoggingService.log(
+          '[Startup] action=preload_library result=partial '
+          'code=${readiness.reasonCode} '
+          'context=catalogMode=${readiness.catalogMode.name} '
+          'actions=${readiness.actions.map((a) => a.name).join(',')}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
+      case SourceRecoveryRequired():
+        await LoggingService.log(
+          '[Startup] action=preload_library result=recovery_required '
+          'code=${readiness.reasonCode} '
+          'context=actions=${readiness.actions.map((a) => a.name).join(',')}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
+    }
+  }
+
+  void _setHomeDegradationNotice(HomePartial partial, {required bool merge}) {
+    final next = HomeDegradationNotice.fromPartial(partial);
+    final notifier = ref.read(homeDegradationNoticeProvider.notifier);
+    if (!merge) {
+      notifier.set(next);
+      return;
+    }
+    notifier.merge(next);
+  }
+
+  void _clearHomeDegradationNotice() {
+    ref.read(homeDegradationNoticeProvider.notifier).set(null);
   }
 
   Future<T> _runWithRetry<T>({

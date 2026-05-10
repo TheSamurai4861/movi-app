@@ -202,6 +202,7 @@ class _HomeMobileContentState extends ConsumerState<HomeMobileContent> {
   Widget build(BuildContext context) {
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
+    final degradationNotice = ref.watch(hp.homeDegradationNoticeProvider);
     final iptvFilter = ref.watch(hp.homeIptvMediaFilterProvider);
     final disableHero = ref.watch(
       featureFlagsProvider.select((f) => f.home.disableHero),
@@ -271,8 +272,14 @@ class _HomeMobileContentState extends ConsumerState<HomeMobileContent> {
           },
           child: CustomScrollView(
             slivers: [
-              if (state.error != null)
-                const SliverToBoxAdapter(child: HomeErrorBanner()),
+              if (state.error != null || degradationNotice != null)
+                SliverToBoxAdapter(
+                  child: HomeErrorBanner(
+                    notice: degradationNotice,
+                    onAction: (action) =>
+                        handleHomeDegradationAction(ref, controller, action),
+                  ),
+                ),
 
               if (!disableHero) ...[
                 HomeHeroSection(

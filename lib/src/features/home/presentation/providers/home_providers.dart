@@ -9,6 +9,8 @@ import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/performance/providers/performance_providers.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/startup/domain/boot_contracts.dart';
+import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
 import 'package:movi/src/features/home/domain/usecases/load_continue_watching_media.dart';
 import 'package:movi/src/features/home/domain/usecases/load_home_hero.dart';
@@ -98,7 +100,85 @@ final homeIptvMediaFilterProvider =
       HomeIptvMediaFilterController.new,
     );
 
-/// État immutable du Home.
+/// Degradations non bloquantes a afficher sur Home.
+final class HomeDegradationNotice {
+  const HomeDegradationNotice({
+    required this.reasonCodes,
+    required this.actions,
+  });
+
+  factory HomeDegradationNotice.fromPartial(HomePartial partial) {
+    return HomeDegradationNotice(
+      reasonCodes: <String>[partial.reasonCode],
+      actions: partial.actions,
+    );
+  }
+
+  factory HomeDegradationNotice.homeFeedFailed() {
+    return const HomeDegradationNotice(
+      reasonCodes: <String>[StartupRecoveryReasonCodes.homeFeedFailed],
+      actions: <RecoveryAction>[RecoveryAction.retryHomeSections],
+    );
+  }
+
+  final List<String> reasonCodes;
+  final List<RecoveryAction> actions;
+
+  String get primaryReasonCode => reasonCodes.first;
+
+  RecoveryAction get primaryAction {
+    if (actions.contains(RecoveryAction.retryHomeSections)) {
+      return RecoveryAction.retryHomeSections;
+    }
+    if (actions.contains(RecoveryAction.retryLibrary)) {
+      return RecoveryAction.retryLibrary;
+    }
+    if (actions.contains(RecoveryAction.resyncSource)) {
+      return RecoveryAction.resyncSource;
+    }
+    return actions.first;
+  }
+
+  RecoveryAction? get secondaryAction {
+    for (final action in actions) {
+      if (action != primaryAction) return action;
+    }
+    return null;
+  }
+
+  HomeDegradationNotice merge(HomeDegradationNotice other) {
+    return HomeDegradationNotice(
+      reasonCodes: _mergeUnique(reasonCodes, other.reasonCodes),
+      actions: _mergeUnique(actions, other.actions),
+    );
+  }
+
+  static List<T> _mergeUnique<T>(List<T> left, List<T> right) {
+    final values = <T>[];
+    for (final value in <T>[...left, ...right]) {
+      if (!values.contains(value)) values.add(value);
+    }
+    return List<T>.unmodifiable(values);
+  }
+}
+
+class HomeDegradationNoticeController extends Notifier<HomeDegradationNotice?> {
+  @override
+  HomeDegradationNotice? build() => null;
+
+  void set(HomeDegradationNotice? notice) => state = notice;
+
+  void merge(HomeDegradationNotice notice) {
+    state = state?.merge(notice) ?? notice;
+  }
+}
+
+final homeDegradationNoticeProvider =
+    NotifierProvider<HomeDegradationNoticeController, HomeDegradationNotice?>(
+      HomeDegradationNoticeController.new,
+    );
+
+/// Etat immutable du Home.
 class HomeState {
   const HomeState({
     this.hero = const <ContentReference>[],
@@ -742,6 +822,11 @@ class HomeController extends Notifier<HomeState> {
         isHeroEmpty: disableHero ? true : hero.isEmpty,
         error: error,
       );
+      if (error != null && error!.trim().isNotEmpty) {
+        ref
+            .read(homeDegradationNoticeProvider.notifier)
+            .set(HomeDegradationNotice.homeFeedFailed());
+      }
 
       if (!deferIptv) {
         _drainQueuedRefresh();
@@ -773,11 +858,19 @@ class HomeController extends Notifier<HomeState> {
                   isLoading: false,
                   error: iptvError ?? state.error,
                 );
+                if (iptvError != null && iptvError!.trim().isNotEmpty) {
+                  ref
+                      .read(homeDegradationNoticeProvider.notifier)
+                      .set(HomeDegradationNotice.homeFeedFailed());
+                }
 
                 _drainQueuedRefresh();
               })
               .catchError((e) {
                 state = state.copyWith(isLoading: false, error: e.toString());
+                ref
+                    .read(homeDegradationNoticeProvider.notifier)
+                    .set(HomeDegradationNotice.homeFeedFailed());
 
                 _drainQueuedRefresh();
               }),
