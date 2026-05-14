@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:45:33.405Z",
+    "componentName": "Resolution du profil",
+    "totalElements": 4,
+    "nestingDepth": 3,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-600": "600"
+        }
+      }
+    },
+    "spacing": {
+      "gap-5": "5px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "resolution-du-profil",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 852
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "column",
+        "gap": 0,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "frame-2",
+        "type": "FRAME",
+        "size": {
+          "w": 150,
+          "h": 150
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 5,
+            "align": {
+              "main": "center",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "logo",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 150,
+              "h": 90
+            }
+          }
+        ]
+      },
+      {
+        "name": "chargement-du-profil---",
+        "type": "TEXT",
+        "size": {
+          "w": 178,
+          "h": 19
+        },
+        "content": "Chargement du profil...",
+        "styles": {
+          "bg": "rgb(255, 255, 255)",
+          "text": {
+            "family": "Inter",
+            "size": 16,
+            "weight": "600",
+            "align": "left"
+          }
+        }
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 0,
+    "frames": 2,
+    "texts": 1,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

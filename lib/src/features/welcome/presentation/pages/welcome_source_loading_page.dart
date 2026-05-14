@@ -13,6 +13,8 @@ import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -56,9 +58,26 @@ class _WelcomeSourceLoadingPageState
   bool _showSourceSelectionAction = false;
   String _statusMessage = '';
 
-  void _goToHome() {
+  Future<void> _goToHome() async {
     ref.read(shellControllerProvider.notifier).selectTab(ShellTab.home);
-    context.go(AppRouteNames.home);
+    await _runBootAction(context, BootActionIntent.openHome, 'home_ready');
+  }
+
+  Future<void> _runBootAction(
+    BuildContext context,
+    BootActionIntent intent,
+    String reasonCode, {
+    String? destinationOverride,
+  }) {
+    return executeBootAction(
+      context,
+      ref,
+      BootActionRequest(
+        intent: intent,
+        reasonCode: reasonCode,
+        destinationOverride: destinationOverride,
+      ),
+    );
   }
 
   @override
@@ -355,7 +374,11 @@ class _WelcomeSourceLoadingPageState
       }
       if ((missingSelection || invalidSelection) && activeSources.length > 1) {
         if (!mounted) return;
-        context.go(AppRouteNames.welcomeSourceSelect);
+        await _runBootAction(
+          context,
+          BootActionIntent.chooseSource,
+          'source_selection_required',
+        );
         return;
       }
 
@@ -371,7 +394,7 @@ class _WelcomeSourceLoadingPageState
           );
 
       if (!mounted) return;
-      _goToHome();
+      await _goToHome();
     } catch (e, stackTrace) {
       unawaited(
         LoggingService.log(
@@ -477,33 +500,39 @@ class _WelcomeSourceLoadingPageState
           child: Scaffold(
             body: Stack(
               children: [
-              const Center(child: WelcomeSourceLoadingLogo()),
-              WelcomeSourceLoadingContent(
-                isLoading: _isLoading,
-                statusMessage: _statusMessage,
-                error: _error,
-                loadingFocusNode: _loadingFocusNode,
-                retryFocusNode: _retryFocusNode,
-                selectSourceFocusNode: _selectSourceFocusNode,
-                onRetry: () {
-                  setState(() {
-                    _error = null;
-                  });
-                  unawaited(_loadCatalog());
-                },
-                onSelectSource: _showSourceSelectionAction
-                    ? () => context.go(AppRouteNames.welcomeSourceSelect)
-                    : null,
-                showHeader: false,
-                mainAxisAlignment: MainAxisAlignment.end,
-                bottomPadding: AppSpacing.lg,
-              ),
-            ],
+                const Center(child: WelcomeSourceLoadingLogo()),
+                WelcomeSourceLoadingContent(
+                  isLoading: _isLoading,
+                  statusMessage: _statusMessage,
+                  error: _error,
+                  loadingFocusNode: _loadingFocusNode,
+                  retryFocusNode: _retryFocusNode,
+                  selectSourceFocusNode: _selectSourceFocusNode,
+                  onRetry: () {
+                    setState(() {
+                      _error = null;
+                    });
+                    unawaited(_loadCatalog());
+                  },
+                  onSelectSource: _showSourceSelectionAction
+                      ? () => unawaited(
+                          _runBootAction(
+                            context,
+                            BootActionIntent.chooseSource,
+                            'source_selection_required',
+                          ),
+                        )
+                      : null,
+                  showHeader: false,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  bottomPadding: AppSpacing.lg,
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 

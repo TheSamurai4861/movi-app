@@ -8,6 +8,7 @@ class AppRouteCatalog {
     AppRoutePaths.welcomeUser,
     AppRoutePaths.welcomeSources,
     AppRoutePaths.welcomeSourceSelect,
+    AppRoutePaths.welcomeSourceLoading,
     AppRoutePaths.home,
   ];
 

@@ -1,0 +1,250 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:46:06.112Z",
+    "componentName": "Resolution de la source IPTV - Echec de chargement - Pas d'autre source",
+    "totalElements": 12,
+    "nestingDepth": 5,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-28": "28px",
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-700": "700",
+          "weight-500": "500",
+          "weight-600": "600"
+        }
+      }
+    },
+    "spacing": {
+      "padding-right-20": "20px",
+      "padding-left-20": "20px",
+      "gap-32": "32px",
+      "gap-16": "16px",
+      "gap-5": "5px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "resolution-de-la-source-iptv---echec-de-chargement---pas-d-autre-source",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 852
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "column",
+        "gap": 0,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "content",
+        "type": "FRAME",
+        "size": {
+          "w": 393,
+          "h": 472
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 32,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            },
+            "padding": [
+              0,
+              20,
+              0,
+              20
+            ]
+          }
+        },
+        "children": [
+          {
+            "name": "header",
+            "type": "FRAME",
+            "size": {
+              "w": 353,
+              "h": 273
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "logo",
+                "type": "FRAME",
+                "size": {
+                  "w": 150,
+                  "h": 150
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "column",
+                    "gap": 5,
+                    "align": {
+                      "main": "center",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "logo",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 150,
+                      "h": 90
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "echec-de-chargement",
+                "type": "TEXT",
+                "size": {
+                  "w": 298,
+                  "h": 34
+                },
+                "content": "Echec de chargement",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 28,
+                    "weight": "700",
+                    "align": "left"
+                  }
+                }
+              },
+              {
+                "name": "la-source-s-lectionn-e-n-a-pas-pu--tre-charg-e--r-essayez-ou-ajouter-une-nouvelle-source-",
+                "type": "TEXT",
+                "size": {
+                  "w": 353,
+                  "h": 57
+                },
+                "content": "La source sélectionnée n’a pas pu être chargée. Réessayez ou ajouter une nouvelle source.",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 16,
+                    "weight": "500",
+                    "align": "left"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "actions",
+            "type": "FRAME",
+            "size": {
+              "w": 353,
+              "h": 167
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 32,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "button",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              },
+              {
+                "name": "frame-45",
+                "type": "FRAME",
+                "size": {
+                  "w": 353,
+                  "h": 85
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "column",
+                    "gap": 16,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "input-title",
+                    "type": "TEXT",
+                    "size": {
+                      "w": 256,
+                      "h": 19
+                    },
+                    "content": "Vous voulez ajouter une source ?",
+                    "styles": {
+                      "bg": "rgb(255, 255, 255)",
+                      "text": {
+                        "family": "Inter",
+                        "size": 16,
+                        "weight": "600",
+                        "align": "left"
+                      }
+                    }
+                  },
+                  {
+                    "name": "button",
+                    "type": "INSTANCE",
+                    "size": {
+                      "w": 0,
+                      "h": 0
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 2,
+    "frames": 6,
+    "texts": 3,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

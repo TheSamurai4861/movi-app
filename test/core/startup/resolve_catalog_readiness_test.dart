@@ -55,17 +55,46 @@ void main() {
     ]);
   });
 
-  test('maps a missing snapshot to source recovery before refresh', () {
+  test('opens Home from a cached snapshot even when refresh succeeded', () {
+    final readiness = resolver(
+      CatalogReadinessInput(
+        snapshot: _snapshot(CatalogMode.cached),
+        refreshOutcome: CatalogRefreshOutcome.succeeded,
+      ),
+    );
+
+    expect(readiness, isA<HomePartial>());
+    final partial = readiness as HomePartial;
+    expect(
+      partial.reasonCode,
+      StartupRecoveryReasonCodes.catalogSnapshotCached,
+    );
+    expect(partial.catalogMode, CatalogMode.cached);
+    expect(partial.actions, contains(RecoveryAction.openHomeCached));
+  });
+
+  test('maps a missing snapshot to catalog preparation before refresh', () {
     final readiness = resolver(
       CatalogReadinessInput(snapshot: _snapshot(CatalogMode.missing)),
     );
 
-    expect(readiness, isA<SourceRecoveryRequired>());
-    final recovery = readiness as SourceRecoveryRequired;
+    expect(readiness, isA<CatalogPreparationRequired>());
+    final preparation = readiness as CatalogPreparationRequired;
     expect(
-      recovery.reasonCode,
+      preparation.reasonCode,
       StartupRecoveryReasonCodes.catalogSnapshotMissing,
     );
+    expect(preparation.catalogMode, CatalogMode.missing);
+  });
+
+  test('maps an empty snapshot before refresh to catalog empty recovery', () {
+    final readiness = resolver(
+      CatalogReadinessInput(snapshot: _snapshot(CatalogMode.empty)),
+    );
+
+    expect(readiness, isA<SourceRecoveryRequired>());
+    final recovery = readiness as SourceRecoveryRequired;
+    expect(recovery.reasonCode, StartupRecoveryReasonCodes.catalogEmpty);
     expect(recovery.actions, const [
       RecoveryAction.resyncSource,
       RecoveryAction.chooseSource,
@@ -148,6 +177,23 @@ void main() {
       CatalogReadinessInput(
         snapshot: _snapshot(CatalogMode.empty),
         refreshOutcome: CatalogRefreshOutcome.succeeded,
+      ),
+    );
+
+    expect(readiness, isA<SourceRecoveryRequired>());
+    final recovery = readiness as SourceRecoveryRequired;
+    expect(recovery.reasonCode, StartupRecoveryReasonCodes.catalogEmpty);
+    expect(recovery.actions, const [
+      RecoveryAction.resyncSource,
+      RecoveryAction.chooseSource,
+    ]);
+  });
+
+  test('maps explicit empty refresh outcome to catalog empty recovery', () {
+    final readiness = resolver(
+      CatalogReadinessInput(
+        snapshot: _snapshot(CatalogMode.missing),
+        refreshOutcome: CatalogRefreshOutcome.empty,
       ),
     );
 

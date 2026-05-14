@@ -12,8 +12,9 @@ import 'package:movi/src/core/focus/presentation/focus_directional_navigation.da
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
-import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
@@ -240,6 +241,18 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     return true;
   }
 
+  Future<void> _runBootAction(
+    BuildContext context,
+    BootActionIntent intent,
+    String reasonCode,
+  ) {
+    return executeBootAction(
+      context,
+      ref,
+      BootActionRequest(intent: intent, reasonCode: reasonCode),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
@@ -366,15 +379,13 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                 child: LaunchRecoveryBanner(
                                   message: launchRecovery!.message,
                                   retryFocusNode: _retryFocusNode,
-                                  onRetry: () {
-                                    ref
-                                        .read(
-                                          appLaunchOrchestratorProvider
-                                              .notifier,
-                                        )
-                                        .reset();
-                                    context.go(AppRouteNames.launch);
-                                  },
+                                  onRetry: () => unawaited(
+                                    _runBootAction(
+                                      context,
+                                      BootActionIntent.retry,
+                                      launchRecovery.reasonCode,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -548,14 +559,10 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                   }
                                                 }
                                                 if (!context.mounted) return;
-                                                ref
-                                                    .read(
-                                                      appLaunchOrchestratorProvider
-                                                          .notifier,
-                                                    )
-                                                    .reset();
-                                                context.go(
-                                                  AppRouteNames.bootstrap,
+                                                await _runBootAction(
+                                                  context,
+                                                  BootActionIntent.retry,
+                                                  'profile_completed',
                                                 );
                                               },
                                             ),
@@ -645,8 +652,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                               onPressed: state.isSaving
                                                   ? null
                                                   : () async {
-                                                      final router =
-                                                          GoRouter.of(context);
                                                       final messenger =
                                                           ScaffoldMessenger.of(
                                                             context,
@@ -703,19 +708,17 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                                   .toARGB32() |
                                                               0xFF000000),
                                                         );
+                                                        if (!context.mounted) {
+                                                          return;
+                                                        }
                                                         ref.invalidate(
                                                           profilesControllerProvider,
                                                         );
-                                                        // Reset orchestrator pour relancer le bootstrap.
-                                                        ref
-                                                            .read(
-                                                              appLaunchOrchestratorProvider
-                                                                  .notifier,
-                                                            )
-                                                            .reset();
-                                                        router.go(
-                                                          AppRouteNames
-                                                              .bootstrap,
+                                                        await _runBootAction(
+                                                          context,
+                                                          BootActionIntent
+                                                              .retry,
+                                                          'profile_created',
                                                         );
                                                       }
                                                     },

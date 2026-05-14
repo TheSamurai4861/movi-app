@@ -1,0 +1,145 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:46:15.441Z",
+    "componentName": "Catalogue pret en cache",
+    "totalElements": 6,
+    "nestingDepth": 3,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-600": "600",
+          "weight-400": "400"
+        }
+      }
+    },
+    "spacing": {
+      "gap-5": "5px",
+      "gap-8": "8px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "catalogue-pret-en-cache",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 852
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "column",
+        "gap": 0,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "frame-2",
+        "type": "FRAME",
+        "size": {
+          "w": 150,
+          "h": 150
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 5,
+            "align": {
+              "main": "center",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "logo",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 150,
+              "h": 90
+            }
+          }
+        ]
+      },
+      {
+        "name": "frame-46",
+        "type": "FRAME",
+        "size": {
+          "w": 242,
+          "h": 46
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 8,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "ouverture-de-l-accueil",
+            "type": "TEXT",
+            "size": {
+              "w": 169,
+              "h": 19
+            },
+            "content": "Ouverture de l'accueil",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Inter",
+                "size": 16,
+                "weight": "600",
+                "align": "left"
+              }
+            }
+          },
+          {
+            "name": "vos-contenus-locaux-sont-pr-ts-",
+            "type": "TEXT",
+            "size": {
+              "w": 242,
+              "h": 19
+            },
+            "content": "Vos contenus locaux sont prêts.",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Inter",
+                "size": 16,
+                "weight": "400",
+                "align": "left"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 0,
+    "frames": 3,
+    "texts": 2,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

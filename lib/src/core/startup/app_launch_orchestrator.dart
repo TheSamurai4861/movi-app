@@ -49,7 +49,8 @@ import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_servi
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/source_probe_models.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
-import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart';
+import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart'
+    as iptv_failures;
 import 'package:movi/src/features/welcome/domain/enum.dart';
 
 typedef AppStartupRunner = Future<void> Function();
@@ -68,6 +69,7 @@ enum AppLaunchErrorCode {
   iptvEmptyData,
   iptvNetworkTimeout,
   iptvProviderError,
+  iptvCredentialsInvalid,
   homePreloadInvalidState,
   libraryPreloadTimeout,
 }
@@ -114,6 +116,7 @@ class AppLaunchState {
     this.criteria = AppLaunchCriteria.empty,
     this.recovery,
     this.recoveryMessage,
+    this.recoveryPlan,
     this.runId,
   });
 
@@ -126,6 +129,7 @@ class AppLaunchState {
   final AppLaunchCriteria criteria;
   final AppLaunchRecovery? recovery;
   final String? recoveryMessage;
+  final StartupRecoveryPlan? recoveryPlan;
   final String? runId;
 
   static const _sentinel = Object();
@@ -140,6 +144,7 @@ class AppLaunchState {
     AppLaunchCriteria? criteria,
     Object? recovery = _sentinel,
     Object? recoveryMessage = _sentinel,
+    Object? recoveryPlan = _sentinel,
     Object? runId = _sentinel,
   }) {
     return AppLaunchState(
@@ -164,6 +169,9 @@ class AppLaunchState {
       recoveryMessage: identical(recoveryMessage, _sentinel)
           ? this.recoveryMessage
           : recoveryMessage as String?,
+      recoveryPlan: identical(recoveryPlan, _sentinel)
+          ? this.recoveryPlan
+          : recoveryPlan as StartupRecoveryPlan?,
       runId: identical(runId, _sentinel) ? this.runId : runId as String?,
     );
   }
@@ -285,6 +293,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
   @visibleForTesting
   static Duration libraryPreloadTimeout = const Duration(seconds: 15);
+
+  @visibleForTesting
+  static Duration catalogBlockingRefreshTimeout = const Duration(seconds: 20);
+
+  @visibleForTesting
+  static Duration catalogBlockingRefreshRetryInitialDelay = const Duration(
+    milliseconds: 300,
+  );
 
   static const Map<AppLaunchPhase, Set<AppLaunchPhase>>
   _allowedPhaseTransitions = <AppLaunchPhase, Set<AppLaunchPhase>>{
@@ -450,6 +466,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         criteria: AppLaunchCriteria.empty,
         recovery: null,
         recoveryMessage: null,
+        recoveryPlan: null,
         runId: runId,
       ),
     );
@@ -1433,8 +1450,20 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       var catalogReadiness = _resolveCatalogReadiness(
         CatalogReadinessInput(snapshot: catalogSnapshot),
       );
+      DateTime? catalogPreparationStartedAt;
 
-      if (catalogReadiness is SourceRecoveryRequired) {
+      if (catalogReadiness is CatalogPreparationRequired) {
+        catalogPreparationStartedAt = DateTime.now();
+        await _logCatalogTransition(
+          event: 'catalog_preparation_started',
+          result: 'start',
+          reasonCode: catalogReadiness.reasonCode,
+          runId: state.runId,
+          sourceId: selectedSourceIdForCatalog,
+          catalogMode: catalogSnapshot.mode,
+          phase: AppLaunchPhase.preloadCompleteHome,
+          destination: null,
+        );
         var refreshOutcome = CatalogRefreshOutcome.empty;
         try {
           final iptvPreload = await _ensureIptvCatalogReadyForLaunch();
@@ -1457,7 +1486,34 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         );
       }
 
+      if (catalogPreparationStartedAt != null) {
+        final durationMs = DateTime.now()
+            .difference(catalogPreparationStartedAt)
+            .inMilliseconds;
+        await _logCatalogTransition(
+          event: catalogReadiness is SourceRecoveryRequired
+              ? 'catalog_preparation_failed'
+              : 'catalog_preparation_completed',
+          result: catalogReadiness is SourceRecoveryRequired
+              ? 'failure'
+              : 'success',
+          reasonCode: catalogReadiness.reasonCode,
+          runId: state.runId,
+          sourceId: selectedSourceIdForCatalog,
+          catalogMode: catalogSnapshot.mode,
+          phase: AppLaunchPhase.preloadCompleteHome,
+          destination: catalogReadiness is SourceRecoveryRequired
+              ? BootstrapDestination.welcomeSources
+              : BootstrapDestination.home,
+          durationMs: durationMs,
+        );
+      }
+
       if (catalogReadiness is SourceRecoveryRequired) {
+        final catalogRecoveryActions = _actionsForCatalogRecovery(
+          catalogReadiness,
+          localSourceCount: meta.localAccountsCount,
+        );
         await logStep(
           'catalog recovery required -> ${catalogReadiness.reasonCode}',
         );
@@ -1466,7 +1522,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           'code=${catalogReadiness.reasonCode} '
           'context=mode=${catalogSnapshot.mode.name} '
           'refreshed=$catalogRefreshed '
-          'actions=${catalogReadiness.actions.map((a) => a.name).join(',')}',
+          'actions=${catalogRecoveryActions.map((a) => a.name).join(',')}',
           level: LogLevel.warn,
           category: 'startup',
         );
@@ -1481,8 +1537,17 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           fields: <String, Object?>{
             'catalogMode': catalogSnapshot.mode.name,
             'refreshed': catalogRefreshed,
-            'actions': catalogReadiness.actions.map((a) => a.name).join(','),
+            'actions': catalogRecoveryActions.map((a) => a.name).join(','),
           },
+        );
+        _updateState(
+          state.copyWith(
+            recoveryPlan: StartupRecoveryPlan(
+              reasonCode: catalogReadiness.reasonCode,
+              actions: catalogRecoveryActions,
+              message: 'Catalog recovery required.',
+            ),
+          ),
         );
         return completeSuccess(
           BootstrapDestination.welcomeSources,
@@ -1596,17 +1661,98 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     required String reason,
   }) async {
     final snapshot = await _catalogSnapshotReader.readForSource(sourceId);
+    final reasonCode = _reasonCodeForCatalogSnapshot(snapshot);
     unawaited(
       LoggingService.log(
         '[Startup] action=catalog_snapshot result=success '
-        'code=${_reasonCodeForCatalogSnapshot(snapshot)} '
+        'code=$reasonCode '
         'context=reason=$reason mode=${snapshot.mode.name} '
         'exists=${snapshot.exists} hasPlaylists=${snapshot.hasPlaylists} '
         'hasItems=${snapshot.hasItems}',
         category: 'startup',
       ),
     );
+    unawaited(
+      _logCatalogTransition(
+        event: 'catalog_snapshot_checked',
+        result: 'success',
+        reasonCode: reasonCode,
+        runId: state.runId,
+        sourceId: sourceId,
+        catalogMode: snapshot.mode,
+        phase: AppLaunchPhase.preloadCompleteHome,
+        destination: null,
+        fields: <String, Object?>{
+          'reason': reason,
+          'exists': snapshot.exists,
+          'hasPlaylists': snapshot.hasPlaylists,
+          'hasItems': snapshot.hasItems,
+        },
+      ),
+    );
+    if (snapshot.mode == CatalogMode.cached) {
+      unawaited(
+        _logCatalogTransition(
+          event: 'catalog_snapshot_cached',
+          result: 'success',
+          reasonCode: reasonCode,
+          runId: state.runId,
+          sourceId: sourceId,
+          catalogMode: snapshot.mode,
+          phase: AppLaunchPhase.preloadCompleteHome,
+          destination: BootstrapDestination.home,
+          fields: <String, Object?>{'reason': reason},
+        ),
+      );
+    } else if (snapshot.mode == CatalogMode.missing) {
+      unawaited(
+        _logCatalogTransition(
+          event: 'catalog_snapshot_missing',
+          result: 'missing',
+          reasonCode: reasonCode,
+          runId: state.runId,
+          sourceId: sourceId,
+          catalogMode: snapshot.mode,
+          phase: AppLaunchPhase.preloadCompleteHome,
+          destination: null,
+          fields: <String, Object?>{'reason': reason},
+        ),
+      );
+    }
     return snapshot;
+  }
+
+  Future<void> _logCatalogTransition({
+    required String event,
+    required String result,
+    required String reasonCode,
+    required String? runId,
+    required String sourceId,
+    required CatalogMode catalogMode,
+    required AppLaunchPhase phase,
+    required BootstrapDestination? destination,
+    int? durationMs,
+    Map<String, Object?> fields = const <String, Object?>{},
+  }) {
+    final parts = <String>[
+      '[Startup]',
+      'event=$event',
+      'result=$result',
+      'runId=${runId ?? 'missing'}',
+      'sourceKey=${_logSafeSourceKey(sourceId)}',
+      'phase=${phase.name}',
+      'reasonCode=$reasonCode',
+      'catalogMode=${catalogMode.name}',
+      if (durationMs != null) 'durationMs=$durationMs',
+      if (destination != null) 'destination=${destination.name}',
+      for (final entry in fields.entries)
+        if (entry.value != null) '${entry.key}=${entry.value}',
+    ];
+    return LoggingService.log(parts.join(' '), category: 'startup');
+  }
+
+  String _logSafeSourceKey(String sourceId) {
+    return sourceId.hashCode.toUnsigned(20).toRadixString(16).padLeft(5, '0');
   }
 
   String _reasonCodeForCatalogSnapshot(CatalogSnapshot snapshot) {
@@ -1628,6 +1774,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       AppLaunchErrorCode.iptvNetworkTimeout => CatalogRefreshOutcome.timedOut,
       AppLaunchErrorCode.iptvProviderError =>
         CatalogRefreshOutcome.providerError,
+      AppLaunchErrorCode.iptvCredentialsInvalid =>
+        CatalogRefreshOutcome.credentialsInvalid,
       AppLaunchErrorCode.iptvEmptyData => CatalogRefreshOutcome.empty,
       AppLaunchErrorCode.invalidTransition ||
       AppLaunchErrorCode.homePreloadInvalidState ||
@@ -1639,14 +1787,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   Future<_IptvPreloadResult> _ensureIptvCatalogReadyForLaunch() async {
     return _runWithRetry<_IptvPreloadResult>(
       attempts: 3,
-      initialDelay: const Duration(milliseconds: 300),
+      initialDelay: catalogBlockingRefreshRetryInitialDelay,
       actionName: 'iptv_preload',
       action: (attempt) async {
         final result =
             await _ensureIptvCatalogReady(
               reason: 'launch_attempt_$attempt',
             ).timeout(
-              const Duration(seconds: 20),
+              catalogBlockingRefreshTimeout,
               onTimeout: () {
                 throw const _LaunchStepException(
                   AppLaunchErrorCode.iptvNetworkTimeout,
@@ -1754,6 +1902,15 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           level: LogLevel.warn,
           category: 'startup',
         );
+      case CatalogPreparationRequired():
+        _clearHomeDegradationNotice();
+        await LoggingService.log(
+          '[Startup] action=preload_home result=catalog_preparation_required '
+          'code=${readiness.reasonCode} '
+          'context=catalogMode=${readiness.catalogMode.name}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
     }
   }
 
@@ -1831,6 +1988,15 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           '[Startup] action=preload_library result=recovery_required '
           'code=${readiness.reasonCode} '
           'context=actions=${readiness.actions.map((a) => a.name).join(',')}',
+          level: LogLevel.warn,
+          category: 'startup',
+        );
+      case CatalogPreparationRequired():
+        await LoggingService.log(
+          '[Startup] action=preload_library '
+          'result=catalog_preparation_required '
+          'code=${readiness.reasonCode} '
+          'context=catalogMode=${readiness.catalogMode.name}',
           level: LogLevel.warn,
           category: 'startup',
         );
@@ -1994,6 +2160,21 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
   void _setRecoveryMessage(String? message) {
     _updateState(state.copyWith(recoveryMessage: message));
+  }
+
+  List<RecoveryAction> _actionsForCatalogRecovery(
+    SourceRecoveryRequired recovery, {
+    required int? localSourceCount,
+  }) {
+    final actions = <RecoveryAction>[...recovery.actions];
+    final hasSeveralLocalSources = (localSourceCount ?? 0) > 1;
+    if (recovery.reasonCode ==
+            StartupRecoveryReasonCodes.catalogCredentialsInvalid &&
+        hasSeveralLocalSources &&
+        !actions.contains(RecoveryAction.chooseSource)) {
+      actions.add(RecoveryAction.chooseSource);
+    }
+    return List<RecoveryAction>.unmodifiable(actions);
   }
 
   int? _elapsedSinceStartMs() {
@@ -2200,7 +2381,11 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
               );
             },
             err: (failure) {
-              throw _mapIptvFailureToLaunchStep(failure, sourceId: id);
+              throw _mapIptvFailureToLaunchStep(
+                failure,
+                sourceId: id,
+                logAction: 'refresh_xtream',
+              );
             },
           );
         } else if (stalkerIds.contains(id)) {
@@ -2210,6 +2395,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           final result = await _refreshStalkerCatalog(id);
           result.fold(
             ok: (snapshot) {
+              refreshed = true;
               if (kDebugMode) {
                 debugPrint('[Startup][debug] refresh_stalker success');
                 debugPrint(
@@ -2222,9 +2408,13 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
               if (kDebugMode) {
                 debugPrint('[Startup][debug] refresh_stalker error=$error');
               }
+              throw _mapIptvFailureToLaunchStep(
+                error,
+                sourceId: id,
+                logAction: 'refresh_stalker',
+              );
             },
           );
-          refreshed = true;
         }
       } catch (e) {
         if (kDebugMode) {
@@ -2260,6 +2450,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   _LaunchStepException _mapIptvFailureToLaunchStep(
     Failure failure, {
     required String sourceId,
+    required String logAction,
   }) {
     final context = failure.context ?? const <String, Object?>{};
     final details = <String>[
@@ -2269,11 +2460,20 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     ].join(' ');
     unawaited(
       LoggingService.log(
-        '[Startup] action=refresh_xtream result=failure context=$details',
+        '[Startup] action=$logAction result=failure context=$details',
         category: 'startup',
         level: LogLevel.warn,
       ),
     );
+
+    if (failure is iptv_failures.AuthFailure ||
+        failure is iptv_failures.MissingCredentialsFailure ||
+        failure is UnauthorizedFailure) {
+      return _LaunchStepException(
+        AppLaunchErrorCode.iptvCredentialsInvalid,
+        'IPTV credentials failure: ${failure.code ?? failure.runtimeType}',
+      );
+    }
 
     if (failure is TimeoutFailure ||
         failure is ConnectionFailure ||
@@ -2284,8 +2484,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
     }
 
-    if (failure is XtreamRouteExecutionFailure) {
+    if (failure is iptv_failures.XtreamRouteExecutionFailure) {
       final code = switch (failure.errorKind) {
+        SourceProbeErrorKind.authInvalidCredentials =>
+          AppLaunchErrorCode.iptvCredentialsInvalid,
         SourceProbeErrorKind.dnsNotFound =>
           AppLaunchErrorCode.iptvNetworkTimeout,
         SourceProbeErrorKind.dnsTimeout =>

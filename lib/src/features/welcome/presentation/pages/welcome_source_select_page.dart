@@ -11,9 +11,10 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
-import 'package:movi/src/core/router/app_route_ids.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -99,6 +100,23 @@ class _WelcomeSourceSelectPageState
       }
     });
     return true;
+  }
+
+  Future<void> _runBootAction(
+    BuildContext context,
+    BootActionIntent intent,
+    String reasonCode, {
+    String? destinationOverride,
+  }) {
+    return executeBootAction(
+      context,
+      ref,
+      BootActionRequest(
+        intent: intent,
+        reasonCode: reasonCode,
+        destinationOverride: destinationOverride,
+      ),
+    );
   }
 
   KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
@@ -203,182 +221,186 @@ class _WelcomeSourceSelectPageState
               child: SettingsContentWidth(
                 child: Column(
                   children: [
-                  Focus(
-                    canRequestFocus: false,
-                    onKeyEvent: (_, event) => _handleDirectionalKey(
-                      event,
-                      down: launchRecovery?.isRetryable ?? false
-                          ? _retryFocusNode
-                          : asyncAccounts.maybeWhen(
-                              data: (accounts) {
-                                if (accounts.isEmpty) {
-                                  return _addSourceFocusNode;
-                                }
-                                _syncAccountFocusNodes(accounts.length);
-                                return _accountFocusNodes.first;
-                              },
-                              orElse: () => null,
-                            ),
-                      blockLeft: true,
-                      blockRight: true,
-                      blockUp: true,
-                    ),
-                    child: MoviSubpageBackTitleHeader(
-                      title: l10n.activeSourceTitle,
-                      focusNode: _backFocusNode,
-                      onBack: () => _handleBack(context),
-                    ),
-                  ),
-                  if (launchRecovery?.isRetryable ?? false) ...[
-                    const SizedBox(height: 12),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: MoviEnsureVisibleOnFocus(
-                        verticalAlignment: 0.18,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _backFocusNode,
-                            down: asyncAccounts.maybeWhen(
-                              data: (accounts) {
-                                if (accounts.isEmpty) {
-                                  return _addSourceFocusNode;
-                                }
-                                _syncAccountFocusNodes(accounts.length);
-                                return _accountFocusNodes.first;
-                              },
-                              orElse: () => null,
-                            ),
-                            blockLeft: true,
-                            blockRight: true,
-                          ),
-                          child: LaunchRecoveryBanner(
-                            message: launchRecovery!.message,
-                            retryFocusNode: _retryFocusNode,
-                            onRetry: () {
-                              ref
-                                  .read(appLaunchOrchestratorProvider.notifier)
-                                  .reset();
-                              context.go(AppRouteNames.launch);
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: asyncAccounts.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (e, _) => Center(
-                        child: Text(
-                          '${l10n.errorUnknown}: $e',
-                          style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      data: (accounts) {
-                        _syncAccountFocusNodes(accounts.length);
-                        if (accounts.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        down: launchRecovery?.isRetryable ?? false
+                            ? _retryFocusNode
+                            : asyncAccounts.maybeWhen(
+                                data: (accounts) {
+                                  if (accounts.isEmpty) {
+                                    return _addSourceFocusNode;
+                                  }
+                                  _syncAccountFocusNodes(accounts.length);
+                                  return _accountFocusNodes.first;
+                                },
+                                orElse: () => null,
                               ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    l10n.welcomeSourceSubtitle,
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  MoviEnsureVisibleOnFocus(
-                                    verticalAlignment: 0.22,
-                                    child: Focus(
-                                      canRequestFocus: false,
-                                      onKeyEvent: (_, event) =>
-                                          _handleDirectionalKey(
-                                            event,
-                                            up:
-                                                launchRecovery?.isRetryable ??
-                                                    false
-                                                ? _retryFocusNode
-                                                : _backFocusNode,
-                                            blockLeft: true,
-                                            blockRight: true,
-                                            blockDown: true,
+                        blockLeft: true,
+                        blockRight: true,
+                        blockUp: true,
+                      ),
+                      child: MoviSubpageBackTitleHeader(
+                        title: l10n.activeSourceTitle,
+                        focusNode: _backFocusNode,
+                        onBack: () => _handleBack(context),
+                      ),
+                    ),
+                    if (launchRecovery?.isRetryable ?? false) ...[
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: MoviEnsureVisibleOnFocus(
+                          verticalAlignment: 0.18,
+                          child: Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => _handleDirectionalKey(
+                              event,
+                              up: _backFocusNode,
+                              down: asyncAccounts.maybeWhen(
+                                data: (accounts) {
+                                  if (accounts.isEmpty) {
+                                    return _addSourceFocusNode;
+                                  }
+                                  _syncAccountFocusNodes(accounts.length);
+                                  return _accountFocusNodes.first;
+                                },
+                                orElse: () => null,
+                              ),
+                              blockLeft: true,
+                              blockRight: true,
+                            ),
+                            child: LaunchRecoveryBanner(
+                              message: launchRecovery!.message,
+                              retryFocusNode: _retryFocusNode,
+                              onRetry: () => unawaited(
+                                _runBootAction(
+                                  context,
+                                  BootActionIntent.retry,
+                                  launchRecovery.reasonCode,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: asyncAccounts.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (e, _) => Center(
+                          child: Text(
+                            '${l10n.errorUnknown}: $e',
+                            style: const TextStyle(color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        data: (accounts) {
+                          _syncAccountFocusNodes(accounts.length);
+                          if (accounts.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      l10n.welcomeSourceSubtitle,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    MoviEnsureVisibleOnFocus(
+                                      verticalAlignment: 0.22,
+                                      child: Focus(
+                                        canRequestFocus: false,
+                                        onKeyEvent: (_, event) =>
+                                            _handleDirectionalKey(
+                                              event,
+                                              up:
+                                                  launchRecovery?.isRetryable ??
+                                                      false
+                                                  ? _retryFocusNode
+                                                  : _backFocusNode,
+                                              blockLeft: true,
+                                              blockRight: true,
+                                              blockDown: true,
+                                            ),
+                                        child: ElevatedButton(
+                                          focusNode: _addSourceFocusNode,
+                                          onPressed: () => context.go(
+                                            AppRouteNames.welcomeSources,
                                           ),
-                                      child: ElevatedButton(
-                                        focusNode: _addSourceFocusNode,
-                                        onPressed: () => context.go(
-                                          AppRouteNames.welcomeSources,
+                                          child: const Text(
+                                            'Ajouter une source',
+                                          ),
                                         ),
-                                        child: const Text('Ajouter une source'),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
+                            );
+                          }
+
+                          return IptvSourceSelectionList(
+                            accounts: accounts,
+                            selectedId: selectedId,
+                            itemFocusNodes: _accountFocusNodes,
+                            onFirstItemUp: () => _requestFocus(
+                              launchRecovery?.isRetryable ?? false
+                                  ? _retryFocusNode
+                                  : _backFocusNode,
                             ),
+                            focusVerticalAlignment: 0.22,
+                            onSelected: (account) async {
+                              final prefs =
+                                  locator<SelectedIptvSourcePreferences>();
+
+                              await prefs.setSelectedSourceId(account.id);
+
+                              final appStateController = ref.read(
+                                appStateControllerProvider,
+                              );
+                              appStateController.setActiveIptvSources({
+                                account.id,
+                              });
+
+                              try {
+                                await pushUserPreferencesIfSignedIn(
+                                  ref,
+                                  logContext: 'WelcomeSourceSelectPage',
+                                ).timeout(const Duration(seconds: 18));
+                              } on TimeoutException {
+                                assert(() {
+                                  debugPrint(
+                                    '[WelcomeSourceSelectPage] pushUserPreferences timeout',
+                                  );
+                                  return true;
+                                }());
+                              } catch (_) {}
+
+                              await Future.delayed(
+                                const Duration(milliseconds: 100),
+                              );
+
+                              if (!context.mounted) return;
+                              await _runBootAction(
+                                context,
+                                BootActionIntent.resyncSource,
+                                'source_selected',
+                                destinationOverride:
+                                    '${AppRoutePaths.welcomeSourceLoading}?force_reload=1',
+                              );
+                            },
                           );
-                        }
-
-                        return IptvSourceSelectionList(
-                          accounts: accounts,
-                          selectedId: selectedId,
-                          itemFocusNodes: _accountFocusNodes,
-                          onFirstItemUp: () => _requestFocus(
-                            launchRecovery?.isRetryable ?? false
-                                ? _retryFocusNode
-                                : _backFocusNode,
-                          ),
-                          focusVerticalAlignment: 0.22,
-                          onSelected: (account) async {
-                            final prefs =
-                                locator<SelectedIptvSourcePreferences>();
-
-                            await prefs.setSelectedSourceId(account.id);
-
-                            final appStateController = ref.read(
-                              appStateControllerProvider,
-                            );
-                            appStateController.setActiveIptvSources({
-                              account.id,
-                            });
-
-                            try {
-                              await pushUserPreferencesIfSignedIn(
-                                ref,
-                                logContext: 'WelcomeSourceSelectPage',
-                              ).timeout(const Duration(seconds: 18));
-                            } on TimeoutException {
-                              assert(() {
-                                debugPrint(
-                                  '[WelcomeSourceSelectPage] pushUserPreferences timeout',
-                                );
-                                return true;
-                              }());
-                            } catch (_) {}
-
-                            await Future.delayed(
-                              const Duration(milliseconds: 100),
-                            );
-
-                            if (!context.mounted) return;
-                            context.goNamed(
-                              AppRouteIds.welcomeSourceLoading,
-                              queryParameters: const <String, String>{
-                                'force_reload': '1',
-                              },
-                            );
-                          },
-                        );
-                      },
+                        },
+                      ),
                     ),
-                  ),
                   ],
                 ),
               ),

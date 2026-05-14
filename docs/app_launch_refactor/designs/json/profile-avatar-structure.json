@@ -1,0 +1,123 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:53:35.771Z",
+    "componentName": "Profile avatar",
+    "totalElements": 4,
+    "nestingDepth": 3,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(33, 96, 171)": "rgb(33, 96, 171)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-32": "32px",
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-700": "700",
+          "weight-600": "600"
+        }
+      }
+    },
+    "spacing": {
+      "gap-12": "12px",
+      "gap-10": "10px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "profile-avatar",
+    "type": "COMPONENT",
+    "size": {
+      "w": 75,
+      "h": 106
+    },
+    "component": {
+      "type": "main",
+      "name": null
+    },
+    "styles": {
+      "layout": {
+        "direction": "column",
+        "gap": 12,
+        "align": {
+          "main": "start",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "profil-picture",
+        "type": "FRAME",
+        "size": {
+          "w": 75,
+          "h": 75
+        },
+        "styles": {
+          "bg": "rgb(33, 96, 171)",
+          "radius": 38,
+          "layout": {
+            "direction": "column",
+            "gap": 10,
+            "align": {
+              "main": "center",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "a",
+            "type": "TEXT",
+            "size": {
+              "w": 24,
+              "h": 39
+            },
+            "content": "A",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Inter",
+                "size": 32,
+                "weight": "700",
+                "align": "left"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "albert",
+        "type": "TEXT",
+        "size": {
+          "w": 75,
+          "h": 19
+        },
+        "content": "Albert",
+        "styles": {
+          "bg": "rgb(255, 255, 255)",
+          "text": {
+            "family": "Inter",
+            "size": 16,
+            "weight": "600",
+            "align": "center"
+          }
+        }
+      }
+    ]
+  },
+  "summary": {
+    "components": 1,
+    "instances": 0,
+    "frames": 1,
+    "texts": 2,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

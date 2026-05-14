@@ -18,6 +18,8 @@ import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_spacing.dart';
@@ -193,6 +195,23 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
       }
     });
     return true;
+  }
+
+  Future<void> _runBootAction(
+    BuildContext context,
+    BootActionIntent intent,
+    String reasonCode, {
+    String? destinationOverride,
+  }) {
+    return executeBootAction(
+      context,
+      ref,
+      BootActionRequest(
+        intent: intent,
+        reasonCode: reasonCode,
+        destinationOverride: destinationOverride,
+      ),
+    );
   }
 
   String? _resolveAccountIdOrNull() {
@@ -452,9 +471,12 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
         SnackBar(content: Text(l10n.snackbarSourceAddedBackground)),
       );
       if (mounted) {
-        GoRouter.of(context).goNamed(
-          AppRouteIds.welcomeSourceLoading,
-          queryParameters: const <String, String>{'force_reload': '1'},
+        await _runBootAction(
+          context,
+          BootActionIntent.resyncSource,
+          'source_connected',
+          destinationOverride:
+              '${AppRoutePaths.welcomeSourceLoading}?force_reload=1',
         );
       }
       return;
@@ -554,14 +576,13 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                               child: LaunchRecoveryBanner(
                                 message: launchRecovery!.message,
                                 retryFocusNode: _retryFocusNode,
-                                onRetry: () {
-                                  ref
-                                      .read(
-                                        appLaunchOrchestratorProvider.notifier,
-                                      )
-                                      .reset();
-                                  context.go(AppRouteNames.launch);
-                                },
+                                onRetry: () => unawaited(
+                                  _runBootAction(
+                                    context,
+                                    BootActionIntent.retry,
+                                    launchRecovery.reasonCode,
+                                  ),
+                                ),
                               ),
                             ),
                           ),

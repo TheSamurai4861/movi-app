@@ -1,0 +1,284 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:45:44.330Z",
+    "componentName": "Resolution du profil - Choisir un profil existant",
+    "totalElements": 14,
+    "nestingDepth": 5,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)",
+      "color-rgb(51, 51, 51)": "rgb(51, 51, 51)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-28": "28px",
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-700": "700",
+          "weight-500": "500"
+        }
+      }
+    },
+    "spacing": {
+      "padding-right-20": "20px",
+      "padding-left-20": "20px",
+      "gap-32": "32px",
+      "gap-16": "16px",
+      "gap-5": "5px",
+      "gap-40": "40px",
+      "gap-12": "12px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "resolution-du-profil---choisir-un-profil-existant",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 852
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "column",
+        "gap": 0,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "content",
+        "type": "FRAME",
+        "size": {
+          "w": 393,
+          "h": 425
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 32,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            },
+            "padding": [
+              0,
+              20,
+              0,
+              20
+            ]
+          }
+        },
+        "children": [
+          {
+            "name": "header",
+            "type": "FRAME",
+            "size": {
+              "w": 353,
+              "h": 235
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "logo",
+                "type": "FRAME",
+                "size": {
+                  "w": 150,
+                  "h": 150
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "column",
+                    "gap": 5,
+                    "align": {
+                      "main": "center",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "logo",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 150,
+                      "h": 90
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "choisir-un-profil",
+                "type": "TEXT",
+                "size": {
+                  "w": 218,
+                  "h": 34
+                },
+                "content": "Choisir un profil",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 28,
+                    "weight": "700",
+                    "align": "left"
+                  }
+                }
+              },
+              {
+                "name": "choisissez-l-un-de-vos-profils-",
+                "type": "TEXT",
+                "size": {
+                  "w": 225,
+                  "h": 19
+                },
+                "content": "Choisissez l’un de vos profils.",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 16,
+                    "weight": "500",
+                    "align": "left"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "frame-43",
+            "type": "FRAME",
+            "size": {
+              "w": 305,
+              "h": 106
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 40,
+                "align": {
+                  "main": "start",
+                  "cross": "start"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "profile-avatar",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              },
+              {
+                "name": "profile-avatar",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              },
+              {
+                "name": "profile-avatar",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              }
+            ]
+          },
+          {
+            "name": "button--se-souvenir-",
+            "type": "FRAME",
+            "size": {
+              "w": 229,
+              "h": 20
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 12,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "frame-41",
+                "type": "FRAME",
+                "size": {
+                  "w": 20,
+                  "h": 20
+                },
+                "styles": {
+                  "bg": "rgb(51, 51, 51)",
+                  "border": {
+                    "width": 1,
+                    "color": "rgb(128, 128, 128)"
+                  },
+                  "radius": 4,
+                  "layout": {
+                    "direction": "row",
+                    "gap": 0,
+                    "align": {
+                      "main": "start",
+                      "cross": "start"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "se-souvenir-de-mon-choix",
+                "type": "TEXT",
+                "size": {
+                  "w": 197,
+                  "h": 19
+                },
+                "content": "Se souvenir de mon choix",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 16,
+                    "weight": "500",
+                    "align": "left"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 3,
+    "frames": 7,
+    "texts": 3,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

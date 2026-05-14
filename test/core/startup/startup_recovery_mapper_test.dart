@@ -105,6 +105,20 @@ void main() {
       ]);
     });
 
+    test('maps IPTV invalid credentials to reconnect source only', () {
+      final plan = mapper.mapLaunchFailure(
+        step: 'preload_complete_home',
+        errorCode: 'iptvCredentialsInvalid',
+        original: StateError('credentials'),
+      );
+
+      expect(
+        plan.reasonCode,
+        StartupRecoveryReasonCodes.catalogCredentialsInvalid,
+      );
+      expect(plan.actions, const [RecoveryAction.reconnectSource]);
+    });
+
     test('maps library timeout to retry library', () {
       final plan = mapper.mapLaunchFailure(
         step: 'preload_complete_home',

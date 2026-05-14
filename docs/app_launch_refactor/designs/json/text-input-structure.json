@@ -1,0 +1,131 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:53:21.620Z",
+    "componentName": "Text input",
+    "totalElements": 4,
+    "nestingDepth": 3,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)",
+      "color-rgb(51, 51, 51)": "rgb(51, 51, 51)",
+      "color-rgb(191, 191, 191)": "rgb(191, 191, 191)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-600": "600",
+          "weight-500": "500"
+        }
+      }
+    },
+    "spacing": {
+      "gap-12": "12px",
+      "padding-right-20": "20px",
+      "padding-left-20": "20px",
+      "gap-10": "10px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "text-input",
+    "type": "COMPONENT",
+    "size": {
+      "w": 300,
+      "h": 81
+    },
+    "component": {
+      "type": "main",
+      "name": null
+    },
+    "styles": {
+      "layout": {
+        "direction": "column",
+        "gap": 12,
+        "align": {
+          "main": "start",
+          "cross": "start"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "input-title",
+        "type": "TEXT",
+        "size": {
+          "w": 300,
+          "h": 19
+        },
+        "content": "Titre",
+        "styles": {
+          "bg": "rgb(255, 255, 255)",
+          "text": {
+            "family": "Inter",
+            "size": 16,
+            "weight": "600",
+            "align": "left"
+          }
+        }
+      },
+      {
+        "name": "input",
+        "type": "FRAME",
+        "size": {
+          "w": 300,
+          "h": 50
+        },
+        "styles": {
+          "bg": "rgb(51, 51, 51)",
+          "radius": 25,
+          "layout": {
+            "direction": "row",
+            "gap": 10,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            },
+            "padding": [
+              0,
+              20,
+              0,
+              20
+            ]
+          }
+        },
+        "children": [
+          {
+            "name": "placeholder---",
+            "type": "TEXT",
+            "size": {
+              "w": 228,
+              "h": 19
+            },
+            "content": "Placeholder...",
+            "styles": {
+              "bg": "rgb(191, 191, 191)",
+              "text": {
+                "family": "Inter",
+                "size": 16,
+                "weight": "500",
+                "align": "left"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 1,
+    "instances": 0,
+    "frames": 1,
+    "texts": 2,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

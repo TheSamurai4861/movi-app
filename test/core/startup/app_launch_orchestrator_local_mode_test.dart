@@ -33,6 +33,8 @@ import 'package:movi/src/core/startup/domain/boot_contracts.dart';
 import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/boot_screen_providers.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_migrations.dart';
@@ -59,6 +61,8 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_catalog_snapshot.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart'
+    as iptv_failures;
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
 import 'package:movi/src/features/iptv/domain/repositories/stalker_repository.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/stalker_endpoint.dart';
@@ -1259,6 +1263,112 @@ void main() {
       expect(result.meta.iptvCatalogReady, isTrue);
       expect(harness.refreshXtreamCatalog.calls, 1);
       expect(harness.homeController.loadCalls, 1);
+      final firstRunCatalogLogs = harness.logger.events
+          .map((event) => event.message)
+          .where((message) => message.contains('event=catalog_'))
+          .join('\n');
+      expect(firstRunCatalogLogs, contains('event=catalog_snapshot_checked'));
+      expect(firstRunCatalogLogs, contains('event=catalog_snapshot_missing'));
+      expect(
+        firstRunCatalogLogs,
+        contains('event=catalog_preparation_started'),
+      );
+      expect(
+        firstRunCatalogLogs,
+        contains('event=catalog_preparation_completed'),
+      );
+      expect(firstRunCatalogLogs, contains('sourceKey='));
+      expect(firstRunCatalogLogs, isNot(contains(accountId)));
+
+      harness.refreshXtreamCatalog.beforeResult = null;
+      harness.refreshXtreamCatalog.result = const Err(UnknownFailure());
+
+      final secondRun = await harness.run();
+
+      expect(secondRun.isSuccess, isTrue);
+      expect(secondRun.destination, BootstrapDestination.home);
+      expect(secondRun.meta.iptvCatalogReady, isTrue);
+      expect(
+        harness.refreshXtreamCatalog.calls,
+        1,
+        reason: 'Second run must use the persisted catalog snapshot.',
+      );
+      expect(harness.homeController.loadCalls, 2);
+      expect(
+        harness.logger.events.map((event) => event.message).join('\n'),
+        contains('catalog_snapshot_cached'),
+      );
+    },
+  );
+
+  test(
+    'exposes catalog preparing while first run waits for missing snapshot refresh',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      final refreshGate = Completer<void>();
+      harness.refreshXtreamCatalog.beforeResult = (_) => refreshGate.future;
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_catalog_preparing';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final run = harness.run();
+      await _waitUntil(() => harness.refreshXtreamCatalog.calls == 1);
+
+      final launchState = harness.container.read(appLaunchStateProvider);
+      expect(launchState.status, AppLaunchStatus.running);
+      expect(launchState.phase, AppLaunchPhase.preloadCompleteHome);
+      final model = harness.container.read(bootScreenModelProvider);
+      expect(model.reasonCode, 'catalog_preparing');
+      expect(sl<TunnelStateRegistry>().state.stage, TunnelStage.preloadingHome);
+      expect(
+        harness.logger.events.map((event) => event.message).join('\n'),
+        contains('event=catalog_preparation_started'),
+      );
+
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        const XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+      refreshGate.complete();
+
+      final result = await run;
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(harness.homeController.loadCalls, 1);
+      final tunnelState = sl<TunnelStateRegistry>().state;
+      expect(tunnelState.stage, TunnelStage.readyForHome);
+      expect(tunnelState.hasCatalogReady, isTrue);
+      expect(tunnelState.hasHomePreloaded, isTrue);
     },
   );
 
@@ -1301,6 +1411,52 @@ void main() {
   );
 
   test(
+    'routes to source recovery when blocking refresh exceeds its timeout',
+    () async {
+      final harness = await _LaunchHarness.create(
+        catalogBlockingRefreshTimeout: const Duration(milliseconds: 10),
+        catalogBlockingRefreshRetryInitialDelay: Duration.zero,
+      );
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.beforeResult = (_) =>
+          Completer<void>().future;
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_blocking_timeout';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final stopwatch = Stopwatch()..start();
+      final result = await harness.run();
+      stopwatch.stop();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(harness.refreshXtreamCatalog.calls, 3);
+      expect(harness.homeController.loadCalls, 0);
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 1)));
+      final logMessages = harness.logger.events
+          .map((event) => event.message)
+          .join('\n');
+      expect(logMessages, contains('catalog_sync_timeout'));
+      expect(logMessages, contains('event=catalog_preparation_failed'));
+      expect(logMessages, contains('destination=welcomeSources'));
+      expect(harness.container.read(homeDegradationNoticeProvider), isNull);
+    },
+  );
+
+  test(
     'routes to source recovery when no snapshot exists and provider refresh fails',
     () async {
       final harness = await _LaunchHarness.create();
@@ -1338,6 +1494,141 @@ void main() {
       expect(harness.container.read(homeDegradationNoticeProvider), isNull);
     },
   );
+
+  test(
+    'routes to credentials recovery when Xtream refresh reports invalid credentials',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.result = const Err(
+        iptv_failures.AuthFailure('Invalid Xtream credentials'),
+      );
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_invalid_credentials';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(result.failure, isNull);
+      expect(harness.homeController.loadCalls, 0);
+      final model = harness.container.read(bootScreenModelProvider);
+      expect(
+        model.reasonCode,
+        StartupRecoveryReasonCodes.catalogCredentialsInvalid,
+      );
+      expect(model.primaryAction, BootActionIntent.reconnectSource);
+      expect(model.secondaryAction, isNull);
+      expect(
+        harness.logger.events.map((event) => event.message).join('\n'),
+        contains('catalog_credentials_invalid'),
+      );
+      expect(harness.container.read(homeDegradationNoticeProvider), isNull);
+    },
+  );
+
+  test(
+    'offers change source after credentials recovery when another source exists',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+      harness.refreshXtreamCatalog.result = const Err(
+        iptv_failures.AuthFailure('Invalid Xtream credentials'),
+      );
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const selectedAccountId = 'local_xtream_account_invalid_credentials';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: selectedAccountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: 'local_xtream_account_alternative',
+          alias: 'Alternative Source',
+          endpoint: XtreamEndpoint.parse('http://alternative.example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.selectedSourcePreferences.setSelectedSourceId(
+        selectedAccountId,
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      final model = harness.container.read(bootScreenModelProvider);
+      expect(
+        model.reasonCode,
+        StartupRecoveryReasonCodes.catalogCredentialsInvalid,
+      );
+      expect(model.primaryAction, BootActionIntent.reconnectSource);
+      expect(model.secondaryAction, BootActionIntent.chooseSource);
+      expect(model.secondaryActionLabel, 'Changer de source');
+    },
+  );
+
+  test('routes to source recovery when Stalker refresh fails', () async {
+    final harness = await _LaunchHarness.create();
+    addTearDown(harness.dispose);
+    harness.refreshStalkerCatalog.result = const Err(UnknownFailure());
+
+    await harness.localProfiles.createProfile(
+      name: 'Offline Profile',
+      color: 0xFF2160AB,
+    );
+    const accountId = 'local_stalker_account_provider_error';
+    await harness.iptvLocal.saveStalkerAccount(
+      StalkerAccount(
+        id: accountId,
+        alias: 'Stalker Source',
+        endpoint: StalkerEndpoint.parse('http://stalker.example.com/c/'),
+        macAddress: '00:11:22:33:44:55',
+        status: StalkerAccountStatus.pending,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+
+    final result = await harness.run();
+
+    expect(result.isSuccess, isTrue);
+    expect(result.destination, BootstrapDestination.welcomeSources);
+    expect(result.failure, isNull);
+    expect(harness.refreshStalkerCatalog.calls, 3);
+    expect(harness.homeController.loadCalls, 0);
+    final logMessages = harness.logger.events
+        .map((event) => event.message)
+        .join('\n');
+    expect(logMessages, contains('catalog_provider_error'));
+    expect(logMessages, contains('action=refresh_stalker result=failure'));
+    expect(harness.container.read(homeDegradationNoticeProvider), isNull);
+  });
 
   test('routes to source recovery when refresh leaves catalog empty', () async {
     final harness = await _LaunchHarness.create();
@@ -1730,6 +2021,19 @@ void main() {
   );
 }
 
+Future<void> _waitUntil(
+  bool Function() condition, {
+  Duration timeout = const Duration(seconds: 1),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (!condition()) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('Condition was not met within $timeout.');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+}
+
 class _LaunchHarness {
   _LaunchHarness._({
     required this.db,
@@ -1774,6 +2078,8 @@ class _LaunchHarness {
     Object? inProgressFailure,
     bool stallInProgress = false,
     Duration? libraryPreloadTimeout,
+    Duration? catalogBlockingRefreshTimeout,
+    Duration? catalogBlockingRefreshRetryInitialDelay,
     SecureStorageRepository? secureStorageRepository,
     CredentialsVault? credentialsVault,
     IptvCredentialsEdgeService? credentialsEdgeService,
@@ -1782,6 +2088,14 @@ class _LaunchHarness {
     await sl.reset();
     if (libraryPreloadTimeout != null) {
       AppLaunchOrchestrator.libraryPreloadTimeout = libraryPreloadTimeout;
+    }
+    if (catalogBlockingRefreshTimeout != null) {
+      AppLaunchOrchestrator.catalogBlockingRefreshTimeout =
+          catalogBlockingRefreshTimeout;
+    }
+    if (catalogBlockingRefreshRetryInitialDelay != null) {
+      AppLaunchOrchestrator.catalogBlockingRefreshRetryInitialDelay =
+          catalogBlockingRefreshRetryInitialDelay;
     }
 
     final db = await openDatabase(
@@ -1923,6 +2237,11 @@ class _LaunchHarness {
     await selectedSourcePreferences.dispose();
     authRepository.dispose();
     AppLaunchOrchestrator.libraryPreloadTimeout = const Duration(seconds: 15);
+    AppLaunchOrchestrator.catalogBlockingRefreshTimeout = const Duration(
+      seconds: 20,
+    );
+    AppLaunchOrchestrator.catalogBlockingRefreshRetryInitialDelay =
+        const Duration(milliseconds: 300);
   }
 }
 
@@ -2323,10 +2642,15 @@ class _FakeRefreshStalkerCatalog extends RefreshStalkerCatalog {
   _FakeRefreshStalkerCatalog() : super(_FakeStalkerRepository());
 
   int calls = 0;
+  Result<StalkerCatalogSnapshot, Failure>? result;
 
   @override
   Future<Result<StalkerCatalogSnapshot, Failure>> call(String accountId) async {
     calls += 1;
+    final configuredResult = result;
+    if (configuredResult != null) {
+      return configuredResult;
+    }
     return Ok(
       StalkerCatalogSnapshot(
         accountId: accountId,

@@ -167,3 +167,18 @@ final class SourceRecoveryRequired extends HomeReadiness {
 
   final List<RecoveryAction> actions;
 }
+
+/// Local catalog is not openable yet, but the next safe step is a bounded
+/// blocking preparation rather than user-facing recovery.
+final class CatalogPreparationRequired extends HomeReadiness {
+  const CatalogPreparationRequired({
+    required super.reasonCode,
+    required this.catalogMode,
+  }) : assert(
+         catalogMode == CatalogMode.missing ||
+             catalogMode == CatalogMode.empty ||
+             catalogMode == CatalogMode.unavailable,
+       );
+
+  final CatalogMode catalogMode;
+}

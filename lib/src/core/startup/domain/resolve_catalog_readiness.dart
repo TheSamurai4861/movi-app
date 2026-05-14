@@ -101,14 +101,11 @@ final class ResolveCatalogReadiness {
     };
   }
 
-  SourceRecoveryRequired _unrefreshedSnapshot(CatalogSnapshot snapshot) {
+  HomeReadiness _unrefreshedSnapshot(CatalogSnapshot snapshot) {
     return switch (snapshot.mode) {
-      CatalogMode.missing => SourceRecoveryRequired(
+      CatalogMode.missing => CatalogPreparationRequired(
         reasonCode: StartupRecoveryReasonCodes.catalogSnapshotMissing,
-        actions: <RecoveryAction>[
-          RecoveryAction.resyncSource,
-          RecoveryAction.chooseSource,
-        ],
+        catalogMode: CatalogMode.missing,
       ),
       CatalogMode.empty => SourceRecoveryRequired(
         reasonCode: StartupRecoveryReasonCodes.catalogEmpty,

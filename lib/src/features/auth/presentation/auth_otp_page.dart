@@ -5,18 +5,20 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
-import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
-import 'package:movi/src/shared/widgets/app_labeled_text_field.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
-import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/features/auth/presentation/auth_otp_controller.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
+import 'package:movi/src/shared/widgets/app_labeled_text_field.dart';
 
 class AuthOtpPage extends ConsumerStatefulWidget {
   const AuthOtpPage({
@@ -504,7 +506,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     ).toString();
   }
 
-  void _handleSuccessfulAuthentication() {
+  Future<void> _handleSuccessfulAuthentication() async {
     if (_handledSuccessfulAuth || !mounted) return;
     _handledSuccessfulAuth = true;
 
@@ -514,6 +516,13 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
       return;
     }
 
-    context.go(AppRoutePaths.launch);
+    await executeBootAction(
+      context,
+      ref,
+      const BootActionRequest(
+        intent: BootActionIntent.retry,
+        reasonCode: 'auth_completed',
+      ),
+    );
   }
 }

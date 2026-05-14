@@ -116,6 +116,8 @@ class AppConfig {
             other.featureFlags.enableEntryJourneyStateModelV2 &&
         featureFlags.enableEntryJourneyRoutingV2 ==
             other.featureFlags.enableEntryJourneyRoutingV2 &&
+        featureFlags.enableBootScreenRenderer ==
+            other.featureFlags.enableBootScreenRenderer &&
         featureFlags.enableDownloads == other.featureFlags.enableDownloads &&
         featureFlags.enableNewSearch == other.featureFlags.enableNewSearch &&
         featureFlags.enableImageDiskCache ==
@@ -172,6 +174,7 @@ class AppConfig {
     featureFlags.enableEntryJourneyTelemetryV2,
     featureFlags.enableEntryJourneyStateModelV2,
     featureFlags.enableEntryJourneyRoutingV2,
+    featureFlags.enableBootScreenRenderer,
     featureFlags.enableDownloads,
     featureFlags.enableNewSearch,
     featureFlags.enableImageDiskCache,

@@ -6,6 +6,7 @@ class FeatureFlags {
     this.enableEntryJourneyTelemetryV2 = false,
     this.enableEntryJourneyStateModelV2 = false,
     this.enableEntryJourneyRoutingV2 = false,
+    this.enableBootScreenRenderer = false,
     this.enableDownloads = false,
     this.enableNewSearch = false,
     this.allowAuthStubFallback = false,
@@ -24,6 +25,7 @@ class FeatureFlags {
   final bool enableEntryJourneyTelemetryV2;
   final bool enableEntryJourneyStateModelV2;
   final bool enableEntryJourneyRoutingV2;
+  final bool enableBootScreenRenderer;
   final bool enableDownloads;
   final bool enableNewSearch;
 
@@ -49,6 +51,7 @@ class FeatureFlags {
     bool? enableEntryJourneyTelemetryV2,
     bool? enableEntryJourneyStateModelV2,
     bool? enableEntryJourneyRoutingV2,
+    bool? enableBootScreenRenderer,
     bool? enableDownloads,
     bool? enableNewSearch,
     bool? allowAuthStubFallback,
@@ -67,6 +70,8 @@ class FeatureFlags {
           enableEntryJourneyStateModelV2 ?? this.enableEntryJourneyStateModelV2,
       enableEntryJourneyRoutingV2:
           enableEntryJourneyRoutingV2 ?? this.enableEntryJourneyRoutingV2,
+      enableBootScreenRenderer:
+          enableBootScreenRenderer ?? this.enableBootScreenRenderer,
       enableDownloads: enableDownloads ?? this.enableDownloads,
       enableNewSearch: enableNewSearch ?? this.enableNewSearch,
       allowAuthStubFallback:
@@ -102,6 +107,7 @@ class FeatureFlags {
         enableEntryJourneyStateModelV2 ==
             other.enableEntryJourneyStateModelV2 &&
         enableEntryJourneyRoutingV2 == other.enableEntryJourneyRoutingV2 &&
+        enableBootScreenRenderer == other.enableBootScreenRenderer &&
         enableDownloads == other.enableDownloads &&
         enableNewSearch == other.enableNewSearch &&
         allowAuthStubFallback == other.allowAuthStubFallback &&
@@ -119,6 +125,7 @@ class FeatureFlags {
     enableEntryJourneyTelemetryV2,
     enableEntryJourneyStateModelV2,
     enableEntryJourneyRoutingV2,
+    enableBootScreenRenderer,
     enableDownloads,
     enableNewSearch,
     allowAuthStubFallback,
@@ -137,6 +144,7 @@ class FeatureFlags {
         'enableEntryJourneyTelemetryV2: $enableEntryJourneyTelemetryV2, '
         'enableEntryJourneyStateModelV2: $enableEntryJourneyStateModelV2, '
         'enableEntryJourneyRoutingV2: $enableEntryJourneyRoutingV2, '
+        'enableBootScreenRenderer: $enableBootScreenRenderer, '
         'enableDownloads: $enableDownloads, '
         'enableNewSearch: $enableNewSearch, '
         'allowAuthStubFallback: $allowAuthStubFallback, '

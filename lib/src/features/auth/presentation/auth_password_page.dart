@@ -13,6 +13,8 @@ import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
@@ -391,7 +393,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
     ).toString();
   }
 
-  void _handleSuccessfulAuthentication() {
+  Future<void> _handleSuccessfulAuthentication() async {
     if (_handledSuccessfulAuth || !mounted) return;
     _handledSuccessfulAuth = true;
 
@@ -401,6 +403,13 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
       return;
     }
 
-    context.go(AppRoutePaths.launch);
+    await executeBootAction(
+      context,
+      ref,
+      const BootActionRequest(
+        intent: BootActionIntent.retry,
+        reasonCode: 'auth_completed',
+      ),
+    );
   }
 }

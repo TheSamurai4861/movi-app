@@ -107,6 +107,11 @@ final class StartupRecoveryMapper {
         const [RecoveryAction.retry, RecoveryAction.chooseSource],
         message: 'IPTV provider failed at step $step.',
       ),
+      'iptvcredentialsinvalid' => _plan(
+        StartupRecoveryReasonCodes.catalogCredentialsInvalid,
+        const [RecoveryAction.reconnectSource],
+        message: 'IPTV credentials are invalid at step $step.',
+      ),
       'iptvemptydata' => _plan(
         StartupRecoveryReasonCodes.catalogEmpty,
         const [RecoveryAction.resyncSource, RecoveryAction.chooseSource],

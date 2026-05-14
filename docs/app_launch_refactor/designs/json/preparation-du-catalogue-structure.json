@@ -1,0 +1,145 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:46:10.768Z",
+    "componentName": "Preparation du catalogue",
+    "totalElements": 6,
+    "nestingDepth": 3,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-600": "600",
+          "weight-400": "400"
+        }
+      }
+    },
+    "spacing": {
+      "gap-5": "5px",
+      "gap-8": "8px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "preparation-du-catalogue",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 852
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "column",
+        "gap": 0,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "frame-2",
+        "type": "FRAME",
+        "size": {
+          "w": 150,
+          "h": 150
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 5,
+            "align": {
+              "main": "center",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "logo",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 150,
+              "h": 90
+            }
+          }
+        ]
+      },
+      {
+        "name": "frame-46",
+        "type": "FRAME",
+        "size": {
+          "w": 266,
+          "h": 46
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 8,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "pr-paration-du-catalogue",
+            "type": "TEXT",
+            "size": {
+              "w": 195,
+              "h": 19
+            },
+            "content": "Préparation du catalogue",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Inter",
+                "size": 16,
+                "weight": "600",
+                "align": "left"
+              }
+            }
+          },
+          {
+            "name": "nous-synchronisons-votre-source---",
+            "type": "TEXT",
+            "size": {
+              "w": 266,
+              "h": 19
+            },
+            "content": "Nous synchronisons votre source...",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Inter",
+                "size": 16,
+                "weight": "400",
+                "align": "left"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 0,
+    "frames": 3,
+    "texts": 2,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

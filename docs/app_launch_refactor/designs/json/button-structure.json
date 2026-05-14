@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:53:12.794Z",
+    "componentName": "Button",
+    "totalElements": 2,
+    "nestingDepth": 2,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(33, 96, 171)": "rgb(33, 96, 171)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-700": "700"
+        }
+      }
+    },
+    "spacing": {
+      "padding-top-2": "2px",
+      "padding-right-16": "16px",
+      "padding-bottom-2": "2px",
+      "padding-left-16": "16px",
+      "gap-10": "10px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "button",
+    "type": "COMPONENT",
+    "size": {
+      "w": 250,
+      "h": 50
+    },
+    "component": {
+      "type": "main",
+      "name": null
+    },
+    "styles": {
+      "bg": "rgb(33, 96, 171)",
+      "radius": 25,
+      "layout": {
+        "direction": "row",
+        "gap": 10,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        },
+        "padding": [
+          2,
+          16,
+          2,
+          16
+        ]
+      }
+    },
+    "children": [
+      {
+        "name": "texte",
+        "type": "TEXT",
+        "size": {
+          "w": 44,
+          "h": 19
+        },
+        "content": "Texte",
+        "styles": {
+          "bg": "rgb(255, 255, 255)",
+          "text": {
+            "family": "Inter",
+            "size": 16,
+            "weight": "700",
+            "align": "left"
+          }
+        }
+      }
+    ]
+  },
+  "summary": {
+    "components": 1,
+    "instances": 0,
+    "frames": 0,
+    "texts": 1,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}

@@ -1,0 +1,304 @@
+{
+  "metadata": {
+    "exportedAt": "2026-05-10T18:46:19.566Z",
+    "componentName": "Identifiants source invalides",
+    "totalElements": 16,
+    "nestingDepth": 5,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)"
+    },
+    "fonts": {
+      "inter": {
+        "family": "Inter",
+        "sizes": {
+          "size-28": "28px",
+          "size-16": "16px"
+        },
+        "weights": {
+          "weight-700": "700",
+          "weight-500": "500",
+          "weight-600": "600"
+        }
+      }
+    },
+    "spacing": {
+      "padding-right-20": "20px",
+      "padding-left-20": "20px",
+      "gap-32": "32px",
+      "gap-16": "16px",
+      "gap-5": "5px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "identifiants-source-invalides",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 852
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "column",
+        "gap": 0,
+        "align": {
+          "main": "center",
+          "cross": "center"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "content",
+        "type": "FRAME",
+        "size": {
+          "w": 393,
+          "h": 655
+        },
+        "styles": {
+          "layout": {
+            "direction": "column",
+            "gap": 32,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            },
+            "padding": [
+              0,
+              20,
+              0,
+              20
+            ]
+          }
+        },
+        "children": [
+          {
+            "name": "header",
+            "type": "FRAME",
+            "size": {
+              "w": 353,
+              "h": 273
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "logo",
+                "type": "FRAME",
+                "size": {
+                  "w": 150,
+                  "h": 150
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "column",
+                    "gap": 5,
+                    "align": {
+                      "main": "center",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "logo",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 150,
+                      "h": 90
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "echec-de-connexion",
+                "type": "TEXT",
+                "size": {
+                  "w": 275,
+                  "h": 34
+                },
+                "content": "Echec de connexion",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 28,
+                    "weight": "700",
+                    "align": "left"
+                  }
+                }
+              },
+              {
+                "name": "connexion---la-source-impossible--les-informations-de-connexion-doivent--tre-v-rifi-es-",
+                "type": "TEXT",
+                "size": {
+                  "w": 353,
+                  "h": 57
+                },
+                "content": "Connexion à la source impossible. Les informations de connexion doivent être vérifiées.",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Inter",
+                    "size": 16,
+                    "weight": "500",
+                    "align": "left"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "actions",
+            "type": "FRAME",
+            "size": {
+              "w": 353,
+              "h": 350
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 32,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "button",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              },
+              {
+                "name": "frame-44",
+                "type": "FRAME",
+                "size": {
+                  "w": 353,
+                  "h": 151
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "column",
+                    "gap": 16,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "input-title",
+                    "type": "TEXT",
+                    "size": {
+                      "w": 243,
+                      "h": 19
+                    },
+                    "content": "Ou choisissez une autre source",
+                    "styles": {
+                      "bg": "rgb(255, 255, 255)",
+                      "text": {
+                        "family": "Inter",
+                        "size": 16,
+                        "weight": "600",
+                        "align": "left"
+                      }
+                    }
+                  },
+                  {
+                    "name": "button",
+                    "type": "INSTANCE",
+                    "size": {
+                      "w": 0,
+                      "h": 0
+                    }
+                  },
+                  {
+                    "name": "button",
+                    "type": "INSTANCE",
+                    "size": {
+                      "w": 0,
+                      "h": 0
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "frame-45",
+                "type": "FRAME",
+                "size": {
+                  "w": 353,
+                  "h": 85
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "column",
+                    "gap": 16,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "input-title",
+                    "type": "TEXT",
+                    "size": {
+                      "w": 256,
+                      "h": 19
+                    },
+                    "content": "Vous voulez ajouter une source ?",
+                    "styles": {
+                      "bg": "rgb(255, 255, 255)",
+                      "text": {
+                        "family": "Inter",
+                        "size": 16,
+                        "weight": "600",
+                        "align": "left"
+                      }
+                    }
+                  },
+                  {
+                    "name": "button",
+                    "type": "INSTANCE",
+                    "size": {
+                      "w": 0,
+                      "h": 0
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 4,
+    "frames": 7,
+    "texts": 4,
+    "hasAutoLayout": true,
+    "hasEffects": false
+  }
+}
