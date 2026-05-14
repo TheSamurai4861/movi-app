@@ -28,15 +28,18 @@ final class _TelemetryFake implements AuthTelemetryPort {
 final class _AuthRepoFake implements AuthRepository {
   _AuthRepoFake({
     this.session,
+    this.restoredSession,
     this.refreshDelay,
     this.refreshThrows,
     this.returnNullOnRefresh = false,
   });
 
   AuthSession? session;
+  AuthSession? restoredSession;
   Duration? refreshDelay;
   Object? refreshThrows;
   bool returnNullOnRefresh;
+  int refreshCalls = 0;
   int signOutCalls = 0;
 
   @override
@@ -48,11 +51,17 @@ final class _AuthRepoFake implements AuthRepository {
 
   @override
   Future<AuthSession?> refreshSession() async {
+    refreshCalls += 1;
     final d = refreshDelay;
     if (d != null) await Future<void>.delayed(d);
     final t = refreshThrows;
     if (t != null) throw t;
     if (returnNullOnRefresh) return null;
+    final restored = restoredSession;
+    if (restored != null) {
+      session = restored;
+      return restored;
+    }
     return session;
   }
 
@@ -104,7 +113,7 @@ final class _CleanupFake implements LocalCleanupPort {
 
 void main() {
   test(
-    'bootstrapSession returns unauthenticated when no current session',
+    'bootstrapSession returns unauthenticated when missing current session cannot be restored',
     () async {
       final repo = _AuthRepoFake(session: null);
       final telemetry = _TelemetryFake();
@@ -114,7 +123,70 @@ void main() {
       expect(result.snapshot.status, AuthStatus.unauthenticated);
       expect(result.outcome, AuthBootstrapOutcome.reauthRequired);
       expect(result.cause, AuthFailureCode.invalidSession);
+      expect(repo.refreshCalls, 1);
       expect(telemetry.events.join('\n'), contains('action=bootstrap_session'));
+      expect(
+        telemetry.events.join('\n'),
+        contains('action=restore_missing_current_session result=failure'),
+      );
+    },
+  );
+
+  test(
+    'bootstrapSession restores a session when current session is initially null',
+    () async {
+      final repo = _AuthRepoFake(
+        session: null,
+        restoredSession: const AuthSession(userId: 'restored-user'),
+      );
+      final telemetry = _TelemetryFake();
+      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+
+      final result = await orch.bootstrapSession();
+
+      expect(result.snapshot.status, AuthStatus.authenticated);
+      expect(result.snapshot.userId, 'restored-user');
+      expect(result.outcome, AuthBootstrapOutcome.authenticated);
+      expect(repo.refreshCalls, 1);
+      final events = telemetry.events.join('\n');
+      expect(
+        events,
+        contains(
+          'action=restore_missing_current_session_refresh result=success',
+        ),
+      );
+      expect(
+        events,
+        contains('action=restore_missing_current_session result=success'),
+      );
+    },
+  );
+
+  test(
+    'bootstrapSession fails closed when missing current session restore times out',
+    () async {
+      final repo = _AuthRepoFake(
+        session: null,
+        restoredSession: const AuthSession(userId: 'late-user'),
+        refreshDelay: const Duration(milliseconds: 50),
+      );
+      final telemetry = _TelemetryFake();
+      final orch = AuthOrchestrator(
+        repository: repo,
+        telemetry: telemetry,
+        missingCurrentSessionRestoreTimeout: const Duration(milliseconds: 1),
+      );
+
+      final result = await orch.bootstrapSession();
+
+      expect(result.snapshot.status, AuthStatus.unauthenticated);
+      expect(result.outcome, AuthBootstrapOutcome.reauthRequired);
+      expect(result.cause, AuthFailureCode.timeout);
+      expect(repo.refreshCalls, 1);
+      expect(
+        telemetry.events.join('\n'),
+        contains('action=restore_missing_current_session result=failure'),
+      );
     },
   );
 

@@ -364,6 +364,38 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une erreur est survenue. Balayez vers le bas pour réessayer.';
 
   @override
+  String get homePartialBannerFeedFailed =>
+      'Certaines sections n\'ont pas pu être chargées.';
+
+  @override
+  String get homePartialBannerLibraryUnavailable =>
+      'La reprise de lecture n\'a pas pu être chargée.';
+
+  @override
+  String get homePartialBannerIptvEmpty =>
+      'Les catégories IPTV sont vides ou indisponibles.';
+
+  @override
+  String get homePartialBannerMultiple =>
+      'Plusieurs zones de l\'accueil n\'ont pas pu être chargées.';
+
+  @override
+  String get homePartialBannerGeneric =>
+      'Une partie de l\'accueil n\'a pas pu être chargée.';
+
+  @override
+  String get homePartialActionRetrySections => 'Recharger les sections';
+
+  @override
+  String get homePartialActionRetryLibrary => 'Recharger la reprise';
+
+  @override
+  String get homePartialActionResyncSource => 'Resynchroniser la source';
+
+  @override
+  String get homePartialActionRetryGeneric => 'Réessayer';
+
+  @override
   String get homeContinueWatching => 'En cours';
 
   @override
@@ -482,7 +514,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get statusNoActiveSource => 'Aucune source active';
 
   @override
-  String get overlayPreparingHome => 'Préparation de l\'accueil…';
+  String get overlayPreparingHome => 'Initialisation de l\'accueil…';
 
   @override
   String get overlayLoadingMoviesAndSeries => 'Chargement des films et séries…';
@@ -497,7 +529,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bootstrapEnriching => 'Préparation des métadonnées…';
 
   @override
-  String get errorPrepareHome => 'Impossible de préparer la page d\'accueil';
+  String get errorPrepareHome =>
+      'Le lancement s\'est interrompu avant l\'ouverture de l\'accueil';
 
   @override
   String get overlayOpeningHome => 'Ouverture de l\'accueil…';
@@ -507,6 +540,166 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get overlayPreparingMetadata => 'Préparation des métadonnées…';
+
+  @override
+  String get bootCatalogLocalCacheReady =>
+      'Catalogue local prêt — finalisation…';
+
+  @override
+  String get bootLoadingPreparingLaunch => 'Lancement de Movi...';
+
+  @override
+  String get bootLoadingCheckingSession => 'Vérification de la session…';
+
+  @override
+  String get bootLoadingCheckingProfile => 'Vérification du profil…';
+
+  @override
+  String get bootLoadingCheckingSource => 'Vérification de la source…';
+
+  @override
+  String get bootLoadingPreparingCatalog => 'Préparation du catalogue…';
+
+  @override
+  String get bootActionAuthTitle => 'Connexion requise';
+
+  @override
+  String get bootActionAuthMessage => 'Connectez-vous pour continuer.';
+
+  @override
+  String get bootActionProfileTitle => 'Profil requis';
+
+  @override
+  String get bootActionProfileMessage =>
+      'Créez ou choisissez un profil pour continuer.';
+
+  @override
+  String get bootActionSourceRequiredTitle => 'Source requise';
+
+  @override
+  String get bootActionSourceRequiredMessage =>
+      'Ajoutez ou reconnectez une source pour continuer.';
+
+  @override
+  String get bootActionSourceSelectionTitle => 'Sélection de source';
+
+  @override
+  String get bootActionSourceSelectionMessage =>
+      'Choisissez la source à utiliser.';
+
+  @override
+  String get bootRecoverySourceTimeoutTitle => 'La source ne répond pas';
+
+  @override
+  String get bootRecoverySourceTimeoutMessage =>
+      'Réessayez la synchronisation ou changez de source.';
+
+  @override
+  String get bootRecoverySourceProviderTitle =>
+      'Impossible de charger la source';
+
+  @override
+  String get bootRecoverySourceProviderMessage =>
+      'Réessayez le chargement ou changez de source.';
+
+  @override
+  String get bootRecoverySourceCredentialsTitle =>
+      'Connexion à la source impossible';
+
+  @override
+  String get bootRecoverySourceCredentialsMessage =>
+      'Reconnectez la source pour continuer.';
+
+  @override
+  String get bootRecoverySourceEmptyTitle => 'Aucun contenu trouvé';
+
+  @override
+  String get bootRecoverySourceEmptyMessage =>
+      'Resynchronisez la source ou choisissez-en une autre.';
+
+  @override
+  String get bootFailureTitle => 'Echec de lancement';
+
+  @override
+  String get bootFailureMessage =>
+      'Movi n\'a pas pu démarrer. Un problème technique empêche l\'ouverture de l\'application.';
+
+  @override
+  String get bootActionExportLogs => 'Exporter les logs';
+
+  @override
+  String get bootActionLogin => 'Se connecter';
+
+  @override
+  String get bootActionChooseProfile => 'Choisir un profil';
+
+  @override
+  String get bootActionAddSource => 'Ajouter une source';
+
+  @override
+  String get bootActionChooseSource => 'Changer de source';
+
+  @override
+  String get bootActionReconnectSource => 'Reconnecter la source';
+
+  @override
+  String get bootActionResyncSource => 'Resynchroniser';
+
+  @override
+  String get bootActionOpenHome => 'Ouvrir l\'accueil';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => 'Sources sauvegardées';
+
+  @override
+  String get welcomeSourceRefreshTooltip => 'Rafraîchir';
+
+  @override
+  String get welcomeSourceNoRemoteSourcesMessage =>
+      'Aucune source trouvée sur Supabase. Ajoutez ou activez une source ci-dessous.';
+
+  @override
+  String get welcomeSourceActivateSectionTitle => 'Activer une source';
+
+  @override
+  String get welcomeSourceNameLabel => 'Nom de la source';
+
+  @override
+  String get welcomeSourceNameHint => 'Mon IPTV';
+
+  @override
+  String get welcomeSourceServerUrlLabel => 'URL du serveur';
+
+  @override
+  String get welcomeSourceServerUrlHint => 'https://example.com:port';
+
+  @override
+  String get welcomeSourceUsernameLabel => 'Nom d\'utilisateur';
+
+  @override
+  String get welcomeSourcePasswordLabel => 'Mot de passe';
+
+  @override
+  String get welcomeSourceActivateAction => 'Activer';
+
+  @override
+  String welcomeSourceExpiresOn(String date) {
+    return 'Expire : $date';
+  }
+
+  @override
+  String get welcomeSourceNoExpiration => 'Aucune date d\'expiration';
+
+  @override
+  String get welcomeUserProfileLockedTitle => 'Profil verrouillé';
+
+  @override
+  String get welcomeUserProfileLockedReason =>
+      'Saisissez le PIN pour changer de profil.';
+
+  @override
+  String get welcomeUserProfilesLoadFailed =>
+      'Impossible de charger les profils.';
 
   @override
   String get errorHomeLoadTimeout => 'Timeout de chargement de l\'accueil';

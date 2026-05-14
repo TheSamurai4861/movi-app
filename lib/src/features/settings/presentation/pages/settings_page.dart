@@ -38,6 +38,8 @@ import 'package:movi/src/core/responsive/application/services/screen_type_resolv
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
@@ -1562,8 +1564,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               await ref.read(authControllerProvider.notifier).signOut();
 
               if (!mounted) return;
-              // ✅ utilise un path existant (pas AppRouteNames.about)
-              navigatorContext.go(AppRoutePaths.authOtp);
+              // Rejoue le tunnel de lancement pour recalculer la destination
+              // canonique post-logout (auth/welcome/home) depuis un état propre.
+              await executeBootAction(
+                navigatorContext,
+                ref,
+                const BootActionRequest(
+                  intent: BootActionIntent.retry,
+                  reasonCode: 'auth_signed_out',
+                ),
+              );
             } catch (e) {
               if (!mounted) return;
               ScaffoldMessenger.of(navigatorContext).showSnackBar(

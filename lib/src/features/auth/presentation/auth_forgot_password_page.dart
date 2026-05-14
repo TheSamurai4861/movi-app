@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
+import 'package:movi/src/core/supabase/supabase_error_mapper.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/auth/presentation/auth_forgot_password_controller.dart';
@@ -22,6 +24,13 @@ class _AuthForgotPasswordPageState
     extends ConsumerState<AuthForgotPasswordPage> {
   final _emailController = TextEditingController();
 
+  _ForgotPasswordStep _step = _ForgotPasswordStep.email;
+  bool _isBusy = false;
+
+  String? _emailErrorText;
+  String? _globalErrorText;
+  String? _noticeText;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -30,129 +39,49 @@ class _AuthForgotPasswordPageState
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final state = ref.watch(authForgotPasswordControllerProvider);
-
-    if (_emailController.text != state.email) {
-      _emailController.value = TextEditingValue(
-        text: state.email,
-        selection: TextSelection.collapsed(offset: state.email.length),
-      );
-    }
-
-    final emailErrorText = switch (state.emailError) {
-      AuthForgotPasswordEmailError.invalid => l10n.errorFillFields,
-      null => null,
-    };
-    final globalErrorText =
-        state.globalError ??
-        switch (state.globalErrorKey) {
-          AuthForgotPasswordGlobalError.supabaseUnavailable =>
-            l10n.errorConnectionGeneric,
-          null => null,
-        };
-    final noticeText = switch (state.noticeKey) {
-      AuthForgotPasswordNotice.resetEmailSent => l10n.authPasswordResetSent,
-      null => null,
-    };
-
-    final isBusy = state.status == AuthForgotPasswordStatus.sendingReset;
-
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(
+              maxWidth: BootFormTokens.textFieldMaxWidth,
+            ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(
                 vertical: AppSpacing.xl,
                 horizontal: AppSpacing.md,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   WelcomeHeader(
-                    title: l10n.authForgotPasswordTitle,
-                    subtitle: l10n.authForgotPasswordSubtitle,
+                    title: 'Mot de passe oublie',
+                    subtitle: _subtitleForStep(),
                     adaptLogoToNarrowScreen: true,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  AppLabeledTextField(
-                    label: l10n.authPasswordEmailLabel,
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.email],
-                    hintText: l10n.authPasswordEmailHint,
-                    errorText: emailErrorText,
-                    decoration: _buildAuthInputDecoration(context),
-                    onChanged: (value) {
-                      ref
-                          .read(authForgotPasswordControllerProvider.notifier)
-                          .setEmail(value);
-                    },
-                    onFieldSubmitted: (_) => _onSendLink(),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Text(
-                      l10n.authForgotPasswordInfoNeutral,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                  if (_step == _ForgotPasswordStep.email) _buildEmailStep(context),
+                  if (_step == _ForgotPasswordStep.linkSent)
+                    _buildLinkSentStep(context),
+                  const SizedBox(height: BootFormTokens.formElementGap),
+                  Text(
+                    'Vous vous souvenez du mot de passe ?',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (globalErrorText != null) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
+                  const SizedBox(height: AppSpacing.sm),
+                  BootFormTokens.constrainPrimaryAction(
+                    MoviPrimaryButton(
+                      label: 'Se connecter',
+                      loading: false,
+                      onPressed: _isBusy ? null : _onBackToSignIn,
+                      height: BootFormTokens.primaryActionHeight,
+                      buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+                        Theme.of(context),
                       ),
-                      child: Text(
-                        globalErrorText,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (noticeText != null) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                      ),
-                      child: Text(
-                        noticeText,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: MoviPrimaryButton(
-                      label: l10n.authForgotPasswordPrimarySubmit,
-                      loading: isBusy,
-                      onPressed: isBusy ? null : _onSendLink,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Center(
-                    child: TextButton(
-                      onPressed: isBusy ? null : _onBackToSignIn,
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 40),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: Text(l10n.authForgotPasswordBackToSignIn),
                     ),
                   ),
                 ],
@@ -164,8 +93,160 @@ class _AuthForgotPasswordPageState
     );
   }
 
-  void _onSendLink() {
-    ref.read(authForgotPasswordControllerProvider.notifier).sendPasswordReset();
+  Widget _buildEmailStep(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        BootFormTokens.constrainTextField(
+          AppLabeledTextField(
+            label: l10n.authPasswordEmailLabel,
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.email],
+            hintText: l10n.authPasswordEmailHint,
+            errorText: _emailErrorText,
+            decoration: _buildAuthInputDecoration(context),
+            onChanged: (_) {
+              if (_emailErrorText != null ||
+                  _globalErrorText != null ||
+                  _noticeText != null) {
+                setState(() {
+                  _emailErrorText = null;
+                  _globalErrorText = null;
+                  _noticeText = null;
+                });
+              }
+            },
+            onFieldSubmitted: (_) => _onSendRequest(),
+          ),
+          alignLeft: true,
+        ),
+        if (_globalErrorText != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Text(
+              _globalErrorText!,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+        if (_noticeText != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Text(
+              _noticeText!,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+        const SizedBox(height: BootFormTokens.formElementGap),
+        BootFormTokens.constrainPrimaryAction(
+          MoviPrimaryButton(
+            label: 'Envoyer la demande',
+            loading: _isBusy,
+            onPressed: _isBusy ? null : _onSendRequest,
+            height: BootFormTokens.primaryActionHeight,
+            buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+              Theme.of(context),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLinkSentStep(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        BootFormTokens.constrainTextField(
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(BootFormTokens.borderRadius),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: Text(
+              'Si un compte existe pour cette adresse, un lien de reinitialisation a ete envoye. '
+              'Ouvrez ce lien pour definir un nouveau mot de passe.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          alignLeft: true,
+        ),
+        const SizedBox(height: BootFormTokens.formElementGap),
+        BootFormTokens.constrainPrimaryAction(
+          MoviPrimaryButton(
+            label: 'Renvoyer la demande',
+            loading: _isBusy,
+            onPressed: _isBusy ? null : _onSendRequest,
+            height: BootFormTokens.primaryActionHeight,
+            buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+              Theme.of(context),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _subtitleForStep() {
+    return switch (_step) {
+      _ForgotPasswordStep.email =>
+        'Renseignez votre adresse mail pour reinitialiser votre mot de passe',
+      _ForgotPasswordStep.linkSent =>
+        'Consultez votre email puis suivez le lien de reinitialisation.',
+    };
+  }
+
+  Future<void> _onSendRequest() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      setState(() {
+        _emailErrorText = 'Adresse email invalide.';
+      });
+      return;
+    }
+
+    final resetSender = ref.read(authForgotPasswordResetSenderProvider);
+    if (resetSender == null) {
+      setState(() {
+        _globalErrorText = 'Service indisponible pour le moment.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _emailErrorText = null;
+      _globalErrorText = null;
+      _noticeText = null;
+    });
+
+    try {
+      await resetSender(email);
+    } catch (error, stackTrace) {
+      // Keep anti-enumeration behavior: return same user-facing flow.
+      mapSupabaseError(error, stackTrace: stackTrace);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBusy = false;
+          _step = _ForgotPasswordStep.linkSent;
+          _noticeText =
+              'Si un compte existe pour cette adresse, un email de reinitialisation a ete envoye.';
+        });
+      }
+    }
   }
 
   void _onBackToSignIn() {
@@ -180,19 +261,10 @@ class _AuthForgotPasswordPageState
   InputDecoration _buildAuthInputDecoration(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-
-    InputBorder border(Color color, {double width = 1}) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(999),
-      borderSide: BorderSide(color: color, width: width),
-    );
-
-    return InputDecoration(
-      filled: true,
-      fillColor: scheme.surfaceContainerHigh,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      border: border(scheme.outlineVariant),
-      enabledBorder: border(scheme.outlineVariant),
-      focusedBorder: border(scheme.primary, width: 2),
+    return BootFormTokens.bootTextFieldDecoration(theme).copyWith(
+      suffixIconColor: scheme.onSurfaceVariant,
     );
   }
 }
+
+enum _ForgotPasswordStep { email, linkSent }

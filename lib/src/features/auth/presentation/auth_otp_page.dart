@@ -13,7 +13,9 @@ import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/auth/presentation/auth_otp_controller.dart';
@@ -76,8 +78,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
   KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
+        event.logicalKey == LogicalKeyboardKey.escape) {
       return _handleBack(context)
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
@@ -153,7 +154,9 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
+                  constraints: const BoxConstraints(
+                    maxWidth: BootFormTokens.textFieldMaxWidth,
+                  ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.xl,
@@ -170,69 +173,79 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Step 1 — Email
-                            AppLabeledTextField(
-                              label: l10n.authOtpEmailLabel,
-                              controller: _emailController,
-                              focusNode: _emailFocusNode,
-                              enabled: !isBusy,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.email],
-                              hintText: l10n.authOtpEmailHint,
-                              helpText: l10n.authOtpEmailHelp,
-                              errorText: emailErrorText,
-                              enableFocusWrapper: true,
-                              verticalAlignment: 0.4,
-                              nextDownFocus: isCodeStepVisible
-                                  ? _codeFocusNode
-                                  : _primaryActionFocusNode,
-                              blockUp: true,
-                              onChanged: (value) {
-                                ref
-                                    .read(authOtpControllerProvider.notifier)
-                                    .setEmail(value);
-                              },
-                              onFieldSubmitted: (_) {
-                                if (!isCodeStepVisible) {
-                                  _onSendCode();
-                                } else {
-                                  _codeFocusNode.requestFocus();
-                                }
-                              },
-                            ),
-                            const SizedBox(height: AppSpacing.lg),
-
-                            // Step 2 — Code OTP
-                            if (isCodeStepVisible) ...[
+                            BootFormTokens.constrainTextField(
                               AppLabeledTextField(
-                                label: l10n.authOtpCodeLabel,
-                                controller: _codeController,
-                                focusNode: _codeFocusNode,
+                                label: l10n.authOtpEmailLabel,
+                                controller: _emailController,
+                                focusNode: _emailFocusNode,
                                 enabled: !isBusy,
-                                keyboardType: TextInputType.number,
-                                textInputAction: TextInputAction.done,
-                                maxLength: 8,
-                                counterText: '',
-                                autofillHints: const [
-                                  AutofillHints.oneTimeCode,
-                                ],
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                hintText: l10n.authOtpCodeHint,
-                                helpText: l10n.authOtpCodeHelp,
-                                errorText: state.codeError,
-                                showHelpTextWhenError: true,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.email],
+                                hintText: l10n.authOtpEmailHint,
+                                helpText: l10n.authOtpEmailHelp,
+                                errorText: emailErrorText,
+                                decoration: BootFormTokens.bootTextFieldDecoration(
+                                  Theme.of(context),
+                                ),
                                 enableFocusWrapper: true,
-                                verticalAlignment: 0.22,
-                                nextUpFocus: _emailFocusNode,
-                                nextDownFocus: _primaryActionFocusNode,
+                                verticalAlignment: 0.4,
+                                nextDownFocus: isCodeStepVisible
+                                    ? _codeFocusNode
+                                    : _primaryActionFocusNode,
+                                blockUp: true,
                                 onChanged: (value) {
                                   ref
                                       .read(authOtpControllerProvider.notifier)
-                                      .setCode(value);
+                                      .setEmail(value);
                                 },
-                                onFieldSubmitted: (_) => _onVerifyCode(),
+                                onFieldSubmitted: (_) {
+                                  if (!isCodeStepVisible) {
+                                    _onSendCode();
+                                  } else {
+                                    _codeFocusNode.requestFocus();
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: BootFormTokens.formElementGap),
+
+                            // Step 2 — Code OTP
+                            if (isCodeStepVisible) ...[
+                              BootFormTokens.constrainTextField(
+                                AppLabeledTextField(
+                                  label: l10n.authOtpCodeLabel,
+                                  controller: _codeController,
+                                  focusNode: _codeFocusNode,
+                                  enabled: !isBusy,
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.done,
+                                  maxLength: 8,
+                                  counterText: '',
+                                  autofillHints: const [
+                                    AutofillHints.oneTimeCode,
+                                  ],
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  hintText: l10n.authOtpCodeHint,
+                                  helpText: l10n.authOtpCodeHelp,
+                                  errorText: state.codeError,
+                                  showHelpTextWhenError: true,
+                                  decoration: BootFormTokens.bootTextFieldDecoration(
+                                    Theme.of(context),
+                                  ),
+                                  enableFocusWrapper: true,
+                                  verticalAlignment: 0.22,
+                                  nextUpFocus: _emailFocusNode,
+                                  nextDownFocus: _primaryActionFocusNode,
+                                  onChanged: (value) {
+                                    ref
+                                        .read(authOtpControllerProvider.notifier)
+                                        .setCode(value);
+                                  },
+                                  onFieldSubmitted: (_) => _onVerifyCode(),
+                                ),
                               ),
                               const SizedBox(height: AppSpacing.md),
                             ],
@@ -256,7 +269,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                             ],
 
                             // 32px d'espacement entre le champ email et le bouton
-                            const SizedBox(height: 32),
+                            const SizedBox(height: BootFormTokens.formElementGap),
 
                             // Primary action button
                             Padding(
@@ -284,14 +297,18 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                         blockLeft: true,
                                         blockRight: true,
                                       ),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: MoviPrimaryButton(
+                                  child: BootFormTokens.constrainPrimaryAction(
+                                    MoviPrimaryButton(
                                       focusNode: _primaryActionFocusNode,
                                       label: isCodeStepVisible
                                           ? l10n.authOtpPrimarySubmit
                                           : l10n.authOtpPrimarySend,
                                       loading: isBusy,
+                                      height: BootFormTokens.primaryActionHeight,
+                                      buttonStyle:
+                                          BootFormTokens.bootPrimaryButtonStyle(
+                                        Theme.of(context),
+                                      ),
                                       onPressed: isBusy
                                           ? null
                                           : () {
@@ -516,13 +533,18 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
       return;
     }
 
-    await executeBootAction(
-      context,
-      ref,
-      const BootActionRequest(
-        intent: BootActionIntent.retry,
-        reasonCode: 'auth_completed',
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        executeBootAction(
+          context,
+          ref,
+          const BootActionRequest(
+            intent: BootActionIntent.retry,
+            reasonCode: 'auth_completed',
+          ),
+        ),
+      );
+    });
   }
 }

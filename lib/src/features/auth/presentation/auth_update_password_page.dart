@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/supabase/supabase_error_mapper.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
@@ -135,7 +136,9 @@ class _AuthUpdatePasswordPageState
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: const BoxConstraints(
+              maxWidth: BootFormTokens.textFieldMaxWidth,
+            ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(
                 vertical: AppSpacing.xl,
@@ -151,90 +154,98 @@ class _AuthUpdatePasswordPageState
                     adaptLogoToNarrowScreen: true,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  AppLabeledTextField(
-                    label: 'Nouveau mot de passe',
-                    controller: _passwordController,
-                    enabled: !isBusy,
-                    hintText: 'Saisissez votre nouveau mot de passe',
-                    helpText:
-                        'Utilisez au minimum 8 caracteres pour un mot de passe robuste.',
-                    errorText: _passwordError,
-                    obscureText: !_isPasswordVisible,
-                    showHelpTextWhenError: true,
-                    decoration: InputDecoration(
-                      suffixIcon: IconButton(
-                        onPressed: isBusy
-                            ? null
-                            : () {
-                                setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
-                                });
-                              },
-                        tooltip: _isPasswordVisible
-                            ? 'Masquer le mot de passe'
-                            : 'Afficher le mot de passe',
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          size: 20,
+                  BootFormTokens.constrainTextField(
+                    AppLabeledTextField(
+                      label: 'Nouveau mot de passe',
+                      controller: _passwordController,
+                      enabled: !isBusy,
+                      hintText: 'Saisissez votre nouveau mot de passe',
+                      helpText:
+                          'Utilisez au minimum 8 caracteres pour un mot de passe robuste.',
+                      errorText: _passwordError,
+                      obscureText: !_isPasswordVisible,
+                      showHelpTextWhenError: true,
+                      decoration: BootFormTokens.bootTextFieldDecoration(theme)
+                          .copyWith(
+                        suffixIcon: IconButton(
+                          onPressed: isBusy
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                          tooltip: _isPasswordVisible
+                              ? 'Masquer le mot de passe'
+                              : 'Afficher le mot de passe',
+                          icon: Icon(
+                            _isPasswordVisible
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 20,
+                          ),
                         ),
+                        suffixIconColor: theme.colorScheme.onSurfaceVariant,
                       ),
+                      onChanged: (_) {
+                        if (_status == _UpdatePasswordStatus.error &&
+                            (_passwordError != null || _globalMessage != null)) {
+                          setState(() {
+                            _passwordError = null;
+                            if (_confirmPasswordError == null) {
+                              _globalMessage = null;
+                            }
+                          });
+                        }
+                      },
                     ),
-                    onChanged: (_) {
-                      if (_status == _UpdatePasswordStatus.error &&
-                          (_passwordError != null || _globalMessage != null)) {
-                        setState(() {
-                          _passwordError = null;
-                          if (_confirmPasswordError == null) {
-                            _globalMessage = null;
-                          }
-                        });
-                      }
-                    },
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  AppLabeledTextField(
-                    label: 'Confirmer le mot de passe',
-                    controller: _confirmPasswordController,
-                    enabled: !isBusy,
-                    hintText: 'Resaisissez le nouveau mot de passe',
-                    errorText: _confirmPasswordError,
-                    obscureText: !_isConfirmPasswordVisible,
-                    decoration: InputDecoration(
-                      suffixIcon: IconButton(
-                        onPressed: isBusy
-                            ? null
-                            : () {
-                                setState(() {
-                                  _isConfirmPasswordVisible =
-                                      !_isConfirmPasswordVisible;
-                                });
-                              },
-                        tooltip: _isConfirmPasswordVisible
-                            ? 'Masquer le mot de passe'
-                            : 'Afficher le mot de passe',
-                        icon: Icon(
-                          _isConfirmPasswordVisible
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          size: 20,
+                  const SizedBox(height: BootFormTokens.formElementGap),
+                  BootFormTokens.constrainTextField(
+                    AppLabeledTextField(
+                      label: 'Confirmer le mot de passe',
+                      controller: _confirmPasswordController,
+                      enabled: !isBusy,
+                      hintText: 'Resaisissez le nouveau mot de passe',
+                      errorText: _confirmPasswordError,
+                      obscureText: !_isConfirmPasswordVisible,
+                      decoration: BootFormTokens.bootTextFieldDecoration(theme)
+                          .copyWith(
+                        suffixIcon: IconButton(
+                          onPressed: isBusy
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _isConfirmPasswordVisible =
+                                        !_isConfirmPasswordVisible;
+                                  });
+                                },
+                          tooltip: _isConfirmPasswordVisible
+                              ? 'Masquer le mot de passe'
+                              : 'Afficher le mot de passe',
+                          icon: Icon(
+                            _isConfirmPasswordVisible
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 20,
+                          ),
                         ),
+                        suffixIconColor: theme.colorScheme.onSurfaceVariant,
                       ),
+                      onChanged: (_) {
+                        if (_status == _UpdatePasswordStatus.error &&
+                            (_confirmPasswordError != null ||
+                                _globalMessage != null)) {
+                          setState(() {
+                            _confirmPasswordError = null;
+                            if (_passwordError == null) {
+                              _globalMessage = null;
+                            }
+                          });
+                        }
+                      },
+                      onFieldSubmitted: (_) => _onSubmit(),
                     ),
-                    onChanged: (_) {
-                      if (_status == _UpdatePasswordStatus.error &&
-                          (_confirmPasswordError != null ||
-                              _globalMessage != null)) {
-                        setState(() {
-                          _confirmPasswordError = null;
-                          if (_passwordError == null) {
-                            _globalMessage = null;
-                          }
-                        });
-                      }
-                    },
-                    onFieldSubmitted: (_) => _onSubmit(),
                   ),
                   if (_globalMessage != null) ...[
                     const SizedBox(height: AppSpacing.md),
@@ -254,17 +265,25 @@ class _AuthUpdatePasswordPageState
                       ),
                     ),
                   ],
-                  const SizedBox(height: 32),
-                  MoviPrimaryButton(
-                    label: 'Mettre a jour',
-                    loading: isBusy,
-                    onPressed: isBusy ? null : _onSubmit,
+                  const SizedBox(height: BootFormTokens.formElementGap),
+                  BootFormTokens.constrainPrimaryAction(
+                    MoviPrimaryButton(
+                      label: 'Mettre a jour',
+                      loading: isBusy,
+                      onPressed: isBusy ? null : _onSubmit,
+                      height: BootFormTokens.primaryActionHeight,
+                      buttonStyle: BootFormTokens.bootPrimaryButtonStyle(theme),
+                    ),
                   ),
                   if (_status == _UpdatePasswordStatus.success) ...[
                     const SizedBox(height: AppSpacing.md),
-                    MoviPrimaryButton(
-                      label: 'Aller a la connexion',
-                      onPressed: () => context.go(AppRoutePaths.authOtp),
+                    BootFormTokens.constrainPrimaryAction(
+                      MoviPrimaryButton(
+                        label: 'Aller a la connexion',
+                        onPressed: () => context.go(AppRoutePaths.authOtp),
+                        height: BootFormTokens.primaryActionHeight,
+                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(theme),
+                      ),
                     ),
                   ],
                 ],

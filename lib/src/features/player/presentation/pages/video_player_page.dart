@@ -1706,8 +1706,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         } else if (type == ContentType.series && id != null) {
           context.go(AppRouteNames.tv, extra: ContentRouteArgs.series(id));
         } else {
-          // Dernier recours: retour Home.
-          context.go(AppRouteNames.home);
+          // Dernier recours hors tunnel boot: surface applicative neutre.
+          context.go(AppRouteNames.search);
         }
       }
     }
@@ -1819,175 +1819,177 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           await _onBack(context);
         },
         child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Focus(
-          autofocus: true,
-          focusNode: _keyboardFocusNode,
-          onKeyEvent: (_, event) {
-            if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
-              return KeyEventResult.ignored;
-            }
-            final key = event.logicalKey;
+          backgroundColor: Colors.black,
+          body: Focus(
+            autofocus: true,
+            focusNode: _keyboardFocusNode,
+            onKeyEvent: (_, event) {
+              if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+                return KeyEventResult.ignored;
+              }
+              final key = event.logicalKey;
 
-            final isBackKey =
-                key == LogicalKeyboardKey.escape ||
-                key == LogicalKeyboardKey.goBack ||
-                key == LogicalKeyboardKey.backspace ||
-                key == LogicalKeyboardKey.browserBack ||
-                key == LogicalKeyboardKey.cancel ||
-                key == LogicalKeyboardKey.gameButtonB ||
-                key == LogicalKeyboardKey.mediaStop;
+              final isBackKey =
+                  key == LogicalKeyboardKey.escape ||
+                  key == LogicalKeyboardKey.goBack ||
+                  key == LogicalKeyboardKey.backspace ||
+                  key == LogicalKeyboardKey.browserBack ||
+                  key == LogicalKeyboardKey.cancel ||
+                  key == LogicalKeyboardKey.gameButtonB ||
+                  key == LogicalKeyboardKey.mediaStop;
 
-            final isNavigationKey =
-                key == LogicalKeyboardKey.arrowUp ||
-                key == LogicalKeyboardKey.arrowDown ||
-                key == LogicalKeyboardKey.arrowLeft ||
-                key == LogicalKeyboardKey.arrowRight ||
-                key == LogicalKeyboardKey.select ||
-                key == LogicalKeyboardKey.enter ||
-                key == LogicalKeyboardKey.space;
+              final isNavigationKey =
+                  key == LogicalKeyboardKey.arrowUp ||
+                  key == LogicalKeyboardKey.arrowDown ||
+                  key == LogicalKeyboardKey.arrowLeft ||
+                  key == LogicalKeyboardKey.arrowRight ||
+                  key == LogicalKeyboardKey.select ||
+                  key == LogicalKeyboardKey.enter ||
+                  key == LogicalKeyboardKey.space;
 
-            final focusedNode = FocusManager.instance.primaryFocus;
-            final controlOverlayOwnsFocus =
-                _showControls &&
-                focusedNode != null &&
-                focusedNode != _keyboardFocusNode;
+              final focusedNode = FocusManager.instance.primaryFocus;
+              final controlOverlayOwnsFocus =
+                  _showControls &&
+                  focusedNode != null &&
+                  focusedNode != _keyboardFocusNode;
 
-            if (isBackKey) {
-              if (controlOverlayOwnsFocus || _showControls) {
-                setState(() => _showControls = false);
-                _keyboardFocusNode.requestFocus();
+              if (isBackKey) {
+                if (controlOverlayOwnsFocus || _showControls) {
+                  setState(() => _showControls = false);
+                  _keyboardFocusNode.requestFocus();
+                  return KeyEventResult.handled;
+                }
+                unawaited(_onBack(context));
                 return KeyEventResult.handled;
               }
-              unawaited(_onBack(context));
-              return KeyEventResult.handled;
-            }
 
-            if (isNavigationKey && !_showControls) {
-              setState(() => _showControls = true);
-              return KeyEventResult.handled;
-            }
+              if (isNavigationKey && !_showControls) {
+                setState(() => _showControls = true);
+                return KeyEventResult.handled;
+              }
 
-            if (controlOverlayOwnsFocus) {
+              if (controlOverlayOwnsFocus) {
+                return KeyEventResult.ignored;
+              }
+
+              if (key == LogicalKeyboardKey.select ||
+                  key == LogicalKeyboardKey.enter ||
+                  key == LogicalKeyboardKey.space) {
+                _togglePlayPause();
+                return KeyEventResult.handled;
+              }
+
+              if (key == LogicalKeyboardKey.arrowLeft) {
+                _seekBackward(10);
+                return KeyEventResult.handled;
+              }
+              if (key == LogicalKeyboardKey.arrowRight) {
+                _seekForward(10);
+                return KeyEventResult.handled;
+              }
+
               return KeyEventResult.ignored;
-            }
+            },
+            child: GestureDetector(
+              onTapDown: _onScreenTap,
+              onDoubleTapDown: _onDoubleTap,
+              onVerticalDragStart: _onVerticalDragStart,
+              onVerticalDragUpdate: _onVerticalDragUpdate,
+              onVerticalDragEnd: _onVerticalDragEnd,
+              behavior: HitTestBehavior.opaque,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Vidéo (sans contrôles natifs)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final videoWidget = Video(
+                        controller: _videoController,
+                        controls: NoVideoControls,
+                        subtitleViewConfiguration:
+                            _buildSubtitleViewConfiguration(subtitleAppearance),
+                      );
 
-            if (key == LogicalKeyboardKey.select ||
-                key == LogicalKeyboardKey.enter ||
-                key == LogicalKeyboardKey.space) {
-              _togglePlayPause();
-              return KeyEventResult.handled;
-            }
+                      if (_currentVideoFitMode == VideoFitMode.contain) {
+                        // Important (Windows): garder un viewport contraint à la
+                        // taille complète du player. Un Center ici peut relâcher
+                        // les contraintes et produire une image visuellement "zoomée/rétrécie".
+                        return SizedBox.expand(child: videoWidget);
+                      }
 
-            if (key == LogicalKeyboardKey.arrowLeft) {
-              _seekBackward(10);
-              return KeyEventResult.handled;
-            }
-            if (key == LogicalKeyboardKey.arrowRight) {
-              _seekForward(10);
-              return KeyEventResult.handled;
-            }
+                      final screenWidth = constraints.maxWidth;
+                      final screenHeight = constraints.maxHeight;
+                      final viewportAspectRatio = screenHeight > 0
+                          ? screenWidth / screenHeight
+                          : 16 / 9;
+                      final videoAspectRatio =
+                          _resolveCurrentVideoAspectRatio();
+                      final scale = computeCoverScale(
+                        viewportAspectRatio: viewportAspectRatio,
+                        videoAspectRatio: videoAspectRatio,
+                      );
 
-            return KeyEventResult.ignored;
-          },
-          child: GestureDetector(
-            onTapDown: _onScreenTap,
-            onDoubleTapDown: _onDoubleTap,
-            onVerticalDragStart: _onVerticalDragStart,
-            onVerticalDragUpdate: _onVerticalDragUpdate,
-            onVerticalDragEnd: _onVerticalDragEnd,
-            behavior: HitTestBehavior.opaque,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                // Vidéo (sans contrôles natifs)
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final videoWidget = Video(
-                      controller: _videoController,
-                      controls: NoVideoControls,
-                      subtitleViewConfiguration:
-                          _buildSubtitleViewConfiguration(subtitleAppearance),
-                    );
-
-                    if (_currentVideoFitMode == VideoFitMode.contain) {
-                      // Important (Windows): garder un viewport contraint à la
-                      // taille complète du player. Un Center ici peut relâcher
-                      // les contraintes et produire une image visuellement "zoomée/rétrécie".
-                      return SizedBox.expand(child: videoWidget);
-                    }
-
-                    final screenWidth = constraints.maxWidth;
-                    final screenHeight = constraints.maxHeight;
-                    final viewportAspectRatio = screenHeight > 0
-                        ? screenWidth / screenHeight
-                        : 16 / 9;
-                    final videoAspectRatio = _resolveCurrentVideoAspectRatio();
-                    final scale = computeCoverScale(
-                      viewportAspectRatio: viewportAspectRatio,
-                      videoAspectRatio: videoAspectRatio,
-                    );
-
-                    // On garde un rendu externe pour préserver le pipeline
-                    // sous-titres, avec un cover basé sur le ratio réel du flux.
-                    return ClipRect(
-                      child: Transform.scale(
-                        scale: scale,
-                        child: SizedBox.expand(child: videoWidget),
-                      ),
-                    );
-                  },
-                ),
-
-                // Indicateur de chargement
-                if (_isBuffering)
-                  const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                      // On garde un rendu externe pour préserver le pipeline
+                      // sous-titres, avec un cover basé sur le ratio réel du flux.
+                      return ClipRect(
+                        child: Transform.scale(
+                          scale: scale,
+                          child: SizedBox.expand(child: videoWidget),
+                        ),
+                      );
+                    },
                   ),
 
-                // Contrôles avec animation d'opacité
-                if (_showControls)
-                  FadeTransition(
-                    opacity: _controlsOpacityAnimation,
-                    child: VideoPlayerControls(
-                      key: _controlsKey,
-                      title: videoSource?.title ?? '',
-                      subtitle: videoSource?.subtitle,
-                      isPlaying: _isPlaying,
-                      position: _position,
-                      duration: _duration,
-                      hasSubtitles: _hasSubtitles,
-                      subtitlesEnabled: _subtitlesEnabled,
-                      onBack: () => _onBack(context),
-                      onPlayPause: _togglePlayPause,
-                      onSeekForward10: () => _seekForward(10),
-                      onSeekForward30: () => _seekForward(30),
-                      onSeekBackward10: () => _seekBackward(10),
-                      onSeekBackward30: () => _seekBackward(30),
-                      onSeek: _onSeek,
-                      onToggleSubtitles: _showSubtitleMenu,
-                      onAudio: _showAudioMenu,
-                      onChromecast: null,
-                      onVideoFitMode: _showVideoFitModeMenu,
-                      formatDuration: _formatDuration,
-                      hasAudioTracks: _audioTracks.isNotEmpty,
-                      onRestart: _restart,
-                      onNextEpisode:
-                          videoSource?.contentType == ContentType.series
-                          ? _goToNextEpisode
-                          : null,
-                      isSeries: videoSource?.contentType == ContentType.series,
-                      onPictureInPicture: null,
-                      isPipSupported: false,
-                      isPipActive: false,
+                  // Indicateur de chargement
+                  if (_isBuffering)
+                    const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
                     ),
-                  ),
-              ],
+
+                  // Contrôles avec animation d'opacité
+                  if (_showControls)
+                    FadeTransition(
+                      opacity: _controlsOpacityAnimation,
+                      child: VideoPlayerControls(
+                        key: _controlsKey,
+                        title: videoSource?.title ?? '',
+                        subtitle: videoSource?.subtitle,
+                        isPlaying: _isPlaying,
+                        position: _position,
+                        duration: _duration,
+                        hasSubtitles: _hasSubtitles,
+                        subtitlesEnabled: _subtitlesEnabled,
+                        onBack: () => _onBack(context),
+                        onPlayPause: _togglePlayPause,
+                        onSeekForward10: () => _seekForward(10),
+                        onSeekForward30: () => _seekForward(30),
+                        onSeekBackward10: () => _seekBackward(10),
+                        onSeekBackward30: () => _seekBackward(30),
+                        onSeek: _onSeek,
+                        onToggleSubtitles: _showSubtitleMenu,
+                        onAudio: _showAudioMenu,
+                        onChromecast: null,
+                        onVideoFitMode: _showVideoFitModeMenu,
+                        formatDuration: _formatDuration,
+                        hasAudioTracks: _audioTracks.isNotEmpty,
+                        onRestart: _restart,
+                        onNextEpisode:
+                            videoSource?.contentType == ContentType.series
+                            ? _goToNextEpisode
+                            : null,
+                        isSeries:
+                            videoSource?.contentType == ContentType.series,
+                        onPictureInPicture: null,
+                        isPipSupported: false,
+                        isPipActive: false,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-      )
     );
   }
 

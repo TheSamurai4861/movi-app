@@ -151,6 +151,13 @@ LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
         enableConsole: true,
         enableFile: true,
         samplingByLevel: {LogLevel.debug: 1.0},
+        samplingByCategory: {'home_hero_debug': 0.2, 'image_pipeline': 0.25},
+        rateLimitPerCategory: {
+          'home_hero_debug': 120,
+          'image_pipeline': 180,
+          'startup_contract': 600,
+        },
+        minLevelByCategory: {'startup_contract': LogLevel.info},
         defaultRateLimitPerMinute: 0,
         exposeMetrics: true,
       );
@@ -160,6 +167,17 @@ LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
         enableConsole: false,
         enableFile: true,
         samplingByLevel: {LogLevel.debug: 0.5},
+        samplingByCategory: {'home_hero_debug': 0.05, 'image_pipeline': 0.1},
+        rateLimitPerCategory: {
+          'home_hero_debug': 20,
+          'image_pipeline': 60,
+          'startup_contract': 300,
+        },
+        minLevelByCategory: {
+          'home_hero_debug': LogLevel.warn,
+          'image_pipeline': LogLevel.warn,
+          'startup_contract': LogLevel.info,
+        },
         defaultRateLimitPerMinute: 200,
         exposeMetrics: true,
       );
@@ -169,6 +187,17 @@ LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
         enableConsole: false,
         enableFile: true,
         samplingByLevel: {LogLevel.debug: 0.1},
+        samplingByCategory: {'home_hero_debug': 0.0, 'image_pipeline': 0.05},
+        rateLimitPerCategory: {
+          'home_hero_debug': 5,
+          'image_pipeline': 30,
+          'startup_contract': 200,
+        },
+        minLevelByCategory: {
+          'home_hero_debug': LogLevel.warn,
+          'image_pipeline': LogLevel.warn,
+          'startup_contract': LogLevel.info,
+        },
         defaultRateLimitPerMinute: 100,
         exposeMetrics: true,
       );

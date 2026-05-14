@@ -337,37 +337,168 @@ sont adaptes.
 Supprimer les doublons et empecher l'ancien boot de continuer a afficher des
 messages contradictoires.
 
-### Actions
+### Nature
 
-- Remplacer progressivement `SplashBootstrapPage` par le renderer boot unifie.
+Implementation + refactor progressif, avec suppression ciblee du legacy quand
+la couverture fonctionnelle du boot unifie est confirmee.
+
+### Plan d'execution
+
+#### Etape 5.1 - Cartographie legacy
+
+- Lister les surfaces boot coexistantes :
+  - `SplashBootstrapPage` ;
+  - `LaunchErrorPanel` ;
+  - `LaunchRecoveryBanner` ;
+  - `OverlaySplash` ;
+  - `WelcomeSourceLoadingPage`.
+- Documenter pour chaque surface :
+  - etats affiches ;
+  - dependances (providers, routes, bridges) ;
+  - remplaçant cible (renderer/surface unifiee ou conservation).
+
+Sortie 5.1:
+
+```text
+docs/app_launch_refactor/phase_5_nettoyage_legacy_et_migration/CARTOGRAPHIE_LEGACY.md
+```
+
+#### Etape 5.2 - Migration renderer boot
+
+- Brancher le renderer boot unifie comme chemin principal du tunnel.
+- Conserver une strategie de repli temporaire si une route legacy est encore
+  necessaire.
+- Verifier qu'un meme etat boot ne peut pas afficher 2 surfaces concurrentes.
+
+Sortie 5.2:
+
+```text
+lib/src/core/startup/presentation/widgets/boot_screen_renderer.dart
+test/core/startup/boot_screen_renderer_test.dart
+```
+
+Statut 5.2:
+
+- Renderer boot presentation-only ajoute (`BootScreenRenderer`).
+- `SplashBootstrapPage` branche sur ce renderer (chemin principal).
+- Strategie de repli conservee via routes legacy encore actives
+  (`/welcome/sources/loading` et banners welcome/shell), traitees en 5.3/5.4.
+
+#### Etape 5.3 - Nettoyage pages source legacy
+
 - Reduire `WelcomeSourceLoadingPage` :
   - retirer la logique catalogue critique du widget ;
-  - conserver seulement la surface UI si elle reste necessaire ;
-  - ou supprimer la page si le nouveau boot la couvre completement.
-- Harmoniser `WelcomeSourcePage` avec les composants boot/design.
-- Harmoniser `WelcomeSourceSelectPage` avec les composants boot/design.
-- Remplacer les textes generiques :
+  - conserver uniquement la presentation si elle reste utile ;
+  - sinon supprimer la page.
+- Harmoniser `WelcomeSourcePage` et `WelcomeSourceSelectPage` avec les
+  composants boot design.
+- Eviter de supprimer les pages auth/profil/source encore utiles hors tunnel
+  boot.
+
+Sortie 5.3:
+
+```text
+lib/src/features/welcome/presentation/pages/welcome_source_loading_page.dart
+docs/app_launch_refactor/phase_5_nettoyage_legacy_et_migration/WELCOME_SOURCE_LOADING_MIGRATION.md
+```
+
+Statut 5.3:
+
+- `WelcomeSourceLoadingPage` reduite a une surface de transition (bridge) ;
+- logique catalogue critique retiree du widget ;
+- route legacy conservee temporairement pour compatibilite (a trier en 5.4).
+
+#### Etape 5.4 - Routes et navigation
+
+- Auditer les routes obsoletes :
+  - garder les routes correspondant a une vraie page d'action ;
+  - supprimer ou rediriger celles devenues purement legacy.
+- Verifier que les destinations boot restent stables en mode nominal.
+
+Sortie 5.4:
+
+```text
+docs/app_launch_refactor/phase_5_nettoyage_legacy_et_migration/ROUTES_AUDIT.md
+```
+
+Statut 5.4:
+
+- route `/welcome/sources/loading` redirigee vers `/launch` ;
+- planner `resyncSource` aligne sur `/launch` ;
+- guard/router tests mis a jour et valides.
+
+#### Etape 5.5 - Textes et messages contradictoires
+
+- Supprimer/remplacer les messages generiques restants dans le boot :
   - `Preparation de l'accueil...` ;
   - `Impossible de preparer la page d'accueil` ;
-  - `Erreur inconnue` dans les surfaces boot.
-- Verifier les routes obsoletes :
-  - garder celles qui representent une vraie page d'action ;
-  - supprimer ou rediriger celles qui ne sont plus des destinations boot.
-- Nettoyer les flags ou bridges devenus inutiles apres rollout.
-- Eviter de supprimer les pages auth/profil/source qui restent necessaires
-  hors boot.
+  - `Erreur inconnue`.
+- Verifier qu'aucun message legacy ne contredit l'etat rendu par le mapper.
+
+Sortie 5.5:
+
+```text
+docs/app_launch_refactor/phase_5_nettoyage_legacy_et_migration/BOOT_TEXTS_CLEANUP.md
+```
+
+Statut 5.5:
+
+- textes generiques supprimes/remplaces dans les surfaces boot/welcome cibles ;
+- messages d'erreur contextualises (`welcome_source_select`, `welcome_user`) ;
+- l10n boot fr/en ajuste (`overlayPreparingHome`, `errorPrepareHome`).
+
+#### Etape 5.6 - Bridges, flags et dette technique
+
+- Nettoyer les flags de migration et bridges temporaires devenus inutiles.
+- Supprimer les points d'entree legacy non references.
+- Laisser des TODO explicites pour ce qui est reporte en phases 6/7.
+
+Sortie 5.6:
+
+```text
+docs/app_launch_refactor/phase_5_nettoyage_legacy_et_migration/BRIDGES_AND_FLAGS_CLEANUP.md
+```
+
+Statut 5.6:
+
+- point d'entree legacy `WelcomeSourceLoadingPage` retire du runtime ;
+- route `/welcome/sources/loading` conservee en redirection explicite vers
+  `/launch` ;
+- TODO phases 6/7 documentes (localisation/logs + scenarios E2E).
+
+### Validation
+
+- Executer les tests startup/core et router impactes.
+- Ajouter des tests de non-regression navigation quand une route est supprimee
+  ou redirigee.
+- Verifier manuellement les parcours critiques :
+  - lancement nominal vers Home ;
+  - source requise ;
+  - source en echec ;
+  - reprise apres retry.
 
 ### Livrables
 
-- Liste des widgets legacy supprimes, remplaces ou conserves.
-- Suppression des messages generiques dans le boot.
-- Tests de non-regression router.
+- Liste des widgets/pages legacy :
+  - supprimes ;
+  - remplaces ;
+  - conserves (avec justification).
+- Tableau des routes :
+  - conservee ;
+  - redirigee ;
+  - supprimee.
+- Suppression des messages generiques contradictoires dans le boot.
+- Tests de non-regression router et startup mis a jour.
+- Note de migration indiquant ce qui est reporte en phase 6 et phase 7.
 
 ### Definition de fini
 
 - Il n'existe plus deux surfaces concurrentes pour le meme etat boot.
 - La logique catalogue n'est plus dupliquee entre orchestrateur et UI.
 - Le parcours utilisateur reste identique quand tout va bien.
+- Toute route legacy retiree est couverte par un test ou une redirection
+  explicite.
+- Les surfaces legacy conservees sont justifiees et planifiees pour la suite.
 
 ## Phase 6 - Localisation, logs et observabilite
 
@@ -376,16 +507,63 @@ messages contradictoires.
 Rendre le boot lisible pour l'utilisateur et diagnosticable pour le
 developpeur.
 
-### Localisation
+### Nature
 
-- Ajouter les cles `l10n` pour tous les textes boot.
-- Eviter les strings codees en dur dans les nouveaux widgets.
-- Corriger les textes issus des JSON dont l'encodage est altere.
-- Garder les messages courts et non techniques.
+Implementation + instrumentation + documentation. Cette phase normalise les
+textes utilisateur et la telemetrie sans changer la logique metier du tunnel.
 
-### Logs
+### Plan d'execution
 
-- Ajouter des evenements structurels :
+#### Etape 6.1 - Inventaire textes boot
+
+- Lister les textes visibles dans :
+  - mapper boot ;
+  - widgets boot ;
+  - pages welcome liees au tunnel ;
+  - messages d'erreur startup.
+- Identifier les strings encore codees en dur.
+- Classer les textes :
+  - utilisateur final ;
+  - diagnostic dev ;
+  - details debug uniquement.
+
+Sortie 6.1:
+
+```text
+docs/app_launch_refactor/phase_6_localisation_logs_et_observabilite/TEXTS_INVENTORY.md
+```
+
+Statut 6.1:
+
+- inventaire des textes boot/welcome produit ;
+- classification UI vs diagnostic documentee ;
+- backlog actionnable prepare pour 6.2.
+
+#### Etape 6.2 - Localisation (l10n)
+
+- Ajouter les cles `l10n` pour tous les textes boot manquants.
+- Remplacer les strings en dur dans les surfaces boot/welcome ciblees.
+- Corriger les textes issus des JSON avec encodage altere.
+- Garder des messages courts, actionnables et non techniques.
+- Verifier qu'aucun reason code interne n'est affiche a l'utilisateur.
+
+Sortie 6.2:
+
+```text
+docs/app_launch_refactor/phase_6_localisation_logs_et_observabilite/BOOT_L10N_MIGRATION.md
+```
+
+Statut 6.2:
+
+- cles l10n boot/welcome completees (FR/EN) ;
+- rendu boot localise centralise via `boot_screen_localizer.dart` ;
+- hardcodes critiques supprimes dans `launch_recovery_banner`,
+  `welcome_source_page` et `welcome_user_page` ;
+- validations analyse/tests ciblees passees.
+
+#### Etape 6.3 - Contrat d'evenements logs
+
+- Definir les evenements structurels :
   - `boot_state_changed` ;
   - `boot_action_triggered` ;
   - `catalog_preparation_started` ;
@@ -394,30 +572,127 @@ developpeur.
   - `boot_recovery_shown` ;
   - `home_partial_shown` ;
   - `entry_journey_completed`.
-- Chaque evenement doit inclure :
-  - run id ;
-  - phase ;
-  - reason code ;
-  - duree si disponible ;
-  - destination si disponible ;
-  - action si disponible.
-- Reduire les logs bruyants hors diagnostic cible :
+- Definir le schema minimal commun :
+  - `run_id` ;
+  - `phase` ;
+  - `reason_code` ;
+  - `duration_ms` (si dispo) ;
+  - `destination` (si dispo) ;
+  - `action` (si dispo).
+
+Sortie 6.3:
+
+```text
+docs/app_launch_refactor/phase_6_localisation_logs_et_observabilite/BOOT_EVENTS_CONTRACT.md
+```
+
+Statut 6.3:
+
+- contrat d'evenements boot formalise (table event -> source d'emission) ;
+- schema commun `run_id/phase/reason_code/duration_ms/destination/action`
+  applique via `boot_event_contract_logger.dart` ;
+- instrumentation de base branchee sur:
+  - transitions de phase (`boot_state_changed`) ;
+  - actions boot (`boot_action_triggered`) ;
+  - transitions catalogue (`catalog_preparation_*`) ;
+  - surfaces recovery/home partial ;
+  - fin de run (`entry_journey_completed`) ;
+- compatibilite legacy preservee (`startup` + `entry_journey` conserves).
+
+#### Etape 6.4 - Instrumentation runtime
+
+- Brancher l'emission des evenements aux transitions critiques du tunnel.
+- Eviter les doublons d'evenements sur une meme transition.
+- Conserver la compatibilite avec les logs existants tant que la migration n'est
+  pas terminee.
+
+Sortie 6.4:
+
+```text
+docs/app_launch_refactor/phase_6_localisation_logs_et_observabilite/BOOT_RUNTIME_INSTRUMENTATION.md
+```
+
+Statut 6.4:
+
+- helper runtime `_emitContractEvent` centralise dans l'orchestrateur ;
+- dedupe par run activee via `_contractEventKey` +
+  `_emittedContractEventKeys` ;
+- emissions critiques validees sur:
+  - transitions de phase ;
+  - transitions catalogue ;
+  - recoveries auth/source/technique ;
+  - affichage Home partiel ;
+  - completion de run ;
+- compatibilite legacy maintenue (`startup` + `entry_journey` preserves).
+
+#### Etape 6.5 - Reduction du bruit
+
+- Reduire/filtrer les logs hors diagnostic cible :
   - `home_hero_debug` ;
   - rafales `image_pipeline` ;
-  - logs recherche focus ;
-  - bruit Flutter Windows si isolable.
+  - logs de focus recherche ;
+  - bruit Flutter Windows isolable.
+- Garder les traces necessaires pour deboguer un run boot complet.
+
+Sortie 6.5:
+
+```text
+docs/app_launch_refactor/phase_6_localisation_logs_et_observabilite/BOOT_NOISE_REDUCTION.md
+```
+
+Statut 6.5:
+
+- filtrage categorie applique pour `home_hero_debug` et `image_pipeline`
+  (sampling + rate-limit + min level par environnement) ;
+- erreurs `image_pipeline` relevees en `warn` pour rester visibles ;
+- traces focus recherche desactivees par defaut, reactivables avec
+  `SEARCH_FOCUS_DEBUG=true` ;
+- logs startup critiques preserves (`startup`, `entry_journey`,
+  `startup_contract`).
+
+#### Etape 6.6 - Validation et garde-fous
+
+- Ajouter/mettre a jour tests ou snapshots de logs pour les transitions
+  critiques.
+- Verifier que les messages utilisateurs ne contiennent pas de details reseau
+  bruts ou d'identifiants internes.
+- Verifier qu'un run boot est lisible du debut a la fin avec le `run_id`.
+
+Sortie 6.6:
+
+```text
+docs/app_launch_refactor/phase_6_localisation_logs_et_observabilite/BOOT_VALIDATION_GUARDRAILS.md
+```
+
+Statut 6.6:
+
+- tests/snapshots de logs critiques ajoutes sur `startup_contract` ;
+- coherence `run_id` verifiee sur run complet ;
+- garde-fou anti-fuite ajoute sur UI boot critique (pas d'URL brute ni
+  d'identifiant interne) ;
+- verification non-regression reasonCode conservee.
+
+### Validation
+
+- Executer les tests startup/core impactes.
+- Executer les tests widget des ecrans boot critiques apres remplacement des
+  textes.
+- Ajouter une verification de non-regression sur les reason codes exposes aux
+  logs.
 
 ### Livrables
 
-- Cles de traduction boot.
-- Table des evenements logs.
-- Tests ou snapshots de logs pour les transitions critiques.
+- Cles de traduction boot (`l10n`) completees.
+- Table des evenements logs (nom, schema, source d'emission).
+- Tests/snapshots de logs pour transitions critiques.
+- Note de reduction du bruit (sources reduites et justifications).
 
 ### Definition de fini
 
 - Un run boot peut etre lu sans details reseau bruts.
 - Les reason codes sont stables.
 - Aucun code interne n'est affiche a l'utilisateur.
+- Les evenements critiques du tunnel sont traces avec un schema coherent.
 
 ## Phase 7 - Tests automatises et validation runtime
 
@@ -426,95 +701,148 @@ developpeur.
 Valider le boot complet sur les chemins critiques, pas seulement le chemin
 nominal.
 
-### Tests unitaires
+### Nature
 
-- `ResolveEntryDecision` :
-  - auth requise ;
-  - profil requis ;
-  - selection profil requise ;
-  - source requise ;
-  - selection source requise ;
-  - entree Home.
-- `ResolveCatalogReadiness` :
-  - fresh ;
-  - cached ;
-  - stale ;
-  - missing ;
-  - unavailable ;
-  - timeout ;
-  - provider error ;
-  - credentials invalides ;
-  - empty.
-- `StartupRecoveryMapper` :
-  - boot technical failure ;
-  - source timeout ;
-  - provider error ;
+Consolidation qualite (tests + runs cibles) pour valider les decisions boot et
+securiser les regressions avant cloture documentaire.
+
+### Plan d'execution
+
+#### Etape 7.1 - Couverture unitaire contrats de decision
+
+- Completer/valider les tests de decision :
+  - `ResolveEntryDecision` (auth/profil/source/Home) ;
+  - `ResolveCatalogReadiness` (fresh/cached/stale/missing/unavailable/timeout/provider/credentials/empty) ;
+  - `StartupRecoveryMapper` (boot failure + recoveries source + Home partiel) ;
+  - `BootScreenModel` (reason code -> ecran + action principale).
+
+Sortie 7.1:
+
+```text
+test/core/startup/resolve_entry_decision_test.dart
+test/core/startup/resolve_catalog_readiness_test.dart
+test/core/startup/startup_recovery_mapper_test.dart
+test/core/startup/boot_screen_mapper_test.dart
+docs/app_launch_refactor/phase_7_tests_automatises_et_validation_runtime/UNIT_TEST_CONTRACT_COVERAGE.md
+```
+
+Statut 7.1:
+
+- suites unitaires critiques executees et vertes ;
+- couverture des cas de decision/recovery/mappeur validee ;
+- garde-fou non-fuite `reasonCode` confirme via tests.
+
+#### Etape 7.2 - Couverture widget des surfaces critiques
+
+- Verifier les widgets boot:
+  - chargements simples (logo, texte, pas d'action) ;
+  - preparation catalogue (titre/message/sous-message) ;
+  - recovery (actions et focus) ;
+  - Home partial banner (message/action/comportement compact).
+
+Sortie 7.2:
+
+```text
+test/core/startup/boot_critical_screens_widget_test.dart
+test/core/startup/boot_simple_loading_screen_test.dart
+test/core/startup/boot_catalog_loading_screen_test.dart
+test/core/startup/boot_recovery_panel_test.dart
+test/features/home/presentation/widgets/home_error_banner_test.dart
+docs/app_launch_refactor/phase_7_tests_automatises_et_validation_runtime/WIDGET_SURFACES_COVERAGE.md
+```
+
+Statut 7.2:
+
+- suites widget critiques executees et vertes ;
+- focus/order/actions valides sur les surfaces recovery ;
+- robustesse viewport etroit validee sur chargements ;
+- garde-fous anti-fuite UI verifies (reasonCode/URL/id internes non affiches).
+
+#### Etape 7.3 - Couverture router/integration des parcours launch
+
+- Verifier les parcours critiques :
+  - `launch -> auth` ;
+  - `launch -> create profile` ;
+  - `launch -> choose profile` ;
+  - `launch -> add source` ;
+  - `launch -> choose source` ;
+  - `launch -> catalog preparing -> home` ;
+  - `launch -> source recovery` ;
+  - `launch -> home partial`.
+
+Sortie 7.3:
+
+```text
+test/core/router/new_user_auth_launch_flow_test.dart
+test/core/router/launch_redirect_guard_boot_alignment_test.dart
+test/core/router/launch_redirect_guard_tunnel_surface_test.dart
+test/core/router/launch_redirect_guard_reconnect_test.dart
+docs/app_launch_refactor/phase_7_tests_automatises_et_validation_runtime/ROUTER_INTEGRATION_COVERAGE.md
+```
+
+Statut 7.3:
+
+- suites router/integration executees et vertes ;
+- parcours launch critiques verifies (auth/profil/source/home/recovery) ;
+- alignement guard/tunnel confirme sur redirections de securite et readiness.
+
+#### Etape 7.4 - Validation runtime multi-scenarios
+
+- Executer et tracer des runs manuels cibles :
+  - run sans snapshot ;
+  - run avec snapshot ;
+  - run source timeout ;
+  - run credentials invalides ;
+  - run catalogue vide ;
+  - run Home partiel ;
+  - run Windows (qualification desktop vs TV + focus clavier).
+- Capturer les observations et preuves (logs + comportement UI).
+
+Sortie 7.4:
+
+```text
+docs/app_launch_refactor/phase_7_tests_automatises_et_validation_runtime/RUNTIME_SCENARIOS.md
+```
+
+Statut 7.4:
+
+- scenarios runtime critiques executes via suites startup/router/widget ;
+- preuves capturees pour:
+  - sans snapshot ;
+  - snapshot exploitable ;
+  - timeout source ;
   - credentials invalides ;
   - catalogue vide ;
-  - Home partiel.
-- `BootScreenModel` :
-  - chaque reason code attendu mappe un ecran ;
-  - chaque ecran actionnable a une action principale.
+  - Home partiel ;
+- qualification Windows TV vs desktop gardee en verification manuelle.
 
-### Tests widget
+#### Etape 7.5 - Synthese qualite et backlog de correction
 
-- Chargements simples :
-  - logo centre ;
-  - texte bas ecran ;
-  - pas d'action.
-- Preparation catalogue :
-  - titre ;
-  - message ;
-  - sous-message ;
-  - action secondaire si activee.
-- Recovery :
-  - titre utilisateur ;
-  - message court ;
-  - action principale focusable ;
-  - action secondaire si attendue.
-- Home partial banner :
-  - message ;
-  - action ;
-  - comportement mobile compact.
+- Consolider les resultats (unitaires, widget, router, runtime).
+- Dresser la liste des ecarts restants et la priorisation de correction.
+- Verifier que les transitions attendues sont visibles dans les logs.
 
-### Tests router/integration
+Sortie 7.5:
 
-- `launch -> auth`.
-- `launch -> create profile`.
-- `launch -> choose profile`.
-- `launch -> add source`.
-- `launch -> choose source`.
-- `launch -> catalog preparing -> home`.
-- `launch -> source recovery`.
-- `launch -> home partial`.
+```text
+docs/app_launch_refactor/phase_7_tests_automatises_et_validation_runtime/TEST_RESULTS_AND_GAPS.md
+```
 
-### Validation runtime
+Statut 7.5:
 
-- Run sans snapshot :
-  - `catalog_preparing` visible ;
-  - refresh bloquant mesure ;
-  - Home ouverte apres succes.
-- Run avec snapshot :
-  - Home rapide ;
-  - pas de refresh bloquant.
-- Run source timeout :
-  - ecran `La source ne repond pas` ;
-  - `Reessayer` fonctionne ;
-  - `Choisir une autre source` fonctionne si disponible.
-- Run credentials invalides :
-  - ecran `Connexion a la source impossible` ;
-  - action `Reconnecter la source`.
-- Run catalogue vide :
-  - ecran `Aucun contenu trouve` ;
-  - actions `Resynchroniser` et `Choisir une autre source`.
-- Run Home partiel :
-  - Home accessible ;
-  - banniere compacte ;
-  - action de recharge limitee a la section concernee.
-- Run Windows :
-  - confirmer si Windows est TV ou desktop ;
-  - documenter le choix ;
-  - tester focus clavier.
+- synthese 7.1 -> 7.4 consolidee ;
+- aucun blocage automatisation critique restant ;
+- backlog restant priorise:
+  - P1: qualification manuelle Windows desktop/TV + focus clavier ;
+  - P2: archivage des preuves runtime manuelles ;
+- transitions logs critiques confirmees dans les scenarios/tests.
+
+### Validation
+
+- Executer les suites startup/core impactees.
+- Executer les suites widget boot critiques.
+- Executer les tests router/integration launch.
+- Verifier qu'un run boot complet est lisible de bout en bout dans les logs.
 
 ### Definition de fini
 

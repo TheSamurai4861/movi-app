@@ -174,7 +174,7 @@ void main() {
       expect(find.text('OTP_PAGE'), findsNothing);
       expect(find.byType(TextFormField), findsOneWidget);
       expect(find.textContaining('Connexion indisponible'), findsOneWidget);
-      expect(find.text('Reessayer'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
     },
   );
 
@@ -336,7 +336,7 @@ void main() {
       await tester.tap(find.text('Parent'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Profil verrouillé'), findsOneWidget);
+      expect(find.text('Profile locked'), findsOneWidget);
       expect(fakeProfiles.selectedIds, isEmpty);
     },
   );
@@ -396,7 +396,7 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Profil verrouillé'), findsOneWidget);
+      expect(find.text('Profile locked'), findsOneWidget);
       expect(fakeProfiles.selectedIds, isEmpty);
     },
   );

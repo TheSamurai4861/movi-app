@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 class LaunchRecoveryBanner extends StatelessWidget {
   const LaunchRecoveryBanner({
@@ -15,6 +16,7 @@ class LaunchRecoveryBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: Colors.transparent,
@@ -34,7 +36,7 @@ class LaunchRecoveryBanner extends StatelessWidget {
             TextButton(
               focusNode: retryFocusNode,
               onPressed: onRetry,
-              child: const Text('Reessayer'),
+              child: Text(l10n.actionRetry),
             ),
           ],
         ),

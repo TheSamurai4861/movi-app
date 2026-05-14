@@ -10,6 +10,8 @@ import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
@@ -19,7 +21,6 @@ import 'package:movi/src/features/settings/presentation/providers/iptv_connect_p
 import 'package:movi/src/features/settings/presentation/providers/iptv_network_profile_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
-import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 
 class IptvSourceAddPage extends ConsumerStatefulWidget {
@@ -149,8 +150,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
       return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
+        event.logicalKey == LogicalKeyboardKey.escape) {
       return _handleBack(context)
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
@@ -217,9 +217,16 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
           ref.read(asp.appStateControllerProvider).setActiveIptvSources({
             accountId,
           });
-          ref.read(appLaunchOrchestratorProvider.notifier).reset();
           if (!mounted) return;
-          context.go(AppRouteNames.bootstrap);
+          await executeBootAction(
+            context,
+            ref,
+            const BootActionRequest(
+              intent: BootActionIntent.retry,
+              reasonCode: 'source_selected',
+              destinationOverride: AppRouteNames.welcomeSourceLoading,
+            ),
+          );
           return;
         }
       }
@@ -281,39 +288,40 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                    const SizedBox(height: 16),
-                    Focus(
-                      canRequestFocus: false,
-                      onKeyEvent: (_, event) => _handleDirectionalKey(
-                        event,
-                        down: _nameFocusNode,
-                        blockUp: true,
+                      const SizedBox(height: 16),
+                      Focus(
+                        canRequestFocus: false,
+                        onKeyEvent: (_, event) => _handleDirectionalKey(
+                          event,
+                          down: _nameFocusNode,
+                          blockUp: true,
+                        ),
+                        child: MoviSubpageBackTitleHeader(
+                          title: 'Ajouter',
+                          focusNode: _backFocusNode,
+                          onBack: () => _handleBack(context),
+                        ),
                       ),
-                      child: MoviSubpageBackTitleHeader(
-                        title: 'Ajouter',
-                        focusNode: _backFocusNode,
-                        onBack: () => _handleBack(context),
-                      ),
-                    ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return SingleChildScrollView(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: constraints.maxHeight,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Form(
-                                    key: _formKey,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        /*
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Form(
+                                      key: _formKey,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          /*
                                   // Selecteur de type de source (masque)
                                   Text(
                                     'Type de source',
@@ -355,145 +363,149 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                   ),
                                   const SizedBox(height: 20),
                                   */
-                                        IptvSourceAddFieldBlock(
-                                          label: 'Nom de la source',
-                                          controller: _nameCtrl,
-                                          focusNode: _nameFocusNode,
-                                          enabled: !state.isLoading,
-                                          hintText: 'Mon IPTV',
-                                          textInputAction: TextInputAction.next,
-                                          onKeyEvent: (event) =>
-                                              _handleDirectionalKey(
-                                                event,
-                                                up: _backFocusNode,
-                                                down: _serverFocusNode,
-                                              ),
-                                          onSubmitted: () =>
-                                              _serverFocusNode.requestFocus(),
-                                        ),
-                                        const SizedBox(height: 20),
-                                        IptvSourceAddFieldBlock(
-                                          label: 'URL du serveur',
-                                          controller: _serverCtrl,
-                                          focusNode: _serverFocusNode,
-                                          enabled: !state.isLoading,
-                                          keyboardType: TextInputType.url,
-                                          hintText:
-                                              _sourceType ==
-                                                  IptvSourceType.xtream
-                                              ? 'http://server.com:80/'
-                                              : 'http://server.com:80/portal.php',
-                                          textInputAction: TextInputAction.next,
-                                          onKeyEvent: (event) =>
-                                              _handleDirectionalKey(
-                                                event,
-                                                up: _nameFocusNode,
-                                                down: _userFocusNode,
-                                              ),
-                                          onSubmitted: () =>
-                                              _userFocusNode.requestFocus(),
-                                          validator: (v) =>
-                                              (v == null || v.trim().isEmpty)
-                                              ? l10n.validationRequired
-                                              : null,
-                                        ),
-                                        const SizedBox(height: 20),
-                                        IptvSourceAddFieldBlock(
-                                          label: l10n.labelUsername,
-                                          controller: _userCtrl,
-                                          focusNode: _userFocusNode,
-                                          enabled: !state.isLoading,
-                                          hintText: 'Nom d\'utilisateur',
-                                          autofillHints: const [
-                                            AutofillHints.username,
-                                          ],
-                                          textInputAction: TextInputAction.next,
-                                          onKeyEvent: (event) =>
-                                              _handleDirectionalKey(
-                                                event,
-                                                up: _serverFocusNode,
-                                                down: _passFocusNode,
-                                              ),
-                                          onSubmitted: () =>
-                                              _passFocusNode.requestFocus(),
-                                          validator: (v) =>
-                                              (v == null || v.trim().isEmpty)
-                                              ? l10n.validationRequired
-                                              : null,
-                                        ),
-                                        const SizedBox(height: 20),
-                                        IptvSourceAddFieldBlock(
-                                          label: l10n.iptvPasswordLabel,
-                                          controller: _passCtrl,
-                                          focusNode: _passFocusNode,
-                                          enabled: !state.isLoading,
-                                          hintText: 'Mot de passe',
-                                          obscureText: _obscurePassword,
-                                          onToggleObscure: () => setState(
-                                            () => _obscurePassword =
-                                                !_obscurePassword,
-                                          ),
-                                          autofillHints: const [
-                                            AutofillHints.password,
-                                          ],
-                                          textInputAction: TextInputAction.done,
-                                          onKeyEvent: (event) =>
-                                              _handleDirectionalKey(
-                                                event,
-                                                up: _userFocusNode,
-                                                down: _submitFocusNode,
-                                              ),
-                                          onSubmitted: () =>
-                                              _submitFocusNode.requestFocus(),
-                                          validator: (v) =>
-                                              (v == null || v.isEmpty)
-                                              ? l10n.validationRequired
-                                              : null,
-                                        ),
-
-                                        const SizedBox(height: 32),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: Focus(
-                                            canRequestFocus: false,
-                                            onKeyEvent: (_, event) =>
+                                          IptvSourceAddFieldBlock(
+                                            label: 'Nom de la source',
+                                            controller: _nameCtrl,
+                                            focusNode: _nameFocusNode,
+                                            enabled: !state.isLoading,
+                                            hintText: 'Mon IPTV',
+                                            textInputAction:
+                                                TextInputAction.next,
+                                            onKeyEvent: (event) =>
                                                 _handleDirectionalKey(
                                                   event,
-                                                  up: _passFocusNode,
-                                                  blockDown: true,
-                                                  blockLeft: true,
-                                                  blockRight: true,
+                                                  up: _backFocusNode,
+                                                  down: _serverFocusNode,
                                                 ),
-                                            child: MoviPrimaryButton(
-                                              label: 'Ajouter la source',
-                                              focusNode: _submitFocusNode,
-                                              onPressed: state.isLoading
-                                                  ? null
-                                                  : _submit,
-                                              loading: state.isLoading,
+                                            onSubmitted: () =>
+                                                _serverFocusNode.requestFocus(),
+                                          ),
+                                          const SizedBox(height: 20),
+                                          IptvSourceAddFieldBlock(
+                                            label: 'URL du serveur',
+                                            controller: _serverCtrl,
+                                            focusNode: _serverFocusNode,
+                                            enabled: !state.isLoading,
+                                            keyboardType: TextInputType.url,
+                                            hintText:
+                                                _sourceType ==
+                                                    IptvSourceType.xtream
+                                                ? 'http://server.com:80/'
+                                                : 'http://server.com:80/portal.php',
+                                            textInputAction:
+                                                TextInputAction.next,
+                                            onKeyEvent: (event) =>
+                                                _handleDirectionalKey(
+                                                  event,
+                                                  up: _nameFocusNode,
+                                                  down: _userFocusNode,
+                                                ),
+                                            onSubmitted: () =>
+                                                _userFocusNode.requestFocus(),
+                                            validator: (v) =>
+                                                (v == null || v.trim().isEmpty)
+                                                ? l10n.validationRequired
+                                                : null,
+                                          ),
+                                          const SizedBox(height: 20),
+                                          IptvSourceAddFieldBlock(
+                                            label: l10n.labelUsername,
+                                            controller: _userCtrl,
+                                            focusNode: _userFocusNode,
+                                            enabled: !state.isLoading,
+                                            hintText: 'Nom d\'utilisateur',
+                                            autofillHints: const [
+                                              AutofillHints.username,
+                                            ],
+                                            textInputAction:
+                                                TextInputAction.next,
+                                            onKeyEvent: (event) =>
+                                                _handleDirectionalKey(
+                                                  event,
+                                                  up: _serverFocusNode,
+                                                  down: _passFocusNode,
+                                                ),
+                                            onSubmitted: () =>
+                                                _passFocusNode.requestFocus(),
+                                            validator: (v) =>
+                                                (v == null || v.trim().isEmpty)
+                                                ? l10n.validationRequired
+                                                : null,
+                                          ),
+                                          const SizedBox(height: 20),
+                                          IptvSourceAddFieldBlock(
+                                            label: l10n.iptvPasswordLabel,
+                                            controller: _passCtrl,
+                                            focusNode: _passFocusNode,
+                                            enabled: !state.isLoading,
+                                            hintText: 'Mot de passe',
+                                            obscureText: _obscurePassword,
+                                            onToggleObscure: () => setState(
+                                              () => _obscurePassword =
+                                                  !_obscurePassword,
+                                            ),
+                                            autofillHints: const [
+                                              AutofillHints.password,
+                                            ],
+                                            textInputAction:
+                                                TextInputAction.done,
+                                            onKeyEvent: (event) =>
+                                                _handleDirectionalKey(
+                                                  event,
+                                                  up: _userFocusNode,
+                                                  down: _submitFocusNode,
+                                                ),
+                                            onSubmitted: () =>
+                                                _submitFocusNode.requestFocus(),
+                                            validator: (v) =>
+                                                (v == null || v.isEmpty)
+                                                ? l10n.validationRequired
+                                                : null,
+                                          ),
+
+                                          const SizedBox(height: 32),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: Focus(
+                                              canRequestFocus: false,
+                                              onKeyEvent: (_, event) =>
+                                                  _handleDirectionalKey(
+                                                    event,
+                                                    up: _passFocusNode,
+                                                    blockDown: true,
+                                                    blockLeft: true,
+                                                    blockRight: true,
+                                                  ),
+                                              child: MoviPrimaryButton(
+                                                label: 'Ajouter la source',
+                                                focusNode: _submitFocusNode,
+                                                onPressed: state.isLoading
+                                                    ? null
+                                                    : _submit,
+                                                loading: state.isLoading,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        if (_hasSubmitted &&
-                                            state.error != null) ...[
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            state.error!,
-                                            style: const TextStyle(
-                                              color: Colors.red,
+                                          if (_hasSubmitted &&
+                                              state.error != null) ...[
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              state.error!,
+                                              style: const TextStyle(
+                                                color: Colors.red,
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ],
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
                     ],
                   ),
                 ),

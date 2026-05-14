@@ -88,6 +88,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
       path == AppRoutePaths.authUpdatePassword ||
       path == AppRoutePaths.authUpdatePasswordCallback;
 
+  bool _isAuthEntryRoute(String path) =>
+      path == AppRoutePaths.authOtp || path == AppRoutePaths.authSignUp;
+
   /// Méthode appelée par [GoRouter.redirect].
   FutureOr<String?> handle(BuildContext _, GoRouterState state) {
     final current = state.matchedLocation;
@@ -99,18 +102,24 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     final onLaunch = current == AppRoutePaths.launch;
-    final onAuth = current == AppRoutePaths.authOtp;
+    final onSourceLoading = current == AppRoutePaths.welcomeSourceLoading;
+    final onAuth = _isAuthEntryRoute(current);
     final onAuthRecovery = _isAuthRecoveryRoute(current);
     final onBootstrap = current == AppRoutePaths.bootstrap;
-    final onWelcomeSourceLoading =
-        current == AppRoutePaths.welcomeSourceLoading;
     final authReturnsToPrevious =
         onAuth && state.uri.queryParameters['return_to'] == 'previous';
     final isStartupRoute = AppRouteCatalog.criticalRoutes.contains(current);
     final launchState = _launchRegistry.state;
+    final launchResolvedToAuth =
+        launchState.status == AppLaunchStatus.success &&
+        launchState.destination == BootstrapDestination.auth;
 
     if (!_authResolved) {
-      return (onLaunch || onAuthRecovery)
+      if (launchResolvedToAuth) {
+        return (onAuth || onAuthRecovery) ? null : AppRoutePaths.authOtp;
+      }
+
+      return (onLaunch || onSourceLoading || onAuthRecovery || onAuth)
           ? null
           : AppRoutePaths.launch;
     }
@@ -134,11 +143,11 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (launchState.status == AppLaunchStatus.running && isStartupRoute) {
-      return onLaunch ? null : AppRoutePaths.launch;
+      return (onLaunch || onSourceLoading) ? null : AppRoutePaths.launch;
     }
 
     if (launchState.status == AppLaunchStatus.idle && isStartupRoute) {
-      return onLaunch ? null : AppRoutePaths.launch;
+      return (onLaunch || onSourceLoading) ? null : AppRoutePaths.launch;
     }
 
     if (launchState.status == AppLaunchStatus.failure && isStartupRoute) {
@@ -146,22 +155,17 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (launchState.status == AppLaunchStatus.success) {
-      final allowsWelcomeSourceLoading =
-          onWelcomeSourceLoading &&
-          (launchState.destination == BootstrapDestination.welcomeSources ||
-              launchState.destination == BootstrapDestination.chooseSource);
-      if (allowsWelcomeSourceLoading) {
-        return null;
-      }
-
       final hasStaleAuthDestination =
           launchState.destination == BootstrapDestination.auth &&
           _isAuthenticated == true;
       if (hasStaleAuthDestination) {
-        return onLaunch ? null : AppRoutePaths.launch;
+        return (onLaunch || onSourceLoading) ? null : AppRoutePaths.launch;
       }
 
       final target = _mapDestination(launchState.destination);
+      final keepSignUpForAuthFlow =
+          launchState.destination == BootstrapDestination.auth &&
+          current == AppRoutePaths.authSignUp;
       if (launchState.destination == BootstrapDestination.home &&
           !launchState.criteria.isHomeReady) {
         _logHomeBootstrapRedirect(
@@ -175,6 +179,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
       if (target != null &&
           launchState.destination != BootstrapDestination.home &&
           current != target) {
+        if (keepSignUpForAuthFlow) {
+          return null;
+        }
         if (current == AppRoutePaths.home || target == AppRoutePaths.home) {
           _logHomeBootstrapRedirect(
             current: current,
@@ -199,7 +206,7 @@ class LaunchRedirectGuard extends ChangeNotifier {
       return AppRoutePaths.bootstrap;
     }
 
-    // Si l'utilisateur ouvre manuellement l'écran OTP, on le laisse faire.
+    // Si l'utilisateur ouvre manuellement l'écran auth, on le laisse faire.
     if (onAuth) {
       return _isAuthenticated == true ? AppRoutePaths.bootstrap : null;
     }
@@ -235,7 +242,7 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (surface == TunnelSurface.auth) {
-      return current == AppRoutePaths.authOtp ? null : AppRoutePaths.authOtp;
+      return _isAuthEntryRoute(current) ? null : AppRoutePaths.authOtp;
     }
 
     if (!isStartupRoute) {

@@ -737,6 +737,60 @@ abstract class AppLocalizations {
   /// **'An error occurred. Swipe down to retry.'**
   String get homeErrorSwipeToRetry;
 
+  /// No description provided for @homePartialBannerFeedFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some home sections could not be loaded.'**
+  String get homePartialBannerFeedFailed;
+
+  /// No description provided for @homePartialBannerLibraryUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue watching could not be loaded.'**
+  String get homePartialBannerLibraryUnavailable;
+
+  /// No description provided for @homePartialBannerIptvEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'IPTV categories are empty or unavailable.'**
+  String get homePartialBannerIptvEmpty;
+
+  /// No description provided for @homePartialBannerMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'Several areas of the home screen could not be loaded.'**
+  String get homePartialBannerMultiple;
+
+  /// No description provided for @homePartialBannerGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Part of the home screen could not be loaded.'**
+  String get homePartialBannerGeneric;
+
+  /// No description provided for @homePartialActionRetrySections.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload sections'**
+  String get homePartialActionRetrySections;
+
+  /// No description provided for @homePartialActionRetryLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload continue watching'**
+  String get homePartialActionRetryLibrary;
+
+  /// No description provided for @homePartialActionResyncSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Resync source'**
+  String get homePartialActionResyncSource;
+
+  /// No description provided for @homePartialActionRetryGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get homePartialActionRetryGeneric;
+
   /// No description provided for @homeContinueWatching.
   ///
   /// In en, this message translates to:
@@ -962,7 +1016,7 @@ abstract class AppLocalizations {
   /// No description provided for @overlayPreparingHome.
   ///
   /// In en, this message translates to:
-  /// **'Preparing home…'**
+  /// **'Initializing home…'**
   String get overlayPreparingHome;
 
   /// No description provided for @overlayLoadingMoviesAndSeries.
@@ -992,7 +1046,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorPrepareHome.
   ///
   /// In en, this message translates to:
-  /// **'Unable to prepare the home page'**
+  /// **'Launch stopped before opening Home'**
   String get errorPrepareHome;
 
   /// No description provided for @overlayOpeningHome.
@@ -1012,6 +1066,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preparing metadata…'**
   String get overlayPreparingMetadata;
+
+  /// No description provided for @bootCatalogLocalCacheReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Local catalog ready — finishing…'**
+  String get bootCatalogLocalCacheReady;
+
+  /// No description provided for @bootLoadingPreparingLaunch.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing launch…'**
+  String get bootLoadingPreparingLaunch;
+
+  /// No description provided for @bootLoadingCheckingSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking session…'**
+  String get bootLoadingCheckingSession;
+
+  /// No description provided for @bootLoadingCheckingProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking profile…'**
+  String get bootLoadingCheckingProfile;
+
+  /// No description provided for @bootLoadingCheckingSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking source…'**
+  String get bootLoadingCheckingSource;
+
+  /// No description provided for @bootLoadingPreparingCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing catalog…'**
+  String get bootLoadingPreparingCatalog;
+
+  /// No description provided for @bootActionAuthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in required'**
+  String get bootActionAuthTitle;
+
+  /// No description provided for @bootActionAuthMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue.'**
+  String get bootActionAuthMessage;
+
+  /// No description provided for @bootActionProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile required'**
+  String get bootActionProfileTitle;
+
+  /// No description provided for @bootActionProfileMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Create or choose a profile to continue.'**
+  String get bootActionProfileMessage;
+
+  /// No description provided for @bootActionSourceRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source required'**
+  String get bootActionSourceRequiredTitle;
+
+  /// No description provided for @bootActionSourceRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or reconnect a source to continue.'**
+  String get bootActionSourceRequiredMessage;
+
+  /// No description provided for @bootActionSourceSelectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source selection'**
+  String get bootActionSourceSelectionTitle;
+
+  /// No description provided for @bootActionSourceSelectionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the source to use.'**
+  String get bootActionSourceSelectionMessage;
+
+  /// No description provided for @bootRecoverySourceTimeoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Source is not responding'**
+  String get bootRecoverySourceTimeoutTitle;
+
+  /// No description provided for @bootRecoverySourceTimeoutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry sync or change source.'**
+  String get bootRecoverySourceTimeoutMessage;
+
+  /// No description provided for @bootRecoverySourceProviderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load source'**
+  String get bootRecoverySourceProviderTitle;
+
+  /// No description provided for @bootRecoverySourceProviderMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry loading or change source.'**
+  String get bootRecoverySourceProviderMessage;
+
+  /// No description provided for @bootRecoverySourceCredentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to connect to source'**
+  String get bootRecoverySourceCredentialsTitle;
+
+  /// No description provided for @bootRecoverySourceCredentialsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect the source to continue.'**
+  String get bootRecoverySourceCredentialsMessage;
+
+  /// No description provided for @bootRecoverySourceEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No content found'**
+  String get bootRecoverySourceEmptyTitle;
+
+  /// No description provided for @bootRecoverySourceEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Resync the source or choose another one.'**
+  String get bootRecoverySourceEmptyMessage;
+
+  /// No description provided for @bootFailureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch interrupted'**
+  String get bootFailureTitle;
+
+  /// No description provided for @bootFailureMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'An error prevents the launch.'**
+  String get bootFailureMessage;
+
+  /// No description provided for @bootActionExportLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Export logs'**
+  String get bootActionExportLogs;
+
+  /// No description provided for @bootActionLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get bootActionLogin;
+
+  /// No description provided for @bootActionChooseProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a profile'**
+  String get bootActionChooseProfile;
+
+  /// No description provided for @bootActionAddSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a source'**
+  String get bootActionAddSource;
+
+  /// No description provided for @bootActionChooseSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Change source'**
+  String get bootActionChooseSource;
+
+  /// No description provided for @bootActionReconnectSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnect source'**
+  String get bootActionReconnectSource;
+
+  /// No description provided for @bootActionResyncSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Resync'**
+  String get bootActionResyncSource;
+
+  /// No description provided for @bootActionOpenHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Open home'**
+  String get bootActionOpenHome;
+
+  /// No description provided for @welcomeSourceSavedSourcesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved sources'**
+  String get welcomeSourceSavedSourcesTitle;
+
+  /// No description provided for @welcomeSourceRefreshTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get welcomeSourceRefreshTooltip;
+
+  /// No description provided for @welcomeSourceNoRemoteSourcesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No source found on Supabase. Add or activate one below.'**
+  String get welcomeSourceNoRemoteSourcesMessage;
+
+  /// No description provided for @welcomeSourceActivateSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate a source'**
+  String get welcomeSourceActivateSectionTitle;
+
+  /// No description provided for @welcomeSourceNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Source name'**
+  String get welcomeSourceNameLabel;
+
+  /// No description provided for @welcomeSourceNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'My IPTV'**
+  String get welcomeSourceNameHint;
+
+  /// No description provided for @welcomeSourceServerUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get welcomeSourceServerUrlLabel;
+
+  /// No description provided for @welcomeSourceServerUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://example.com:port'**
+  String get welcomeSourceServerUrlHint;
+
+  /// No description provided for @welcomeSourceUsernameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get welcomeSourceUsernameLabel;
+
+  /// No description provided for @welcomeSourcePasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get welcomeSourcePasswordLabel;
+
+  /// No description provided for @welcomeSourceActivateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate'**
+  String get welcomeSourceActivateAction;
+
+  /// No description provided for @welcomeSourceExpiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires: {date}'**
+  String welcomeSourceExpiresOn(String date);
+
+  /// No description provided for @welcomeSourceNoExpiration.
+  ///
+  /// In en, this message translates to:
+  /// **'No expiration date'**
+  String get welcomeSourceNoExpiration;
+
+  /// No description provided for @welcomeUserProfileLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile locked'**
+  String get welcomeUserProfileLockedTitle;
+
+  /// No description provided for @welcomeUserProfileLockedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the PIN to switch profile.'**
+  String get welcomeUserProfileLockedReason;
+
+  /// No description provided for @welcomeUserProfilesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load profiles.'**
+  String get welcomeUserProfilesLoadFailed;
 
   /// No description provided for @errorHomeLoadTimeout.
   ///

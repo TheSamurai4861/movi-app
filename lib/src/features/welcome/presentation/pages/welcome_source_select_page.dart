@@ -293,7 +293,7 @@ class _WelcomeSourceSelectPageState
                             const Center(child: CircularProgressIndicator()),
                         error: (e, _) => Center(
                           child: Text(
-                            '${l10n.errorUnknown}: $e',
+                            l10n.errorLoadingPlaylistsWithMessage(e.toString()),
                             style: const TextStyle(color: Colors.white),
                             textAlign: TextAlign.center,
                           ),
@@ -391,10 +391,10 @@ class _WelcomeSourceSelectPageState
                               if (!context.mounted) return;
                               await _runBootAction(
                                 context,
-                                BootActionIntent.resyncSource,
+                                BootActionIntent.retry,
                                 'source_selected',
                                 destinationOverride:
-                                    '${AppRoutePaths.welcomeSourceLoading}?force_reload=1',
+                                    AppRoutePaths.welcomeSourceLoading,
                               );
                             },
                           );

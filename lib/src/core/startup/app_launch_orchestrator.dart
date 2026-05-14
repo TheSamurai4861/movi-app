@@ -35,6 +35,7 @@ import 'package:movi/src/core/startup/domain/resolve_entry_decision.dart';
 import 'package:movi/src/core/startup/domain/resolve_home_degradation.dart';
 import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/core/startup/domain/tunnel_state.dart';
+import 'package:movi/src/core/startup/boot_event_contract_logger.dart';
 import 'package:movi/src/core/startup/entry_journey_shadow_bridge.dart';
 import 'package:movi/src/core/startup/entry_journey_telemetry.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
@@ -355,6 +356,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   late final SuppressedRemoteIptvSourcesPreferences?
   _suppressedRemoteIptvSourcesPreferences;
   late final EntryJourneyTelemetry _entryJourneyTelemetry;
+  late final BootEventContractLogger _bootEventContractLogger;
   late final LegacyTunnelStateBridge _legacyTunnelStateBridge;
   late final CanonicalTunnelStateProjector _canonicalTunnelStateProjector;
   late final ResolveEntryDecision _resolveEntryDecision;
@@ -366,6 +368,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   Future<AppLaunchResult>? _ongoing;
   Future<void>? _backgroundSync;
   Future<void>? _backgroundCloudSync;
+  final Set<String> _emittedContractEventKeys = <String>{};
   static final RegExp _cloudProfileIdPattern = RegExp(
     r'^[0-9a-fA-F]{8}-'
     r'[0-9a-fA-F]{4}-'
@@ -427,6 +430,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _entryJourneyTelemetry = EntryJourneyTelemetry(
       enabled: entryJourneyTelemetryEnabled,
     );
+    _bootEventContractLogger = BootEventContractLogger(
+      enabled: entryJourneyTelemetryEnabled,
+    );
 
     ref.onDispose(_xtreamSyncService.stop);
 
@@ -455,6 +461,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     final startedAt = DateTime.now();
     final runId = startedAt.microsecondsSinceEpoch.toString();
+    _emittedContractEventKeys.clear();
     _updateState(
       state.copyWith(
         status: AppLaunchStatus.running,
@@ -484,14 +491,30 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       step: 'run',
       elapsedMs: 0,
     );
+    _emitContractEvent(
+      event: BootContractEvent.bootRunStarted,
+      runId: runId,
+      phase: AppLaunchPhase.init.name,
+      reasonCode: 'run_started',
+      dedupe: true,
+    );
 
     final future = _runInternal();
     _ongoing = future;
-    future.whenComplete(() {
-      if (_ongoing == future) {
-        _ongoing = null;
-      }
-    });
+    unawaited(
+      future.then<void>(
+        (_) {
+          if (_ongoing == future) {
+            _ongoing = null;
+          }
+        },
+        onError: (Object _, StackTrace __) {
+          if (_ongoing == future) {
+            _ongoing = null;
+          }
+        },
+      ),
+    );
     return future;
   }
 
@@ -499,6 +522,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _ongoing = null;
     _backgroundSync = null;
     _backgroundCloudSync = null;
+    _emittedContractEventKeys.clear();
     _updateState(const AppLaunchState());
   }
 
@@ -522,7 +546,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           error: null,
           destination: null,
           criteria: nextCriteria,
-          recoveryMessage: "Préparation de l'accueil en cours...",
+          recoveryMessage: "Ouverture de l'accueil en cours...",
         ),
       );
       return;
@@ -667,6 +691,19 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     void setRecovery(AppLaunchRecovery? recovery) {
       _updateState(state.copyWith(recovery: recovery));
+      if (recovery != null) {
+        _emitContractEvent(
+          event: BootContractEvent.bootRecoveryShown,
+          runId: state.runId ?? 'missing',
+          phase: state.phase.name,
+          reasonCode: recovery.reasonCode,
+          destination: state.destination?.name,
+          action: recovery.isRetryable
+              ? RecoveryAction.retry.name
+              : RecoveryAction.login.name,
+          dedupe: true,
+        );
+      }
     }
 
     Future<void> logStep(String message) async {
@@ -731,6 +768,15 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         elapsedMs: _elapsedSinceStartMs(),
         fields: <String, Object?>{'destination': nextDestination.name},
       );
+      _emitContractEvent(
+        event: BootContractEvent.entryJourneyCompleted,
+        runId: state.runId ?? 'missing',
+        phase: AppLaunchPhase.done.name,
+        reasonCode: reasonCode,
+        durationMs: _elapsedSinceStartMs(),
+        destination: nextDestination.name,
+        dedupe: true,
+      );
       return AppLaunchResult(destination: destination, meta: meta);
     }
 
@@ -773,6 +819,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         AppLaunchStatus.failure,
         stepName: 'failed',
         runId: state.runId,
+      );
+      _emitContractEvent(
+        event: BootContractEvent.bootRecoveryShown,
+        runId: state.runId ?? 'missing',
+        phase: AppLaunchPhase.done.name,
+        reasonCode: state.recovery?.reasonCode ?? 'technical_failure',
+        action: RecoveryAction.retry.name,
+        dedupe: true,
       );
       _entryJourneyTelemetry.event(
         name: 'entry_journey_failed',
@@ -1098,11 +1152,15 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       step = 'profiles_select';
       var selectedProfileId = _selectedProfilePreferences.selectedProfileId;
       final validSelected = profiles.any((p) => p.id == selectedProfileId);
-      meta = meta.copyWith(selectedProfileId: selectedProfileId);
+      if (validSelected) {
+        meta = meta.copyWith(selectedProfileId: selectedProfileId);
+      } else {
+        selectedProfileId = null;
+      }
       updateCriteria();
       await logStep('selected valid=$validSelected');
 
-      if (!validSelected) {
+      if (!validSelected && profiles.length == 1) {
         await _selectedProfilePreferences.setSelectedProfileId(
           profiles.first.id,
         );
@@ -1110,6 +1168,31 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         meta = meta.copyWith(selectedProfileId: selectedProfileId);
         updateCriteria();
         await logStep('selected profile repaired');
+      } else if (!validSelected) {
+        await _selectedProfilePreferences.clear();
+        updateCriteria();
+        await logStep(
+          'multiple profiles without valid selection -> welcomeUser',
+        );
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: false,
+          session: sessionSnapshot(
+            isAuthenticated: meta.accountId != null,
+            userId: meta.accountId,
+            reasonCode: meta.accountId == null
+                ? 'local_mode'
+                : 'session_authenticated',
+          ),
+          profiles: profilesSnapshot(
+            count: profiles.length,
+            hasValidSelection: false,
+            reasonCode: EntryDecisionReasonCodes.profileSelectionRequired,
+          ),
+          sources: readyEntrySource,
+          resolvedProfileId: null,
+          resolvedSourceId: '__entry_source_ready__',
+        );
+        return completeEntryDecision(entryDecision);
       }
 
       step = 'local_accounts_fetch';
@@ -1549,6 +1632,20 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
             ),
           ),
         );
+        _emitContractEvent(
+          event: BootContractEvent.bootRecoveryShown,
+          runId: state.runId ?? 'missing',
+          phase: AppLaunchPhase.preloadCompleteHome.name,
+          reasonCode: catalogReadiness.reasonCode,
+          destination: BootstrapDestination.welcomeSources.name,
+          action: catalogRecoveryActions.isEmpty
+              ? null
+              : catalogRecoveryActions.first.name,
+          fields: <String, Object?>{
+            'actions': catalogRecoveryActions.map((a) => a.name).join(','),
+          },
+          dedupe: true,
+        );
         return completeSuccess(
           BootstrapDestination.welcomeSources,
           reasonCodeOverride: catalogReadiness.reasonCode,
@@ -1748,6 +1845,30 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       for (final entry in fields.entries)
         if (entry.value != null) '${entry.key}=${entry.value}',
     ];
+    final contractEvent = switch (event) {
+      'catalog_preparation_started' =>
+        BootContractEvent.catalogPreparationStarted,
+      'catalog_preparation_completed' =>
+        BootContractEvent.catalogPreparationCompleted,
+      'catalog_preparation_failed' =>
+        BootContractEvent.catalogPreparationFailed,
+      _ => null,
+    };
+    if (contractEvent != null) {
+      _emitContractEvent(
+        event: contractEvent,
+        runId: runId ?? 'missing',
+        phase: phase.name,
+        reasonCode: reasonCode,
+        durationMs: durationMs,
+        destination: destination?.name,
+        fields: <String, Object?>{
+          'catalog_mode': catalogMode.name,
+          'source_key': _logSafeSourceKey(sourceId),
+        },
+        dedupe: true,
+      );
+    }
     return LoggingService.log(parts.join(' '), category: 'startup');
   }
 
@@ -2008,9 +2129,27 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     final notifier = ref.read(homeDegradationNoticeProvider.notifier);
     if (!merge) {
       notifier.set(next);
+      _emitHomePartialShown(next);
       return;
     }
     notifier.merge(next);
+    _emitHomePartialShown(next);
+  }
+
+  void _emitHomePartialShown(HomeDegradationNotice notice) {
+    _emitContractEvent(
+      event: BootContractEvent.homePartialShown,
+      runId: state.runId ?? 'missing',
+      phase: state.phase.name,
+      reasonCode: notice.primaryReasonCode,
+      destination: state.destination?.name,
+      action: notice.primaryAction.name,
+      fields: <String, Object?>{
+        'reason_codes': notice.reasonCodes.join(','),
+        'has_secondary_action': notice.secondaryAction != null,
+      },
+      dedupe: true,
+    );
   }
 
   void _clearHomeDegradationNotice() {
@@ -2097,6 +2236,79 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         category: 'startup',
       ),
     );
+    _emitContractEvent(
+      event: BootContractEvent.bootStateChanged,
+      runId: runId ?? state.runId ?? 'missing',
+      phase: phase.name,
+      reasonCode: 'phase_transition',
+      destination: state.destination?.name,
+      fields: <String, Object?>{'status': status.name, 'step': step},
+      dedupe: true,
+    );
+  }
+
+  void _emitContractEvent({
+    required BootContractEvent event,
+    required String runId,
+    String? phase,
+    String? reasonCode,
+    int? durationMs,
+    String? destination,
+    String? action,
+    Map<String, Object?> fields = const <String, Object?>{},
+    bool dedupe = false,
+  }) {
+    final key = _contractEventKey(
+      event: event,
+      runId: runId,
+      phase: phase,
+      reasonCode: reasonCode,
+      durationMs: durationMs,
+      destination: destination,
+      action: action,
+      fields: fields,
+    );
+    if (dedupe && !_emittedContractEventKeys.add(key)) {
+      return;
+    }
+    _bootEventContractLogger.emit(
+      event: event,
+      runId: runId,
+      phase: phase,
+      reasonCode: reasonCode,
+      durationMs: durationMs,
+      destination: destination,
+      action: action,
+      fields: fields,
+    );
+  }
+
+  String _contractEventKey({
+    required BootContractEvent event,
+    required String runId,
+    String? phase,
+    String? reasonCode,
+    int? durationMs,
+    String? destination,
+    String? action,
+    Map<String, Object?> fields = const <String, Object?>{},
+  }) {
+    final normalized = <String>[
+      event.wireName,
+      runId,
+      phase ?? 'none',
+      reasonCode ?? 'none',
+      durationMs?.toString() ?? 'none',
+      destination ?? 'none',
+      action ?? 'none',
+    ];
+    final sortedKeys = fields.keys.toList()..sort();
+    for (final key in sortedKeys) {
+      final value = fields[key];
+      if (value == null) continue;
+      normalized.add('$key=$value');
+    }
+    return normalized.join('|');
   }
 
   void _logHomeCriteriaSnapshot({

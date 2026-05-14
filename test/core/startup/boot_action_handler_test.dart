@@ -59,7 +59,7 @@ void main() {
         resyncPlan.controllerCommand,
         BootActionControllerCommand.sourceResync,
       );
-      expect(resyncPlan.route, AppRoutePaths.welcomeSourceLoading);
+      expect(resyncPlan.route, AppRoutePaths.launch);
       expect(
         sectionsPlan.controllerCommand,
         BootActionControllerCommand.retryHomeSections,

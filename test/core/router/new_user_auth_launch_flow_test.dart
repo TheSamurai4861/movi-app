@@ -25,7 +25,7 @@ void main() {
   });
 
   testWidgets(
-    'new user traverses launch, auth, welcome, sources loading, then home',
+    'new user traverses launch, auth, welcome, then bootstrap to home',
     (tester) async {
       final localePreferences = _MemoryLocalePreferences();
       final authRepository = _ScriptedAuthRepository.unauthenticatedResolved();
@@ -126,7 +126,7 @@ void main() {
                 key: const Key('activate-source'),
                 onPressed: () {
                   stateHistory.add('welcomeSources:activateSource');
-                  context.go(AppRoutePaths.welcomeSourceLoading);
+                  context.go(AppRoutePaths.launch);
                 },
                 child: const Text('Activate source'),
               ),
@@ -186,10 +186,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Auth OTP'), findsOneWidget);
-      expect(
-        routeHistory,
-        <String>[AppRoutePaths.launch, AppRoutePaths.authOtp],
-      );
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.authOtp,
+      ]);
       expect(stateHistory, <String>['launch:auth']);
 
       await tester.tap(find.byKey(const Key('complete-otp')));
@@ -197,81 +197,231 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Welcome User'), findsOneWidget);
-      expect(
-        routeHistory,
-        <String>[
-          AppRoutePaths.launch,
-          AppRoutePaths.authOtp,
-          AppRoutePaths.launch,
-          AppRoutePaths.welcomeUser,
-        ],
-      );
-      expect(
-        stateHistory,
-        <String>['launch:auth', 'auth:verified', 'launch:welcomeUser'],
-      );
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.authOtp,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeUser,
+      ]);
+      expect(stateHistory, <String>[
+        'launch:auth',
+        'auth:verified',
+        'launch:welcomeUser',
+      ]);
 
       await tester.tap(find.byKey(const Key('create-profile')));
       await tester.pump();
       await tester.pumpAndSettle();
 
       expect(find.text('Welcome Sources'), findsOneWidget);
-      expect(
-        routeHistory,
-        <String>[
-          AppRoutePaths.launch,
-          AppRoutePaths.authOtp,
-          AppRoutePaths.launch,
-          AppRoutePaths.welcomeUser,
-          AppRoutePaths.launch,
-          AppRoutePaths.welcomeSources,
-        ],
-      );
-      expect(
-        stateHistory,
-        <String>[
-          'launch:auth',
-          'auth:verified',
-          'launch:welcomeUser',
-          'welcomeUser:createProfile',
-          'launch:resetToIdle',
-          'launch:welcomeSources',
-        ],
-      );
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.authOtp,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeUser,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeSources,
+      ]);
+      expect(stateHistory, <String>[
+        'launch:auth',
+        'auth:verified',
+        'launch:welcomeUser',
+        'welcomeUser:createProfile',
+        'launch:resetToIdle',
+        'launch:welcomeSources',
+      ]);
 
       await tester.tap(find.byKey(const Key('activate-source')));
       await tester.pump();
       await tester.pumpAndSettle();
 
-      expect(
-        routeHistory,
-        <String>[
-          AppRoutePaths.launch,
-          AppRoutePaths.authOtp,
-          AppRoutePaths.launch,
-          AppRoutePaths.welcomeUser,
-          AppRoutePaths.launch,
-          AppRoutePaths.welcomeSources,
-          AppRoutePaths.welcomeSourceLoading,
-          AppRoutePaths.home,
-        ],
-      );
-      expect(
-        stateHistory,
-        <String>[
-          'launch:auth',
-          'auth:verified',
-          'launch:welcomeUser',
-          'welcomeUser:createProfile',
-          'launch:resetToIdle',
-          'launch:welcomeSources',
-          'welcomeSources:activateSource',
-          'welcomeSourceLoading:homeReady',
-        ],
-      );
-      expect(appStateController.activeIptvSourceIds, {'source-1'});
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.authOtp,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeUser,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeSources,
+      ]);
+      expect(stateHistory, <String>[
+        'launch:auth',
+        'auth:verified',
+        'launch:welcomeUser',
+        'welcomeUser:createProfile',
+        'launch:resetToIdle',
+        'launch:welcomeSources',
+        'welcomeSources:activateSource',
+      ]);
+      expect(appStateController.activeIptvSourceIds, isEmpty);
     },
   );
+
+  testWidgets('source selection shows catalog loading before Home', (
+    tester,
+  ) async {
+    final localePreferences = _MemoryLocalePreferences();
+    final authRepository = _ScriptedAuthRepository.unauthenticatedResolved()
+      ..setAuthenticated();
+    final logger = _MemoryLogger();
+    final launchRegistry = AppLaunchStateRegistry(
+      initial: const AppLaunchState(
+        status: AppLaunchStatus.success,
+        phase: AppLaunchPhase.done,
+        destination: BootstrapDestination.chooseSource,
+      ),
+    );
+
+    sl.registerSingleton<LocalePreferences>(localePreferences);
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    addTearDown(localePreferences.dispose);
+    addTearDown(authRepository.dispose);
+
+    final appStateController = container.read(appStateControllerProvider);
+    final routeHistory = <String>[];
+    final stateHistory = <String>[];
+
+    final guard = LaunchRedirectGuard(
+      logger: logger,
+      appStateController: appStateController,
+      authRepository: authRepository,
+      launchRegistry: launchRegistry,
+    );
+    addTearDown(guard.dispose);
+
+    final router = GoRouter(
+      initialLocation: AppRoutePaths.welcomeSourceSelect,
+      refreshListenable: guard,
+      redirect: guard.handle,
+      routes: [
+        GoRoute(
+          path: AppRoutePaths.launch,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.launch,
+            label: 'Launch',
+            history: routeHistory,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.authOtp,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.authOtp,
+            label: 'Auth OTP',
+            history: routeHistory,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.bootstrap,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.bootstrap,
+            label: 'Bootstrap',
+            history: routeHistory,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.welcomeUser,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.welcomeUser,
+            label: 'Welcome User',
+            history: routeHistory,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.welcomeSources,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.welcomeSources,
+            label: 'Welcome Sources',
+            history: routeHistory,
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.welcomeSourceSelect,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.welcomeSourceSelect,
+            label: 'Choose Source',
+            history: routeHistory,
+            child: ElevatedButton(
+              key: const Key('select-source'),
+              onPressed: () {
+                stateHistory.add('welcomeSourceSelect:selectSource');
+                launchRegistry.update(
+                  const AppLaunchState(
+                    status: AppLaunchStatus.running,
+                    phase: AppLaunchPhase.preloadCompleteHome,
+                  ),
+                );
+                context.go(AppRoutePaths.welcomeSourceLoading);
+              },
+              child: const Text('Select source'),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.welcomeSourceLoading,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.welcomeSourceLoading,
+            label: 'Welcome Source Loading',
+            history: routeHistory,
+            onEnter: () {
+              stateHistory.add('welcomeSourceLoading:homeReady');
+              appStateController.setActiveIptvSources({'source-2'});
+              launchRegistry.update(
+                AppLaunchState(
+                  status: AppLaunchStatus.success,
+                  phase: AppLaunchPhase.done,
+                  destination: BootstrapDestination.home,
+                  criteria: const AppLaunchCriteria(
+                    hasSession: true,
+                    hasSelectedProfile: true,
+                    hasSelectedSource: true,
+                    hasIptvCatalogReady: true,
+                    hasHomePreloaded: true,
+                    hasLibraryReady: true,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        GoRoute(
+          path: AppRoutePaths.home,
+          builder: (context, state) => _TrackedStepPage(
+            route: AppRoutePaths.home,
+            label: 'Home',
+            history: routeHistory,
+          ),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose Source'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('select-source')));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Home'), findsOneWidget);
+    expect(routeHistory, <String>[
+      AppRoutePaths.welcomeSourceSelect,
+      AppRoutePaths.welcomeSourceLoading,
+      AppRoutePaths.home,
+    ]);
+    expect(stateHistory, <String>[
+      'welcomeSourceSelect:selectSource',
+      'welcomeSourceLoading:homeReady',
+    ]);
+    expect(appStateController.activeIptvSourceIds, {'source-2'});
+  });
 }
 
 class _TrackedStepPage extends StatefulWidget {

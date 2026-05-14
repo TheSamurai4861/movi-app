@@ -29,7 +29,6 @@ enum AppFocusRegionId {
   welcomePrimary,
   welcomeSavedSources,
   welcomeSourceSelectPrimary,
-  welcomeSourceLoadingPrimary,
   welcomeSourceForm,
   welcomeUserForm,
   settingsSubtitlesPrimary,

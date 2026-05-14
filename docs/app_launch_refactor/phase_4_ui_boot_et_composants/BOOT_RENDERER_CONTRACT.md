@@ -17,8 +17,9 @@ Le modele existe deja :
 - `executeBootAction` sait convertir un `BootActionRequest` en navigation,
   relance boot ou commande controller.
 
-Le renderer unifie n'existe pas encore. `SplashBootstrapPage` utilise encore
-directement `OverlaySplash` et `LaunchErrorPanel`.
+Le renderer unifie n'existe pas encore sous un seul widget nomme.
+`SplashBootstrapPage` enchaine chargements (`BootSimpleLoadingScreen`,
+`BootCatalogLoadingScreen`) et recovery (`BootRecoveryPanel.fromBootModel`).
 
 ## Decision
 

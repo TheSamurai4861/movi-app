@@ -59,13 +59,8 @@ final class TunnelSurfaceRouteMapper {
             ? AppRoutePaths.welcomeSourceSelect
             : AppRoutePaths.welcomeSources;
       case TunnelSurface.loadingMedia:
-        if (currentLocation == AppRoutePaths.welcomeSourceLoading ||
-            tunnelState.legacyDestination ==
-                BootstrapDestination.welcomeSources ||
-            tunnelState.legacyDestination ==
-                BootstrapDestination.chooseSource) {
-          return AppRoutePaths.welcomeSourceLoading;
-        }
+        // Phase 5.6: route legacy /welcome/sources/loading no longer used as
+        // canonical loading surface. Keep bootstrap as the single loading route.
         return AppRoutePaths.bootstrap;
       case TunnelSurface.home:
         return AppRoutePaths.home;

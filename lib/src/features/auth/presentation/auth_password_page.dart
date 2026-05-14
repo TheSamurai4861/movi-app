@@ -10,12 +10,12 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
-import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/auth/presentation/auth_password_controller.dart';
@@ -43,6 +43,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
   final _forgotPasswordFocusNode = FocusNode(
     debugLabel: 'AuthPasswordForgotPassword',
   );
+  final _signUpFocusNode = FocusNode(debugLabel: 'AuthPasswordSignUp');
   final _otpFallbackFocusNode = FocusNode(debugLabel: 'AuthPasswordUseOtp');
 
   bool _handledSuccessfulAuth = false;
@@ -56,6 +57,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
     _passwordFocusNode.dispose();
     _primaryActionFocusNode.dispose();
     _forgotPasswordFocusNode.dispose();
+    _signUpFocusNode.dispose();
     _otpFallbackFocusNode.dispose();
     super.dispose();
   }
@@ -75,8 +77,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
   KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
+        event.logicalKey == LogicalKeyboardKey.escape) {
       return _handleBack(context)
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
@@ -127,12 +128,6 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
 
     final isSigningIn = state.status == AuthPasswordStatus.signingIn;
     final isBusy = isSigningIn;
-    final screenSize = MediaQuery.sizeOf(context);
-    final screenType = context.resolveScreenType(
-      screenSize.width,
-      screenSize.height,
-    );
-    final contentMaxWidth = screenType == ScreenType.tv ? 640.0 : 480.0;
 
     return PopScope(
       canPop: false,
@@ -156,106 +151,115 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  constraints: const BoxConstraints(
+                    maxWidth: BootFormTokens.textFieldMaxWidth,
+                  ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.xl,
                       horizontal: AppSpacing.md,
                     ),
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        WelcomeHeader(
-                          title: l10n.authPasswordTitle,
-                          subtitle: l10n.authPasswordSubtitle,
-                          adaptLogoToNarrowScreen: true,
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppLabeledTextField(
-                              label: l10n.authPasswordEmailLabel,
-                              controller: _emailController,
-                              focusNode: _emailFocusNode,
-                              enabled: !isBusy,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.email],
-                              hintText: l10n.authPasswordEmailHint,
-                              errorText: emailErrorText,
-                              decoration: _buildAuthInputDecoration(context),
-                              enableFocusWrapper: true,
-                              verticalAlignment: 0.4,
-                              nextDownFocus: _passwordFocusNode,
-                              blockUp: true,
-                              onChanged: (value) {
-                                ref
-                                    .read(
-                                      authPasswordControllerProvider.notifier,
-                                    )
-                                    .setEmail(value);
-                              },
-                              onFieldSubmitted: (_) {
-                                _passwordFocusNode.requestFocus();
-                              },
-                            ),
-                            const SizedBox(height: AppSpacing.lg),
-                            AppLabeledTextField(
-                              label: l10n.authPasswordPasswordLabel,
-                              controller: _passwordController,
-                              focusNode: _passwordFocusNode,
-                              enabled: !isBusy,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.password],
-                              hintText: l10n.authPasswordPasswordHint,
-                              helpText: l10n.authPasswordPasswordHelp,
-                              errorText: passwordErrorText,
-                              obscureText: !_isPasswordVisible,
-                              showHelpTextWhenError: true,
-                              decoration: _buildAuthInputDecoration(
-                                context,
-                                suffixIcon: IconButton(
-                                  onPressed: isBusy
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _isPasswordVisible =
-                                                !_isPasswordVisible;
-                                          });
-                                        },
-                                  tooltip: _isPasswordVisible
-                                      ? 'Masquer le mot de passe'
-                                      : 'Afficher le mot de passe',
-                                  icon: Icon(
-                                    _isPasswordVisible
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    size: 20,
-                                  ),
+                              BootFormTokens.constrainTextField(
+                                const WelcomeHeader(
+                                  title: 'Connexion à Movi',
+                                  subtitle: 'Connectez vous à votre compte Movi.',
+                                  adaptLogoToNarrowScreen: true,
                                 ),
                               ),
-                              enableFocusWrapper: true,
-                              verticalAlignment: 0.22,
-                              nextUpFocus: _emailFocusNode,
-                              nextDownFocus: _primaryActionFocusNode,
-                              onChanged: (value) {
-                                ref
-                                    .read(
-                                      authPasswordControllerProvider.notifier,
-                                    )
-                                    .setPassword(value);
-                              },
-                              onFieldSubmitted: (_) => _onSignIn(),
+                              const SizedBox(height: AppSpacing.xl),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                            BootFormTokens.constrainTextField(
+                              AppLabeledTextField(
+                                label: l10n.authPasswordEmailLabel,
+                                controller: _emailController,
+                                focusNode: _emailFocusNode,
+                                enabled: !isBusy,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                autofillHints: const [AutofillHints.email],
+                                hintText: l10n.authPasswordEmailHint,
+                                errorText: emailErrorText,
+                                decoration: _buildAuthInputDecoration(context),
+                                enableFocusWrapper: true,
+                                verticalAlignment: 0.4,
+                                nextDownFocus: _passwordFocusNode,
+                                blockUp: true,
+                                onChanged: (value) {
+                                  ref
+                                      .read(
+                                        authPasswordControllerProvider
+                                            .notifier,
+                                      )
+                                      .setEmail(value);
+                                },
+                                onFieldSubmitted: (_) {
+                                  _passwordFocusNode.requestFocus();
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: BootFormTokens.formElementGap),
+                            BootFormTokens.constrainTextField(
+                              AppLabeledTextField(
+                                label: l10n.authPasswordPasswordLabel,
+                                controller: _passwordController,
+                                focusNode: _passwordFocusNode,
+                                enabled: !isBusy,
+                                textInputAction: TextInputAction.done,
+                                autofillHints: const [AutofillHints.password],
+                                hintText: l10n.authPasswordPasswordHint,
+                                helpText: l10n.authPasswordPasswordHelp,
+                                errorText: passwordErrorText,
+                                obscureText: !_isPasswordVisible,
+                                showHelpTextWhenError: true,
+                                decoration: _buildAuthInputDecoration(
+                                  context,
+                                  suffixIcon: IconButton(
+                                    onPressed: isBusy
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _isPasswordVisible =
+                                                  !_isPasswordVisible;
+                                            });
+                                          },
+                                    tooltip: _isPasswordVisible
+                                        ? 'Masquer le mot de passe'
+                                        : 'Afficher le mot de passe',
+                                    icon: Icon(
+                                      _isPasswordVisible
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                                enableFocusWrapper: true,
+                                verticalAlignment: 0.22,
+                                nextUpFocus: _emailFocusNode,
+                                nextDownFocus: _primaryActionFocusNode,
+                                onChanged: (value) {
+                                  ref
+                                      .read(
+                                        authPasswordControllerProvider
+                                            .notifier,
+                                      )
+                                      .setPassword(value);
+                                },
+                                onFieldSubmitted: (_) => _onSignIn(),
+                              ),
                             ),
                             if (globalErrorText != null) ...[
                               const SizedBox(height: AppSpacing.md),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                ),
-                                child: Text(
+                              BootFormTokens.constrainTextField(
+                                Text(
                                   globalErrorText,
+                                  textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
                                         color: Theme.of(
@@ -265,7 +269,36 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 32),
+                                  const SizedBox(height: AppSpacing.md),
+                                  BootFormTokens.constrainTextField(
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton(
+                                        focusNode: _forgotPasswordFocusNode,
+                                        onPressed: isBusy
+                                            ? null
+                                            : _onForgotPassword,
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: const Size(0, 40),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        child: Text(
+                                          l10n.authPasswordForgotPassword,
+                                          style: const TextStyle(
+                                            decoration:
+                                                TextDecoration.underline,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: BootFormTokens.formElementGap),
                             MoviEnsureVisibleOnFocus(
                               verticalAlignment: 0.22,
                               child: Focus(
@@ -273,23 +306,67 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                 onKeyEvent: (_, event) =>
                                     FocusDirectionalNavigation.handleDirectionalKey(
                                       event,
-                                      up: _passwordFocusNode,
-                                      down: _forgotPasswordFocusNode,
+                                      up: _forgotPasswordFocusNode,
+                                      down: _signUpFocusNode,
                                       blockLeft: true,
                                       blockRight: true,
                                     ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: MoviPrimaryButton(
+                                child: BootFormTokens.constrainPrimaryAction(
+                                  MoviPrimaryButton(
                                     focusNode: _primaryActionFocusNode,
                                     label: l10n.authPasswordPrimarySubmit,
                                     loading: isSigningIn,
                                     onPressed: isBusy ? null : _onSignIn,
+                                    height: BootFormTokens.primaryActionHeight,
+                                    buttonStyle:
+                                        BootFormTokens.bootPrimaryButtonStyle(
+                                      Theme.of(context),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.md),
+                                ],
+                              ),
+                              const SizedBox(height: BootFormTokens.formElementGap),
+                              BootFormTokens.constrainTextField(
+                                Text(
+                                  'Vous n’avez pas de compte ?',
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      FocusDirectionalNavigation
+                                          .handleDirectionalKey(
+                                            event,
+                                            up: _primaryActionFocusNode,
+                                            blockDown: true,
+                                            blockLeft: true,
+                                            blockRight: true,
+                                          ),
+                                  child: BootFormTokens.constrainPrimaryAction(
+                                    MoviPrimaryButton(
+                                      focusNode: _signUpFocusNode,
+                                      label: 'S\'inscrire',
+                                      onPressed: isBusy ? null : _onSignUp,
+                                      height: BootFormTokens.primaryActionHeight,
+                                      buttonStyle:
+                                          BootFormTokens.bootPrimaryButtonStyle(
+                                        Theme.of(context),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              // Keep hidden fallback for keyboard shortcut coverage.
                             MoviEnsureVisibleOnFocus(
                               verticalAlignment: 0.22,
                               child: Focus(
@@ -297,29 +374,12 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                 onKeyEvent: (_, event) =>
                                     FocusDirectionalNavigation.handleDirectionalKey(
                                       event,
-                                      up: _primaryActionFocusNode,
+                                      up: _signUpFocusNode,
                                       blockDown: true,
                                       blockLeft: true,
                                       blockRight: true,
                                     ),
-                                child: Center(
-                                  child: TextButton(
-                                    focusNode: _forgotPasswordFocusNode,
-                                    onPressed: isBusy
-                                        ? null
-                                        : _onForgotPassword,
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: const Size(0, 40),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                    child: Text(
-                                      l10n.authPasswordForgotPassword,
-                                    ),
-                                  ),
-                                ),
+                                child: const SizedBox.shrink(),
                               ),
                             ),
                             Offstage(
@@ -330,9 +390,7 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                 child: Text(l10n.authPasswordUseOtp),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                            ],
                     ),
                   ),
                 ),
@@ -353,25 +411,17 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
     context.push(AppRoutePaths.authForgotPassword);
   }
 
+  void _onSignUp() {
+    if (!mounted) return;
+    context.push(AppRoutePaths.authSignUp);
+  }
+
   InputDecoration _buildAuthInputDecoration(
     BuildContext context, {
     Widget? suffixIcon,
   }) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    InputBorder border(Color color, {double width = 1}) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(999),
-      borderSide: BorderSide(color: color, width: width),
-    );
-
-    return InputDecoration(
-      filled: true,
-      fillColor: scheme.surfaceContainerHigh,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      border: border(scheme.outlineVariant),
-      enabledBorder: border(scheme.outlineVariant),
-      focusedBorder: border(scheme.primary, width: 2),
+    final scheme = Theme.of(context).colorScheme;
+    return BootFormTokens.bootTextFieldDecoration(Theme.of(context)).copyWith(
       suffixIcon: suffixIcon,
       suffixIconColor: scheme.onSurfaceVariant,
     );
@@ -403,13 +453,18 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
       return;
     }
 
-    await executeBootAction(
-      context,
-      ref,
-      const BootActionRequest(
-        intent: BootActionIntent.retry,
-        reasonCode: 'auth_completed',
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        executeBootAction(
+          context,
+          ref,
+          const BootActionRequest(
+            intent: BootActionIntent.retry,
+            reasonCode: 'auth_completed',
+          ),
+        ),
+      );
+    });
   }
 }

@@ -250,7 +250,7 @@ void main() {
   });
 
   testWidgets(
-    'keeps welcome source loading stable during projected preloading state',
+    'uses bootstrap as projected loading surface during preloading state',
     (tester) async {
       final harness = _GuardHarness(
         authRepository: _FakeAuthRepository.authenticated(),
@@ -283,8 +283,8 @@ void main() {
       await tester.pumpWidget(harness.buildApp(router));
       await tester.pumpAndSettle();
 
-      expect(find.text('Loading'), findsOneWidget);
-      expect(find.text('Bootstrap'), findsNothing);
+      expect(find.text('Bootstrap'), findsOneWidget);
+      expect(find.text('Loading'), findsNothing);
     },
   );
 }

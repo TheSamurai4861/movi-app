@@ -166,8 +166,7 @@ final class BootActionPlanner {
       BootActionIntent.resyncSource => BootActionPlan(
         intent: request.intent,
         kind: BootActionExecutionKind.controllerCommand,
-        route:
-            request.destinationOverride ?? AppRoutePaths.welcomeSourceLoading,
+        route: request.destinationOverride ?? AppRoutePaths.launch,
         controllerCommand: BootActionControllerCommand.sourceResync,
       ),
       BootActionIntent.openHome => BootActionPlan(

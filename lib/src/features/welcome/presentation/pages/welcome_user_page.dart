@@ -10,11 +10,10 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
-import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
@@ -26,7 +25,6 @@ import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
-import 'package:movi/src/core/profile/presentation/ui/widgets/profile_avatar_chip.dart';
 import 'package:movi/src/features/settings/domain/entities/user_settings.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
 import 'package:movi/src/features/settings/domain/value_objects/language_code.dart';
@@ -117,16 +115,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     }
   }
 
-  FocusNode _continueUpFocusNode(List<Profile> profiles, String? selectedId) {
-    final selectedIndex = profiles.indexWhere(
-      (profile) => profile.id == selectedId,
-    );
-    if (selectedIndex >= 0 && selectedIndex < _profileFocusNodes.length) {
-      return _profileFocusNodes[selectedIndex];
-    }
-    return _profileFocusNodes.first;
-  }
-
   bool _handleBack(BuildContext context) {
     if (!context.canPop()) {
       return false;
@@ -140,8 +128,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
       return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
+        event.logicalKey == LogicalKeyboardKey.escape) {
       return _handleBack(context)
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
@@ -155,6 +142,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     required FocusNode focusNode,
     required VoidCallback onTap,
   }) {
+    final trimmed = profile.name.trim();
+    final initial = trimmed.isEmpty ? '?' : trimmed.substring(0, 1).toUpperCase();
     return MoviEnsureVisibleOnFocus(
       verticalAlignment: 0.22,
       child: MoviFocusableAction(
@@ -162,14 +151,54 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
         onPressed: onTap,
         semanticLabel: profile.name,
         builder: (context, state) {
+          final theme = Theme.of(context);
+          final isActive = isSelected || state.focused;
           return MoviFocusFrame(
             scale: state.focused ? 1.04 : 1,
-            borderRadius: BorderRadius.circular(999),
-            child: ProfileAvatarChip(
-              color: Theme.of(context).colorScheme.primary,
-              label: profile.name,
-              size: 72,
-              selected: isSelected || state.focused,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: 120,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.outlineVariant,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 75,
+                    height: 75,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: theme.colorScheme.primary,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      initial,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    profile.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -198,12 +227,13 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     }
 
     if (!mounted) return false;
+    final l10n = AppLocalizations.of(context)!;
     return RestrictedContentSheet.show(
       context,
       ref,
       profile: profile,
-      title: 'Profil verrouillé',
-      reason: 'Saisis le PIN pour changer de profil.',
+      title: l10n.welcomeUserProfileLockedTitle,
+      reason: l10n.welcomeUserProfileLockedReason,
       originRegionId: AppFocusRegionId.welcomeUserForm,
       fallbackRegionId: AppFocusRegionId.welcomeUserForm,
     );
@@ -253,6 +283,23 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     );
   }
 
+  Future<void> _onProfileSelected(
+    BuildContext context,
+    List<Profile> profiles,
+    String? selectedProfileId,
+    Profile profile,
+  ) async {
+    final selected = await _selectProfileWithGuard(
+      profiles,
+      selectedProfileId,
+      profile,
+    );
+    if (!selected || !context.mounted) {
+      return;
+    }
+    await _runBootAction(context, BootActionIntent.retry, 'profile_selected');
+  }
+
   @override
   Widget build(BuildContext context) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
@@ -284,6 +331,9 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     final state = ref.watch(userSettingsControllerProvider);
     final profilesAsync = ref.watch(profilesControllerProvider);
     final selectedProfileId = ref.watch(selectedProfileControllerProvider);
+    if (profilesAsync.isLoading) {
+      return const Scaffold(body: OverlaySplash(message: 'Chargement du profil...'));
+    }
     final initialFocusNode = profilesAsync.maybeWhen(
       data: (profiles) {
         if (profiles.isEmpty) {
@@ -303,16 +353,9 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
 
     final errorText = switch (state.errorKey) {
       UserSettingsError.loadFailed ||
-      UserSettingsError.saveFailed => l10n.errorUnknown,
+      UserSettingsError.saveFailed => l10n.welcomeUserProfilesLoadFailed,
       null => null,
     };
-    final screenSize = MediaQuery.sizeOf(context);
-    final screenType = context.resolveScreenType(
-      screenSize.width,
-      screenSize.height,
-    );
-    final contentMaxWidth = screenType == ScreenType.tv ? 640.0 : 480.0;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -323,7 +366,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
         regionId: AppFocusRegionId.welcomePrimary,
         binding: FocusRegionBinding(
           resolvePrimaryEntryNode: () => initialFocusNode,
-          resolveFallbackEntryNode: () => _submitFocusNode,
+          resolveFallbackEntryNode: () => initialFocusNode,
         ),
         requestFocusOnMount: true,
         handleDirectionalExits: false,
@@ -335,17 +378,30 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  constraints: const BoxConstraints(
+                    maxWidth: BootFormTokens.textFieldMaxWidth,
+                  ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.xl,
                     ),
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         WelcomeHeader(
-                          title: l10n.welcomeTitle,
-                          subtitle: l10n.welcomeSubtitle,
+                          title: profilesAsync.maybeWhen(
+                            data: (profiles) => profiles.isEmpty
+                                ? 'Création du profil'
+                                : 'Choisir un profil',
+                            orElse: () => l10n.welcomeTitle,
+                          ),
+                          subtitle: profilesAsync.maybeWhen(
+                            data: (profiles) => profiles.isEmpty
+                                ? 'Créez votre premier profil pour l’app Movi.'
+                                : 'Choisissez l’un de vos profils.',
+                            orElse: () => l10n.welcomeSubtitle,
+                          ),
                         ),
                         if (launchRecovery?.isRetryable ?? false) ...[
                           const SizedBox(height: AppSpacing.lg),
@@ -401,10 +457,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                           handleDirectionalExits: false,
                           debugLabel: 'WelcomeUserFormRegion',
                           child: profilesAsync.when(
-                            loading: () => const Padding(
-                              padding: EdgeInsets.only(top: AppSpacing.lg),
-                              child: CircularProgressIndicator(),
-                            ),
+                            loading: () => const SizedBox.shrink(),
                             error: (err, stackTrace) {
                               // Pour les autres erreurs, afficher un message localisé
                               return Padding(
@@ -415,7 +468,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      l10n.errorUnknown,
+                                      l10n.welcomeUserProfilesLoadFailed,
                                       style: TextStyle(
                                         color: Theme.of(
                                           context,
@@ -454,10 +507,11 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: AppSpacing.lg,
                                       ),
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: [
+                                      child: Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: AppSpacing.lg,
+                                        runSpacing: AppSpacing.lg,
+                                        children: [
                                             for (
                                               var index = 0;
                                               index < profiles.length;
@@ -478,102 +532,50 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                           ? _profileFocusNodes[index +
                                                                 1]
                                                           : null,
+                                                      down:
+                                                          index + 1 <
+                                                              profiles.length
+                                                          ? _profileFocusNodes[index +
+                                                                1]
+                                                          : null,
                                                       up:
                                                           launchRecovery
                                                                   ?.isRetryable ??
                                                               false
                                                           ? _retryFocusNode
                                                           : null,
-                                                      down: _submitFocusNode,
                                                       blockLeft: index == 0,
                                                       blockRight:
                                                           index ==
                                                           profiles.length - 1,
                                                     ),
-                                                child: Padding(
-                                                  padding: EdgeInsets.only(
-                                                    right:
-                                                        index ==
-                                                            profiles.length - 1
-                                                        ? 0
-                                                        : AppSpacing.lg,
-                                                  ),
-                                                  child: _buildWelcomeProfileChip(
+                                                child: _buildWelcomeProfileChip(
                                                     profile: profiles[index],
                                                     isSelected:
                                                         profiles[index].id ==
                                                         selectedProfileId,
                                                     focusNode:
                                                         _profileFocusNodes[index],
-                                                    onTap: () => unawaited(
-                                                      _selectProfileWithGuard(
-                                                        profiles,
-                                                        selectedProfileId,
-                                                        profiles[index],
-                                                      ),
-                                                    ),
+                                                    onTap: () {
+                                                      unawaited(
+                                                        _onProfileSelected(
+                                                          context,
+                                                          profiles,
+                                                          selectedProfileId,
+                                                          profiles[index],
+                                                        ),
+                                                      );
+                                                    },
                                                   ),
-                                                ),
                                               ),
                                             ],
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.xl),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.lg,
-                                      ),
-                                      child: MoviEnsureVisibleOnFocus(
-                                        verticalAlignment: 0.22,
-                                        child: Focus(
-                                          canRequestFocus: false,
-                                          onKeyEvent: (_, event) =>
-                                              FocusDirectionalNavigation.handleDirectionalKey(
-                                                event,
-                                                up: _continueUpFocusNode(
-                                                  profiles,
-                                                  selectedProfileId,
-                                                ),
-                                                blockLeft: true,
-                                                blockRight: true,
-                                                blockDown: true,
-                                              ),
-                                          child: SizedBox(
-                                            width: double.infinity,
-                                            child: MoviPrimaryButton(
-                                              label: l10n.actionContinue,
-                                              focusNode: _submitFocusNode,
-                                              onPressed: () async {
-                                                if (profiles.isNotEmpty &&
-                                                    selectedProfileId == null) {
-                                                  final selected =
-                                                      await _selectProfileWithGuard(
-                                                        profiles,
-                                                        selectedProfileId,
-                                                        profiles.first,
-                                                      );
-                                                  if (!selected) {
-                                                    return;
-                                                  }
-                                                }
-                                                if (!context.mounted) return;
-                                                await _runBootAction(
-                                                  context,
-                                                  BootActionIntent.retry,
-                                                  'profile_completed',
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ),
+                                        ],
                                       ),
                                     ),
                                   ] else ...[
                                     // Aucun profil: on affiche l'input (création du premier profil)
                                     LabeledField(
-                                      label: l10n.labelUsername,
+                                      label: 'Nom du profil',
                                       child: MoviEnsureVisibleOnFocus(
                                         verticalAlignment: 0.22,
                                         child: Focus(
@@ -608,25 +610,30 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                       _retryFocusNode,
                                                     ),
                                             },
-                                            child: TextFormField(
-                                              controller: _nameCtrl,
-                                              focusNode: _nameFocusNode,
-                                              textInputAction:
-                                                  TextInputAction.done,
-                                              onFieldSubmitted: (_) =>
-                                                  _submitFocusNode
-                                                      .requestFocus(),
-                                              decoration: InputDecoration(
-                                                hintText: l10n.hintUsername,
-                                                border:
-                                                    const OutlineInputBorder(),
+                                            child: BootFormTokens.constrainTextField(
+                                              TextFormField(
+                                                controller: _nameCtrl,
+                                                focusNode: _nameFocusNode,
+                                                textInputAction:
+                                                    TextInputAction.done,
+                                                onFieldSubmitted: (_) =>
+                                                    _submitFocusNode
+                                                        .requestFocus(),
+                                                decoration:
+                                                    BootFormTokens.bootTextFieldDecoration(
+                                                      Theme.of(context),
+                                                    ).copyWith(
+                                                      hintText: 'Nom du profil',
+                                                    ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: AppSpacing.xl),
+                                    const SizedBox(
+                                      height: BootFormTokens.formElementGap,
+                                    ),
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: AppSpacing.lg,
@@ -643,12 +650,17 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                 blockRight: true,
                                                 blockDown: true,
                                               ),
-                                          child: SizedBox(
-                                            width: double.infinity,
-                                            child: MoviPrimaryButton(
-                                              label: l10n.actionContinue,
+                                          child: BootFormTokens.constrainPrimaryAction(
+                                            MoviPrimaryButton(
+                                              label: 'Créer le profil',
                                               focusNode: _submitFocusNode,
                                               loading: state.isSaving,
+                                              height: BootFormTokens
+                                                  .primaryActionHeight,
+                                              buttonStyle:
+                                                  BootFormTokens.bootPrimaryButtonStyle(
+                                                    Theme.of(context),
+                                                  ),
                                               onPressed: state.isSaving
                                                   ? null
                                                   : () async {
@@ -749,13 +761,12 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         ),
                       ],
                     ),
-                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
-    );
+    ));
   }
 }

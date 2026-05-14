@@ -29,6 +29,10 @@ import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 
 const int _searchQueryMinLength = 3;
+const bool _searchFocusDebugEnabled = bool.fromEnvironment(
+  'SEARCH_FOCUS_DEBUG',
+  defaultValue: false,
+);
 
 /// SearchPage (version "content-only" pour être hostée par le Shell).
 ///
@@ -79,6 +83,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Timer? _historyHideTimer;
 
   void _debugSearchFocus(String message) {
+    if (!_searchFocusDebugEnabled) return;
     assert(() {
       debugPrint('[SearchFocus][debug] $message');
       return true;

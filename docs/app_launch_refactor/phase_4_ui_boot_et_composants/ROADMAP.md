@@ -375,13 +375,22 @@ Completer une table :
 
 ```text
 degradation | message | action | format mobile | format desktop | test
+home_feed_failed | homePartialBannerFeedFailed | retryHomeSections | compact column + Wrap | row Expanded + boutons | home_error_banner_test
+library_preload_* | homePartialBannerLibraryUnavailable | retryLibrary | idem | idem | idem
+home_iptv_sections_empty | homePartialBannerIptvEmpty | retryHomeSections, resyncSource | idem | idem | idem
+home_partial / multi codes | homePartialBannerMultiple | selon notice | idem | idem | idem
 ```
+
+Detail : `HOME_PARTIAL_BANNER.md`.
 
 ### Definition de fini
 
 - Home partiel reste dans Home.
 - Les actions rechargent seulement la zone concernee.
 - Les erreurs source avant Home ne passent pas par cette banniere.
+
+**Statut :** livre — banniere compacte, l10n, actions explicites, doc
+`HOME_PARTIAL_BANNER.md`, tests `home_error_banner_test.dart`.
 
 ## Etape 9 - Responsive, TV focus et accessibilite
 
@@ -413,13 +422,23 @@ Completer une table :
 
 ```text
 surface | mobile | desktop | TV/focus | probleme | correction | test
+BootSimpleLoadingScreen | 393x852 OK | — | non interactif | texte long | ellipsis | boot_simple_loading_screen_test
+BootCatalogLoadingScreen | 393x852 OK | — | non interactif | texte long | ellipsis | boot_catalog_loading_screen_test
+BootRecoveryPanel | scroll + largeur | min(w,400) | Tab ordre 1-2 | ordre focus | FocusTraversalOrder | boot_recovery_panel_test
+SplashBootstrapPage | idem recovery | idem | FocusRegionScope | — | existant | manuel / integ
 ```
+
+Detail : `RESPONSIVE_AND_FOCUS.md`.
 
 ### Definition de fini
 
 - Aucun bouton critique n'est inaccessible au clavier.
 - Les textes tiennent dans leurs conteneurs.
 - Le focus initial est coherent sur les ecrans actionnables.
+
+**Statut :** livre — ellipses chargements, recovery `LayoutBuilder` + ordre de
+focus explicite, tests `boot_*_test` + `boot_recovery_panel_test`,
+`RESPONSIVE_AND_FOCUS.md`.
 
 ## Etape 10 - Tests widget et snapshots critiques
 
@@ -460,13 +479,30 @@ Completer une table :
 
 ```text
 test | ecran | entree BootScreenModel | assertion critique | fichier
+idle simple | chargement simple | idle | logo, pas CTA, pas reasonCode | boot_critical_screens_widget_test
+preload catalogue | preparation catalogue | preloadCompleteHome | idem | boot_critical_screens_widget_test
+timeout sync | recovery | welcomeSources + plan timeout | 2 actions | boot_critical_screens_widget_test
+credentials | recovery | plan invalid | 1 action | boot_critical_screens_widget_test
+catalogue vide | recovery | plan empty | resync + changer source | boot_critical_screens_widget_test
+auth | action | auth | Se connecter | boot_critical_screens_widget_test
+profil | action | welcomeUser | Continuer | boot_critical_screens_widget_test
+source | action | welcomeSources | Ajouter source | boot_critical_screens_widget_test
+choose source | action | chooseSource | Choisir source | boot_critical_screens_widget_test
+technical | failure | failure | retry+export, focus | boot_critical_screens_widget_test
+Home partial | banniere | HomeDegradationNotice | l10n, pas reasonCode | boot_critical_screens_widget_test
 ```
+
+Detail : `BOOT_WIDGET_TEST_COVERAGE.md`. Goldens / snapshots : reportes tant que la politique d'equipe n'est pas fixee (voir doc).
 
 ### Definition de fini
 
 - Les ecrans critiques ont un test widget.
 - Les actions sont testables.
 - Les etats non interactifs ne deviennent pas actionnables par regression.
+
+**Statut :** livre — `boot_critical_screens_widget_test.dart`, doc
+`BOOT_WIDGET_TEST_COVERAGE.md`, tests existants completes (mapper, chargements,
+recovery, Home banner).
 
 ## Etape 11 - Verification manuelle ciblee
 
@@ -504,11 +540,18 @@ Completer une table :
 surface | viewport | scenario | resultat | evidence | risque restant
 ```
 
+Voir `MANUAL_UI_VALIDATION.md` (table complete + checklist humaine + limites
+CI).
+
 ### Definition de fini
 
 - Les formats critiques ont ete verifies ou l'impossibilite est documentee.
 - Les problemes bloquants sont corriges ou reportes avec justification.
 - La Phase 5 peut supprimer le legacy avec une base UI stable.
+
+**Statut :** livre — substitution par tests widget + `flutter analyze` +
+`flutter test test/core/startup/` ; parcours `flutter run` / TV documentes comme
+**a valider** hors agent ; fichier `MANUAL_UI_VALIDATION.md`.
 
 ## Etape 12 - Synthese Phase 4
 
@@ -539,11 +582,16 @@ Creer ou completer :
 docs/app_launch_refactor/phase_4_ui_boot_et_composants/DECISIONS.md
 ```
 
+Fichier produit : `DECISIONS.md` (synthese complete).
+
 ### Definition de fini
 
 - La Phase 5 sait quels widgets legacy supprimer ou conserver.
 - La Phase 6 sait quels textes/logs localiser ou normaliser.
 - La Phase 7 sait quels scenarios UI reprendre en validation globale.
+
+**Statut :** livre — `DECISIONS.md` ; renderer nomme distinct volontairement non
+extrait (comportement branche dans `SplashBootstrapPage`, voir synthese).
 
 ## Livrables de la phase
 
@@ -569,20 +617,20 @@ docs/app_launch_refactor/phase_4_ui_boot_et_composants/DECISIONS.md
 - [x] Composants existants relus et ecarts Figma documentes.
 - [x] Contrat `BootScreenModel -> Widget` defini.
 - [ ] Renderer boot cree ou branche.
-- [ ] Chargements simples implementes.
-- [ ] Logo reel utilise via `MoviAssetIcon` et `AppAssets.iconAppLogoSvg`.
-- [ ] Texte bas ecran conserve hors du flux logo centre.
-- [ ] Chargement catalogue implemente.
-- [ ] `catalog_preparing` non interactif.
-- [ ] Recovery action panel implemente.
-- [ ] Actions principales focusables.
-- [ ] Actions secondaires conditionnelles rendues.
-- [ ] Variantes composants boot ajoutees seulement si necessaire.
-- [ ] Pages d'action auth/profil/source alignees sans deplacer la logique metier.
-- [ ] Banniere Home partiel alignee.
-- [ ] Responsive mobile `393x852` verifie.
-- [ ] Desktop largeur contrainte verifiee.
-- [ ] TV/focus clavier verifie ou impossibilite documentee.
-- [ ] Tests widget critiques ajoutes ou mis a jour.
-- [ ] Verification manuelle faite ou impossibilite documentee.
-- [ ] Synthese Phase 4 produite.
+- [x] Chargements simples implementes.
+- [x] Logo reel utilise via `MoviAssetIcon` et `AppAssets.iconAppLogoSvg`.
+- [x] Texte bas ecran conserve hors du flux logo centre.
+- [x] Chargement catalogue implemente.
+- [x] `catalog_preparing` non interactif.
+- [x] Recovery action panel implemente.
+- [x] Actions principales focusables.
+- [x] Actions secondaires conditionnelles rendues.
+- [x] Variantes composants boot ajoutees seulement si necessaire.
+- [x] Pages d'action auth/profil/source alignees sans deplacer la logique metier.
+- [x] Banniere Home partiel alignee.
+- [x] Responsive mobile `393x852` verifie.
+- [x] Desktop largeur contrainte verifiee.
+- [x] TV/focus clavier verifie ou impossibilite documentee.
+- [x] Tests widget critiques ajoutes ou mis a jour.
+- [x] Verification manuelle faite ou impossibilite documentee.
+- [x] Synthese Phase 4 produite.

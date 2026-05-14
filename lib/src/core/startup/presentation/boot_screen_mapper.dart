@@ -48,7 +48,10 @@ final class BootScreenMapper {
         severity: BootScreenSeverity.info,
         showLogo: true,
         showProgress: true,
-        metadata: _metadata(state),
+        metadata: <String, Object?>{
+          ..._metadata(state),
+          'catalogCacheReady': state.criteria.hasIptvCatalogReady,
+        },
       ),
       AppLaunchPhase.done => _loading(
         message: "Ouverture de l'accueil",
@@ -82,6 +85,7 @@ final class BootScreenMapper {
         primaryActionLabel: 'Continuer',
         destination: state.destination,
         state: state,
+        metadata: const <String, Object?>{'profileAction': 'create_or_select'},
       ),
       BootstrapDestination.welcomeSources =>
         state.recoveryPlan != null
@@ -228,6 +232,7 @@ final class BootScreenMapper {
     required AppLaunchState state,
     BootActionIntent? secondaryAction,
     String? secondaryActionLabel,
+    Map<String, Object?> metadata = const <String, Object?>{},
   }) {
     return BootScreenModel(
       screenType: BootScreenType.actionRequired,
@@ -244,15 +249,16 @@ final class BootScreenMapper {
       severity: BootScreenSeverity.warning,
       showLogo: true,
       showProgress: false,
-      metadata: _metadata(state),
+      metadata: <String, Object?>{..._metadata(state), ...metadata},
     );
   }
 
   BootScreenModel _technicalFailure(AppLaunchState state) {
     return BootScreenModel(
       screenType: BootScreenType.technicalFailure,
-      title: 'Lancement interrompu',
-      message: 'Une erreur empeche le lancement.',
+      title: 'Echec de lancement',
+      message:
+          "Movi n'a pas pu demarrer. Un probleme technique empeche l'ouverture de l'application.",
       secondaryMessage: state.recoveryMessage,
       reasonCode: state.recovery?.reasonCode ?? 'technical_failure',
       primaryAction: BootActionIntent.retry,

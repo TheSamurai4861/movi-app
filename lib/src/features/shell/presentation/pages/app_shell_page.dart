@@ -1,16 +1,18 @@
 // lib/src/features/shell/presentation/pages/app_shell_page.dart
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 // Shell
 import 'package:movi/src/core/focus/domain/directional_edge.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
-import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_scroll_to_top_controller.dart';
@@ -396,8 +398,16 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
               message: launchRecovery!.message,
               onRetry: () {
                 if (!context.mounted) return;
-                ref.read(appLaunchOrchestratorProvider.notifier).reset();
-                context.go(AppRouteNames.launch);
+                unawaited(
+                  executeBootAction(
+                    context,
+                    ref,
+                    BootActionRequest(
+                      intent: BootActionIntent.retry,
+                      reasonCode: launchRecovery.reasonCode,
+                    ),
+                  ),
+                );
               },
             ),
           ),

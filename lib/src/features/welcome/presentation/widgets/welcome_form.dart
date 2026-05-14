@@ -1,8 +1,10 @@
 // lib/src/features/welcome/presentation/widgets/welcome_form.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
+import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -98,10 +100,9 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
       return;
     }
 
-    // Sinon, on utilise le provider interne + nav directe.
+    // Sinon, on utilise le provider interne puis on rend la main au boot.
     final ctrl = ref.read(iptvConnectControllerProvider.notifier);
     final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
     final l10n = AppLocalizations.of(context)!;
     final ok = await ctrl.connect(
       sourceType: IptvSourceType.xtream,
@@ -109,12 +110,21 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
       username: _userCtrl.text.trim(),
       password: _passCtrl.text,
     );
+    if (!mounted || !context.mounted) return;
     if (ok) {
       // ✅ Nav immédiate — la synchro tourne en arrière-plan (voir iptv_connect_providers)
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.snackbarSourceAddedBackground)),
       );
-      router.go(AppRouteNames.home);
+      await executeBootAction(
+        context,
+        ref,
+        const BootActionRequest(
+          intent: BootActionIntent.retry,
+          reasonCode: 'source_connected',
+          destinationOverride: AppRoutePaths.welcomeSourceLoading,
+        ),
+      );
     } else {
       final err = ref.read(iptvConnectControllerProvider).error;
       final msg = err == null || err.isEmpty
@@ -138,73 +148,93 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
       child: Column(
         children: [
           // URL
-          LabeledField(
-            label: AppLocalizations.of(context)!.iptvServerUrlLabel,
-            child: TextFormField(
-              controller: _urlCtrl,
-              focusNode: _focusUrl,
-              readOnly: isLoading,
-              autofillHints: const [AutofillHints.url],
-              keyboardType: TextInputType.url,
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _focusUser.requestFocus(),
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.iptvServerUrlHint,
+          BootFormTokens.constrainTextField(
+            LabeledField(
+              label: AppLocalizations.of(context)!.iptvServerUrlLabel,
+              child: TextFormField(
+                controller: _urlCtrl,
+                focusNode: _focusUrl,
+                readOnly: isLoading,
+                autofillHints: const [AutofillHints.url],
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) => _focusUser.requestFocus(),
+                decoration:
+                    BootFormTokens.bootTextFieldDecoration(
+                      Theme.of(context),
+                    ).copyWith(
+                      hintText: AppLocalizations.of(context)!.iptvServerUrlHint,
+                    ),
+                validator: (v) => (XtreamEndpoint.tryParse(v ?? '') == null)
+                    ? AppLocalizations.of(context)!.validationInvalidUrl
+                    : null,
               ),
-              validator: (v) => (XtreamEndpoint.tryParse(v ?? '') == null)
-                  ? AppLocalizations.of(context)!.validationInvalidUrl
-                  : null,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
 
           // Username
-          LabeledField(
-            label: AppLocalizations.of(context)!.iptvUsernameLabel,
-            child: TextFormField(
-              controller: _userCtrl,
-              focusNode: _focusUser,
-              readOnly: isLoading,
-              autofillHints: const [AutofillHints.username],
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _focusPass.requestFocus(),
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.iptvUsernameHint,
+          BootFormTokens.constrainTextField(
+            LabeledField(
+              label: AppLocalizations.of(context)!.iptvUsernameLabel,
+              child: TextFormField(
+                controller: _userCtrl,
+                focusNode: _focusUser,
+                readOnly: isLoading,
+                autofillHints: const [AutofillHints.username],
+                textInputAction: TextInputAction.next,
+                onFieldSubmitted: (_) => _focusPass.requestFocus(),
+                decoration:
+                    BootFormTokens.bootTextFieldDecoration(
+                      Theme.of(context),
+                    ).copyWith(
+                      hintText: AppLocalizations.of(context)!.iptvUsernameHint,
+                    ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? AppLocalizations.of(context)!.validationRequired
+                    : null,
               ),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? AppLocalizations.of(context)!.validationRequired
-                  : null,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
 
           // Password
-          LabeledField(
-            label: AppLocalizations.of(context)!.iptvPasswordLabel,
-            child: TextFormField(
-              controller: _passCtrl,
-              focusNode: _focusPass,
-              readOnly: isLoading,
-              autofillHints: const [AutofillHints.password],
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _focusSubmit.requestFocus(),
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.iptvPasswordHint,
-                suffixIcon: IconButton(
-                  onPressed: isLoading
-                      ? null
-                      : () => ref
-                            .read(welcomeControllerProvider.notifier)
-                            .toggleObscure(),
-                  icon: Icon(
-                    ui.isObscured ? Icons.visibility_off : Icons.visibility,
-                  ),
-                ),
+          BootFormTokens.constrainTextField(
+            LabeledField(
+              label: AppLocalizations.of(context)!.iptvPasswordLabel,
+              child: TextFormField(
+                controller: _passCtrl,
+                focusNode: _focusPass,
+                readOnly: isLoading,
+                autofillHints: const [AutofillHints.password],
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _focusSubmit.requestFocus(),
+                decoration:
+                    BootFormTokens.bootTextFieldDecoration(
+                      Theme.of(context),
+                    ).copyWith(
+                      hintText: AppLocalizations.of(context)!.iptvPasswordHint,
+                      suffixIcon: IconButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => ref
+                                  .read(welcomeControllerProvider.notifier)
+                                  .toggleObscure(),
+                        icon: Icon(
+                          ui.isObscured
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                      ),
+                      suffixIconColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant,
+                    ),
+                obscureText: ui.isObscured,
+                validator: (v) => (v == null || v.isEmpty)
+                    ? AppLocalizations.of(context)!.validationRequired
+                    : null,
               ),
-              obscureText: ui.isObscured,
-              validator: (v) => (v == null || v.isEmpty)
-                  ? AppLocalizations.of(context)!.validationRequired
-                  : null,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -213,13 +243,16 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
           // Actions
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: SizedBox(
-              width: double.infinity,
-              child: MoviPrimaryButton(
+            child: BootFormTokens.constrainPrimaryAction(
+              MoviPrimaryButton(
                 label: AppLocalizations.of(context)!.welcomeSourceAdd,
                 focusNode: _focusSubmit,
                 onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
                 loading: isLoading,
+                height: BootFormTokens.primaryActionHeight,
+                buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+                  Theme.of(context),
+                ),
               ),
             ),
           ),

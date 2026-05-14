@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_service.dart';
 
 class ImagePipelineTelemetry {
@@ -74,6 +75,7 @@ class ImagePipelineTelemetry {
     LoggingService.log(
       '[ImagePipeline] $message',
       category: 'image_pipeline',
+      level: error == null ? LogLevel.info : LogLevel.warn,
       error: error,
       stackTrace: stackTrace,
     );

@@ -96,6 +96,90 @@ void main() {
       expect(result.destination, BootstrapDestination.welcomeUser);
       expect(result.meta.accountId, isNull);
       expect(result.meta.profilesCount, 0);
+      expect(result.meta.selectedProfileId, isNull);
+      expect(harness.selectedProfilePreferences.selectedProfileId, isNull);
+    },
+  );
+
+  test(
+    'auto-selects the only local profile when no valid selection exists',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      final created = await harness.localProfiles.createProfile(
+        name: 'Only Profile',
+        color: 0xFF2160AB,
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(result.meta.profilesCount, 1);
+      expect(result.meta.selectedProfileId, created.id);
+      expect(harness.selectedProfilePreferences.selectedProfileId, created.id);
+    },
+  );
+
+  test(
+    'restores a valid local profile selection when multiple profiles exist',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'First Profile',
+        color: 0xFF2160AB,
+      );
+      final selected = await harness.localProfiles.createProfile(
+        name: 'Selected Profile',
+        color: 0xFF1F8A70,
+      );
+      await harness.selectedProfilePreferences.setSelectedProfileId(
+        selected.id,
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(result.meta.profilesCount, 2);
+      expect(result.meta.selectedProfileId, selected.id);
+      expect(harness.selectedProfilePreferences.selectedProfileId, selected.id);
+    },
+  );
+
+  test(
+    'requires profile selection when multiple profiles have no valid selection',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      final first = await harness.localProfiles.createProfile(
+        name: 'First Profile',
+        color: 0xFF2160AB,
+      );
+      await harness.localProfiles.createProfile(
+        name: 'Second Profile',
+        color: 0xFF1F8A70,
+      );
+      await harness.selectedProfilePreferences.setSelectedProfileId(
+        'stale_profile',
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeUser);
+      expect(result.meta.profilesCount, 2);
+      expect(result.meta.selectedProfileId, isNull);
+      expect(harness.selectedProfilePreferences.selectedProfileId, isNull);
+      expect(
+        harness.selectedProfilePreferences.selectedProfileId,
+        isNot(first.id),
+      );
+      expect(harness.homeController.loadCalls, 0);
     },
   );
 
@@ -320,6 +404,136 @@ void main() {
   );
 
   test(
+    'startup contract logs keep a single run_id across critical transitions',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyTelemetryV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_contract_run_id';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      harness.refreshXtreamCatalog.beforeResult = (sourceId) async {
+        await harness.iptvLocal.savePlaylists(sourceId, <XtreamPlaylist>[
+          const XtreamPlaylist(
+            id: 'pl_movies',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film local',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      };
+
+      final result = await harness.run();
+
+      expect(result.destination, BootstrapDestination.home);
+      final contractMessages = harness.logger.events
+          .where((event) => event.category == 'startup_contract')
+          .map((event) => event.message)
+          .toList(growable: false);
+      expect(contractMessages, isNotEmpty);
+
+      final runIds = contractMessages
+          .map(
+            (message) =>
+                RegExp(r'run_id=([^\s]+)').firstMatch(message)?.group(1),
+          )
+          .whereType<String>()
+          .toSet();
+      expect(runIds.length, 1, reason: 'All contract logs must share run_id');
+
+      final allMessages = contractMessages.join('\n');
+      expect(allMessages, contains('event=boot_state_changed'));
+      expect(allMessages, contains('event=boot_run_started'));
+      expect(allMessages, contains('event=entry_journey_completed'));
+      expect(allMessages, contains('event=catalog_preparation_started'));
+      expect(allMessages, contains('event=catalog_preparation_completed'));
+    },
+  );
+
+  test(
+    'startup contract logs avoid raw source id and network endpoint details',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyTelemetryV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_contract_redaction';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com:8080'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      harness.refreshXtreamCatalog.beforeResult = (sourceId) async {
+        await harness.iptvLocal.savePlaylists(sourceId, <XtreamPlaylist>[
+          const XtreamPlaylist(
+            id: 'pl_movies',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film local',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      };
+
+      await harness.run();
+
+      final contractLogs = harness.logger.events
+          .where((event) => event.category == 'startup_contract')
+          .map((event) => event.message)
+          .join('\n');
+      expect(contractLogs, isNot(contains(accountId)));
+      expect(contractLogs, isNot(contains('example.com')));
+      expect(contractLogs, contains('source_key='));
+      expect(contractLogs, isNot(contains('source_id=')));
+    },
+  );
+
+  test(
     'shadow tunnel reports authRequired when cloud auth is enabled and no session exists',
     () async {
       final harness = await _LaunchHarness.create(
@@ -390,7 +604,7 @@ void main() {
       expect(result.isSuccess, isTrue);
       expect(result.destination, BootstrapDestination.auth);
       expect(result.meta.accountId, isNull);
-      expect(harness.authRepository.refreshCalls, 0);
+      expect(harness.authRepository.refreshCalls, 1);
       expect(harness.homeController.loadCalls, 0);
     },
   );
@@ -947,6 +1161,67 @@ void main() {
   );
 
   test(
+    'restores the last valid selected source when multiple local sources exist',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+
+      Future<void> saveSource(String accountId) async {
+        await harness.iptvLocal.saveAccount(
+          XtreamAccount(
+            id: accountId,
+            alias: accountId,
+            endpoint: XtreamEndpoint.parse('http://example.com'),
+            username: 'demo',
+            status: XtreamAccountStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_$accountId',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film $accountId',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      await saveSource('source_1');
+      await saveSource('source_2');
+      await harness.selectedSourcePreferences.setSelectedSourceId('source_2');
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.meta.selectedSourceId, 'source_2');
+      expect(harness.selectedSourcePreferences.selectedSourceId, 'source_2');
+      expect(
+        harness.container.read(appStateControllerProvider).activeIptvSourceIds,
+        {'source_2'},
+      );
+      expect(harness.homeController.loadCalls, 1);
+    },
+  );
+
+  test(
     'returns welcomeSources without backend when local profile exists but no local source exists',
     () async {
       final harness = await _LaunchHarness.create();
@@ -1235,6 +1510,25 @@ void main() {
         ),
       );
       harness.refreshXtreamCatalog.beforeResult = (sourceId) async {
+        expect(sourceId, accountId);
+        expect(
+          harness.selectedSourcePreferences.selectedSourceId,
+          accountId,
+          reason: 'The selected source must be persisted before refresh.',
+        );
+        expect(
+          harness.container
+              .read(appStateControllerProvider)
+              .activeIptvSourceIds,
+          contains(accountId),
+          reason: 'The selected source must be active before refresh.',
+        );
+        expect(
+          harness.homeController.loadCalls,
+          0,
+          reason: 'Home must not preload before catalog readiness is resolved.',
+        );
+
         await harness.iptvLocal.savePlaylists(sourceId, <XtreamPlaylist>[
           XtreamPlaylist(
             id: 'pl_movies',
@@ -1261,6 +1555,7 @@ void main() {
       expect(result.isSuccess, isTrue);
       expect(result.destination, BootstrapDestination.home);
       expect(result.meta.iptvCatalogReady, isTrue);
+      expect(result.meta.selectedSourceId, accountId);
       expect(harness.refreshXtreamCatalog.calls, 1);
       expect(harness.homeController.loadCalls, 1);
       final firstRunCatalogLogs = harness.logger.events
@@ -1331,6 +1626,7 @@ void main() {
       final launchState = harness.container.read(appLaunchStateProvider);
       expect(launchState.status, AppLaunchStatus.running);
       expect(launchState.phase, AppLaunchPhase.preloadCompleteHome);
+      expect(harness.homeController.loadCalls, 0);
       final model = harness.container.read(bootScreenModelProvider);
       expect(model.reasonCode, 'catalog_preparing');
       expect(sl<TunnelStateRegistry>().state.stage, TunnelStage.preloadingHome);
@@ -1487,10 +1783,12 @@ void main() {
       expect(harness.refreshXtreamCatalog.calls, 3);
       expect(harness.homeController.loadCalls, 0);
       expect(harness.xtreamSyncService.startCalls, 0);
-      expect(
-        harness.logger.events.map((event) => event.message).join('\n'),
-        contains('catalog_provider_error'),
-      );
+      final logMessages = harness.logger.events
+          .map((event) => event.message)
+          .join('\n');
+      expect(logMessages, contains('catalog_provider_error'));
+      expect(logMessages, contains('event=catalog_preparation_failed'));
+      expect(logMessages, contains('destination=welcomeSources'));
       expect(harness.container.read(homeDegradationNoticeProvider), isNull);
     },
   );

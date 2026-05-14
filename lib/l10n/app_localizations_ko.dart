@@ -353,6 +353,38 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeErrorSwipeToRetry => '오류가 발생했습니다. 아래로 스와이프하여 다시 시도하세요.';
 
   @override
+  String get homePartialBannerFeedFailed =>
+      'Some home sections could not be loaded.';
+
+  @override
+  String get homePartialBannerLibraryUnavailable =>
+      'Continue watching could not be loaded.';
+
+  @override
+  String get homePartialBannerIptvEmpty =>
+      'IPTV categories are empty or unavailable.';
+
+  @override
+  String get homePartialBannerMultiple =>
+      'Several areas of the home screen could not be loaded.';
+
+  @override
+  String get homePartialBannerGeneric =>
+      'Part of the home screen could not be loaded.';
+
+  @override
+  String get homePartialActionRetrySections => 'Reload sections';
+
+  @override
+  String get homePartialActionRetryLibrary => 'Reload continue watching';
+
+  @override
+  String get homePartialActionResyncSource => 'Resync source';
+
+  @override
+  String get homePartialActionRetryGeneric => 'Retry';
+
+  @override
   String get homeContinueWatching => '계속 시청';
 
   @override
@@ -492,6 +524,160 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get overlayPreparingMetadata => '메타데이터 준비 중…';
+
+  @override
+  String get bootCatalogLocalCacheReady => '로컬 카탈로그 준비됨 — 마무리 중…';
+
+  @override
+  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+
+  @override
+  String get bootLoadingCheckingSession => 'Checking session…';
+
+  @override
+  String get bootLoadingCheckingProfile => 'Checking profile…';
+
+  @override
+  String get bootLoadingCheckingSource => 'Checking source…';
+
+  @override
+  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+
+  @override
+  String get bootActionAuthTitle => 'Sign in required';
+
+  @override
+  String get bootActionAuthMessage => 'Sign in to continue.';
+
+  @override
+  String get bootActionProfileTitle => 'Profile required';
+
+  @override
+  String get bootActionProfileMessage =>
+      'Create or choose a profile to continue.';
+
+  @override
+  String get bootActionSourceRequiredTitle => 'Source required';
+
+  @override
+  String get bootActionSourceRequiredMessage =>
+      'Add or reconnect a source to continue.';
+
+  @override
+  String get bootActionSourceSelectionTitle => 'Source selection';
+
+  @override
+  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+
+  @override
+  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+
+  @override
+  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+
+  @override
+  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+
+  @override
+  String get bootRecoverySourceProviderMessage =>
+      'Retry loading or change source.';
+
+  @override
+  String get bootRecoverySourceCredentialsTitle =>
+      'Unable to connect to source';
+
+  @override
+  String get bootRecoverySourceCredentialsMessage =>
+      'Reconnect the source to continue.';
+
+  @override
+  String get bootRecoverySourceEmptyTitle => 'No content found';
+
+  @override
+  String get bootRecoverySourceEmptyMessage =>
+      'Resync the source or choose another one.';
+
+  @override
+  String get bootFailureTitle => 'Launch interrupted';
+
+  @override
+  String get bootFailureMessage => 'An error prevents the launch.';
+
+  @override
+  String get bootActionExportLogs => 'Export logs';
+
+  @override
+  String get bootActionLogin => 'Sign in';
+
+  @override
+  String get bootActionChooseProfile => 'Choose a profile';
+
+  @override
+  String get bootActionAddSource => 'Add a source';
+
+  @override
+  String get bootActionChooseSource => 'Change source';
+
+  @override
+  String get bootActionReconnectSource => 'Reconnect source';
+
+  @override
+  String get bootActionResyncSource => 'Resync';
+
+  @override
+  String get bootActionOpenHome => 'Open home';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+
+  @override
+  String get welcomeSourceRefreshTooltip => 'Refresh';
+
+  @override
+  String get welcomeSourceNoRemoteSourcesMessage =>
+      'No source found on Supabase. Add or activate one below.';
+
+  @override
+  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+
+  @override
+  String get welcomeSourceNameLabel => 'Source name';
+
+  @override
+  String get welcomeSourceNameHint => 'My IPTV';
+
+  @override
+  String get welcomeSourceServerUrlLabel => 'Server URL';
+
+  @override
+  String get welcomeSourceServerUrlHint => 'https://example.com:port';
+
+  @override
+  String get welcomeSourceUsernameLabel => 'Username';
+
+  @override
+  String get welcomeSourcePasswordLabel => 'Password';
+
+  @override
+  String get welcomeSourceActivateAction => 'Activate';
+
+  @override
+  String welcomeSourceExpiresOn(String date) {
+    return 'Expires: $date';
+  }
+
+  @override
+  String get welcomeSourceNoExpiration => 'No expiration date';
+
+  @override
+  String get welcomeUserProfileLockedTitle => 'Profile locked';
+
+  @override
+  String get welcomeUserProfileLockedReason =>
+      'Enter the PIN to switch profile.';
+
+  @override
+  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
 
   @override
   String get errorHomeLoadTimeout => '홈 로드 시간 초과';

@@ -15,6 +15,7 @@ import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/parental/presentation/pages/pin_recovery_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_forgot_password_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_password_page.dart';
+import 'package:movi/src/features/auth/presentation/auth_sign_up_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_update_password_page.dart';
 import 'package:movi/src/features/auth/presentation/auth_otp_page.dart';
 import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
@@ -51,7 +52,6 @@ import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/welcome_source_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/welcome_source_select_page.dart';
-import 'package:movi/src/features/welcome/presentation/pages/welcome_source_loading_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
@@ -124,19 +124,15 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
           const MaterialPage(child: WelcomeSourceSelectPage()),
     ),
 
-    // Étape 2ter: chargement initial des playlists IPTV
+    // Étape intermédiaire explicite: chargement du catalogue source.
     GoRoute(
       path: AppRoutePaths.welcomeSourceLoading,
       name: AppRouteIds.welcomeSourceLoading,
-      pageBuilder: (context, state) {
-        final forceCatalogReload =
-            state.uri.queryParameters['force_reload'] == '1';
-        return MaterialPage(
-          child: WelcomeSourceLoadingPage(
-            forceCatalogReload: forceCatalogReload,
+      pageBuilder: (context, state) =>
+          const CustomTransitionPage(
+            child: SplashBootstrapPage(),
+            transitionsBuilder: _fadeTransition,
           ),
-        );
-      },
     ),
 
     GoRoute(
@@ -156,6 +152,12 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
               : AuthPasswordPage(returnOnSuccess: returnOnSuccess),
         );
       },
+    ),
+    GoRoute(
+      path: AppRoutePaths.authSignUp,
+      name: AppRouteIds.authSignUp,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: AuthSignUpPage()),
     ),
     GoRoute(
       path: AppRoutePaths.authForgotPassword,

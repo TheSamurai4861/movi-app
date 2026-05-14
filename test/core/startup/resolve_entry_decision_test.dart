@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 import 'package:movi/src/core/startup/domain/boot_contracts.dart';
 import 'package:movi/src/core/startup/domain/entry_journey_contracts.dart';
@@ -55,6 +55,28 @@ void main() {
       EntryDecisionReasonCodes.profileSelectionRequired,
     );
   });
+
+  test(
+    'routes multiple profiles without local selection to profile selection',
+    () {
+      final decision = resolver(
+        _input(
+          profiles: const ProfilesContractSnapshot(
+            count: 2,
+            hasValidSelection: false,
+            reasonCode: 'profile_selection_required',
+          ),
+          resolvedProfileId: null,
+        ),
+      );
+
+      expect(decision, isA<RequireProfile>());
+      expect(
+        decision.reasonCode,
+        EntryDecisionReasonCodes.profileSelectionRequired,
+      );
+    },
+  );
 
   test('routes missing source to source creation', () {
     final decision = resolver(
@@ -129,6 +151,29 @@ void main() {
     expect(openHome.catalogMode, CatalogMode.cached);
   });
 
+  test('routes selected source with ready catalog to home', () {
+    final decision = resolver(
+      _input(
+        sources: const SourcesContractSnapshot(
+          localCount: 1,
+          remoteCount: 0,
+          hasValidSelection: true,
+          requiresManualSelection: false,
+          selectedSourceId: 'source_ready',
+          reasonCode: 'sources_ready',
+        ),
+        resolvedSourceId: 'source_ready',
+        catalogMode: CatalogMode.fresh,
+      ),
+    );
+
+    expect(decision, isA<OpenHome>());
+    final openHome = decision as OpenHome;
+    expect(openHome.reasonCode, EntryDecisionReasonCodes.entryReady);
+    expect(openHome.sourceId, 'source_ready');
+    expect(openHome.catalogMode, CatalogMode.fresh);
+  });
+
   test('keeps local-first path available without a cloud session', () {
     final decision = resolver(
       _input(
@@ -143,7 +188,7 @@ void main() {
     expect(decision, isA<OpenHome>());
   });
 
-  test('does not open home when catalog mode is not exploitable', () {
+  test('routes selected source with missing catalog to source action', () {
     final decision = resolver(_input(catalogMode: CatalogMode.missing));
 
     expect(decision, isA<RequireSource>());

@@ -26,7 +26,31 @@ void main() {
       expect(model.isInteractive, isFalse);
       expect(model.primaryAction, isNull);
       expect(model.initialFocus, BootFocusTarget.none);
+      expect(model.metadata['catalogCacheReady'], isFalse);
     });
+
+    test(
+      'maps catalog loading with catalogCacheReady when IPTV catalog ready',
+      () {
+        final model = mapper.fromLaunchState(
+          const AppLaunchState(
+            status: AppLaunchStatus.running,
+            phase: AppLaunchPhase.preloadCompleteHome,
+            criteria: AppLaunchCriteria(
+              hasSession: true,
+              hasSelectedProfile: true,
+              hasSelectedSource: true,
+              hasIptvCatalogReady: true,
+              hasHomePreloaded: false,
+              hasLibraryReady: false,
+            ),
+          ),
+        );
+
+        expect(model.screenType, BootScreenType.catalogLoading);
+        expect(model.metadata['catalogCacheReady'], isTrue);
+      },
+    );
 
     test('maps auth destination to login action', () {
       final model = mapper.fromLaunchState(
@@ -41,6 +65,22 @@ void main() {
       expect(model.primaryAction, BootActionIntent.login);
       expect(model.destination, BootstrapDestination.auth);
       expect(model.initialFocus, BootFocusTarget.primaryAction);
+    });
+
+    test('maps profile destination to create-or-select profile action', () {
+      final model = mapper.fromLaunchState(
+        const AppLaunchState(
+          status: AppLaunchStatus.success,
+          destination: BootstrapDestination.welcomeUser,
+        ),
+      );
+
+      expect(model.screenType, BootScreenType.actionRequired);
+      expect(model.reasonCode, 'profile_required');
+      expect(model.primaryAction, BootActionIntent.createProfile);
+      expect(model.primaryActionLabel, 'Continuer');
+      expect(model.destination, BootstrapDestination.welcomeUser);
+      expect(model.metadata['profileAction'], 'create_or_select');
     });
 
     test('maps source selection destination to choose source action', () {

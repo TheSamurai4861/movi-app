@@ -15,22 +15,21 @@ import 'package:movi/src/core/focus/presentation/focus_directional_navigation.da
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
-import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
-import 'package:movi/src/features/welcome/presentation/widgets/welcome_faq_row.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 /// Écran "Welcome Sources".
@@ -71,6 +70,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
 
   bool _loadingSources = false;
   String? _sourcesError;
+  String? _formErrorMessage;
+  String? _sourceFailureMessage;
+  bool _sourceLoadFailed = false;
+  bool _hasAttemptedInitialSourceLoad = false;
+  String? _failedSourceId;
   bool _obscurePassword = true;
   bool _isHandlingBack = false;
   List<SupabaseIptvSourceEntity> _sources = const <SupabaseIptvSourceEntity>[];
@@ -157,8 +161,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
       return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.goBack ||
-        event.logicalKey == LogicalKeyboardKey.escape ||
-        event.logicalKey == LogicalKeyboardKey.backspace) {
+        event.logicalKey == LogicalKeyboardKey.escape) {
       return _handleBack(context)
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
@@ -289,6 +292,10 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
       // Auto-sélection + pré-remplissage si possible
       if (_sources.isNotEmpty && _selectedSourceId == null) {
         _selectSource(_sources.first);
+      }
+      if (_sources.isNotEmpty && !_hasAttemptedInitialSourceLoad) {
+        _hasAttemptedInitialSourceLoad = true;
+        unawaited(_activateSource(_sources.first, isInitialAttempt: true));
       }
     } catch (e, st) {
       if (!mounted) return;
@@ -421,28 +428,42 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   }
 
   Future<void> _activate() async {
-    final l10n = AppLocalizations.of(context)!;
+    await _activateCurrentFormSource();
+  }
 
+  Future<void> _activateCurrentFormSource({
+    bool isInitialAttempt = false,
+    bool isRetryFromFailure = false,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
     final serverUrl = _serverCtrl.text.trim();
     final username = _userCtrl.text.trim();
     final password = _passCtrl.text.trim();
     final alias = _nameCtrl.text.trim();
 
     if (serverUrl.isEmpty || username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorFillFields)));
+      setState(() {
+        _formErrorMessage = 'Tous les champs sont obligatoires.';
+      });
       return;
     }
 
     final controller = ref.read(iptvConnectControllerProvider.notifier);
-
     final policy =
         (_selectedSourceId != null ||
             _matchesSupabaseSource(serverUrl: serverUrl, username: username))
         ? IptvConnectSupabasePolicy.localOnly
         : IptvConnectSupabasePolicy.bestEffortSupabase;
     controller.setSupabasePolicy(policy);
+
+    setState(() {
+      _formErrorMessage = null;
+      _sourceFailureMessage = null;
+      _sourceLoadFailed = false;
+      if (!isInitialAttempt) {
+        _failedSourceId = null;
+      }
+    });
 
     unawaited(
       LoggingService.log(
@@ -462,35 +483,59 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     if (!mounted) return;
 
     if (success) {
-      unawaited(
-        LoggingService.log(
-          'WelcomeSources: activate success - redirecting to loading page',
-        ),
+      await _runBootAction(
+        context,
+        BootActionIntent.retry,
+        'source_connected',
+        destinationOverride: AppRoutePaths.welcomeSourceLoading,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.snackbarSourceAddedBackground)),
-      );
-      if (mounted) {
-        await _runBootAction(
-          context,
-          BootActionIntent.resyncSource,
-          'source_connected',
-          destinationOverride:
-              '${AppRoutePaths.welcomeSourceLoading}?force_reload=1',
-        );
-      }
       return;
     }
 
-    final error =
+    final rawError =
         ref.read(iptvConnectControllerProvider).error ?? l10n.errorUnknown;
+    final mapped = _mapSourceError(rawError);
+    setState(() {
+      _formErrorMessage = mapped;
+      if (isInitialAttempt || isRetryFromFailure) {
+        _sourceLoadFailed = true;
+        _sourceFailureMessage =
+            'La source sélectionnée n’a pas pu être chargée. Réessayez ou choisissez une autre option.';
+        _failedSourceId = _selectedSourceId;
+      }
+    });
+  }
 
-    unawaited(
-      LoggingService.log('WelcomeSources: activate failed error=$error'),
+  Future<void> _activateSource(
+    SupabaseIptvSourceEntity source, {
+    bool isInitialAttempt = false,
+    bool isRetryFromFailure = false,
+  }) async {
+    _selectSource(source);
+    await _maybePrefillPassword(source);
+    await _activateCurrentFormSource(
+      isInitialAttempt: isInitialAttempt,
+      isRetryFromFailure: isRetryFromFailure,
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.errorConnectionFailed(error))));
+  }
+
+  String _mapSourceError(String error) {
+    final lower = error.toLowerCase();
+    if (lower.contains('timeout')) {
+      return 'Le serveur met trop de temps à répondre. Vérifiez la connexion puis réessayez.';
+    }
+    if (lower.contains('401') ||
+        lower.contains('403') ||
+        lower.contains('unauthorized') ||
+        lower.contains('invalid')) {
+      return 'Identifiants invalides. Vérifiez le nom d’utilisateur et le mot de passe.';
+    }
+    if (lower.contains('socket') ||
+        lower.contains('network') ||
+        lower.contains('connection')) {
+      return 'Connexion au serveur impossible. Vérifiez l’URL et votre réseau.';
+    }
+    return 'Impossible de charger la source pour le moment. Réessayez.';
   }
 
   @override
@@ -499,16 +544,167 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     final connectState = ref.watch(iptvConnectControllerProvider);
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
-    final screenSize = MediaQuery.sizeOf(context);
-    final screenType = context.resolveScreenType(
-      screenSize.width,
-      screenSize.height,
-    );
-    final contentMaxWidth = screenType == ScreenType.tv ? 760.0 : 520.0;
 
     final isBusy = _loadingSources || connectState.isLoading;
     final hasSavedSources =
         _shouldDisplaySavedSourcesSection && _sources.isNotEmpty;
+    final hasNoSource = _sources.isEmpty;
+    final failedSource = _sources.where((s) => s.id == _failedSourceId).isNotEmpty
+        ? _sources.where((s) => s.id == _failedSourceId).first
+        : null;
+    final alternativeSources = _sources
+        .where((s) => _failedSourceId == null || s.id != _failedSourceId)
+        .toList(growable: false);
+
+    if ((connectState.isLoading || _loadingSources) && !_sourceLoadFailed) {
+      return const Scaffold(
+        body: OverlaySplash(message: 'Vérification de la source...'),
+      );
+    }
+
+    if (_sourceLoadFailed && _sources.isNotEmpty) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: BootFormTokens.textFieldMaxWidth,
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.xl,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const WelcomeHeader(
+                      title: 'Echec de chargement',
+                      subtitle:
+                          'La source sélectionnée n’a pas pu être chargée. Réessayez ou choisissez une autre option.',
+                    ),
+                    if (_sourceFailureMessage != null &&
+                        _sourceFailureMessage!.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        _sourceFailureMessage!,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    if (_formErrorMessage != null) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        _formErrorMessage!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.lg),
+                    BootFormTokens.constrainPrimaryAction(
+                      MoviPrimaryButton(
+                        label: 'Réessayer la source',
+                        focusNode: _submitFocusNode,
+                        onPressed: isBusy
+                            ? null
+                            : () {
+                                final source = failedSource ?? _sources.first;
+                                unawaited(
+                                  _activateSource(
+                                    source,
+                                    isRetryFromFailure: true,
+                                  ),
+                                );
+                              },
+                        height: BootFormTokens.primaryActionHeight,
+                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+                          Theme.of(context),
+                        ),
+                      ),
+                    ),
+                    if (alternativeSources.isNotEmpty) ...[
+                      const SizedBox(height: 32),
+                      Text(
+                        'Ou choisissez une autre source',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final source in alternativeSources)
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF333333),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                              ),
+                              onPressed: isBusy
+                                  ? null
+                                  : () => unawaited(
+                                      _activateSource(
+                                        source,
+                                        isRetryFromFailure: true,
+                                      ),
+                                    ),
+                              child: Text(
+                                source.name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 32),
+                    Text(
+                      'Vous voulez ajouter une source ?',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    BootFormTokens.constrainPrimaryAction(
+                      MoviPrimaryButton(
+                        label: 'Ajouter une nouvelle source',
+                        onPressed: isBusy
+                            ? null
+                            : () {
+                                setState(() {
+                                  _sourceLoadFailed = false;
+                                  _sourceFailureMessage = null;
+                                  _failedSourceId = null;
+                                });
+                              },
+                        height: BootFormTokens.primaryActionHeight,
+                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+                          Theme.of(context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     if (hasSavedSources) {
       _syncSavedSourceFocusNodes(_sources.length);
     } else {
@@ -540,7 +736,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  constraints: const BoxConstraints(
+                    maxWidth: BootFormTokens.textFieldMaxWidth,
+                  ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg,
@@ -550,8 +748,12 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         WelcomeHeader(
-                          title: l10n.welcomeSourceTitle,
-                          subtitle: l10n.welcomeSourceSubtitle,
+                          title: hasNoSource
+                              ? 'Ajout d’une source'
+                              : l10n.welcomeSourceTitle,
+                          subtitle: hasNoSource
+                              ? 'Ajoutez votre première source IPTV.'
+                              : l10n.welcomeSourceSubtitle,
                         ),
                         if (launchRecovery?.isRetryable ?? false) ...[
                           const SizedBox(height: AppSpacing.md),
@@ -593,7 +795,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                         // Afficher seulement si Supabase est disponible
                         if (_shouldDisplaySavedSourcesSection) ...[
                           _SectionHeader(
-                            title: 'Sources sauvegardées',
+                            title: l10n.welcomeSourceSavedSourcesTitle,
                             forceRow: true,
                             trailing: AnimatedBuilder(
                               animation: _refreshAnimation,
@@ -621,7 +823,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                         ),
                                     child: IconButton(
                                       focusNode: _refreshFocusNode,
-                                      tooltip: 'Rafraîchir',
+                                      tooltip: l10n.welcomeSourceRefreshTooltip,
                                       onPressed: isBusy
                                           ? null
                                           : () => unawaited(
@@ -670,9 +872,8 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                               ),
                             )
                           else if (_sources.isEmpty)
-                            const _InfoBox(
-                              message:
-                                  'Aucune source trouvée sur Supabase. Ajoute/active une source ci-dessous.',
+                            _InfoBox(
+                              message: l10n.welcomeSourceNoRemoteSourcesMessage,
                             )
                           else
                             FocusRegionScope(
@@ -720,8 +921,14 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _SectionHeader(title: 'Activer une source'),
-                              const SizedBox(height: AppSpacing.sm),
+                              if (!hasNoSource) ...[
+                                _SectionHeader(
+                                  title: l10n.welcomeSourceActivateSectionTitle,
+                                ),
+                                const SizedBox(
+                                  height: BootFormTokens.formElementGap,
+                                ),
+                              ],
                               MoviEnsureVisibleOnFocus(
                                 verticalAlignment: 0.22,
                                 child: Focus(
@@ -752,23 +959,36 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                             _serverFocusNode,
                                           ),
                                     },
-                                    child: TextField(
-                                      controller: _nameCtrl,
-                                      focusNode: _nameFocusNode,
-                                      enabled: !isBusy,
-                                      textInputAction: TextInputAction.next,
-                                      onSubmitted: (_) =>
-                                          _serverFocusNode.requestFocus(),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Nom de la source',
-                                        hintText: 'Mon IPTV',
-                                        border: OutlineInputBorder(),
+                                    child: BootFormTokens.constrainTextField(
+                                      TextField(
+                                        controller: _nameCtrl,
+                                        focusNode: _nameFocusNode,
+                                        enabled: !isBusy,
+                                        textInputAction: TextInputAction.next,
+                                        onChanged: (_) {
+                                          if (_formErrorMessage != null) {
+                                            setState(() => _formErrorMessage = null);
+                                          }
+                                        },
+                                        onSubmitted: (_) =>
+                                            _serverFocusNode.requestFocus(),
+                                        decoration:
+                                            BootFormTokens.bootTextFieldDecoration(
+                                              Theme.of(context),
+                                            ).copyWith(
+                                              labelText:
+                                                  'Nom de la source',
+                                              hintText:
+                                                  'Nom de la source',
+                                            ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              const SizedBox(
+                                height: BootFormTokens.formElementGap,
+                              ),
                               MoviEnsureVisibleOnFocus(
                                 verticalAlignment: 0.22,
                                 child: Focus(
@@ -796,23 +1016,35 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                             _userFocusNode,
                                           ),
                                     },
-                                    child: TextField(
-                                      controller: _serverCtrl,
-                                      focusNode: _serverFocusNode,
-                                      enabled: !isBusy,
-                                      textInputAction: TextInputAction.next,
-                                      onSubmitted: (_) =>
-                                          _userFocusNode.requestFocus(),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Server URL',
-                                        hintText: 'https://example.com:port',
-                                        border: OutlineInputBorder(),
+                                    child: BootFormTokens.constrainTextField(
+                                      TextField(
+                                        controller: _serverCtrl,
+                                        focusNode: _serverFocusNode,
+                                        enabled: !isBusy,
+                                        textInputAction: TextInputAction.next,
+                                        onChanged: (_) {
+                                          if (_formErrorMessage != null) {
+                                            setState(() => _formErrorMessage = null);
+                                          }
+                                        },
+                                        onSubmitted: (_) =>
+                                            _userFocusNode.requestFocus(),
+                                        decoration:
+                                            BootFormTokens.bootTextFieldDecoration(
+                                              Theme.of(context),
+                                            ).copyWith(
+                                              labelText: 'Serveur',
+                                              hintText: l10n
+                                                  .welcomeSourceServerUrlHint,
+                                            ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              const SizedBox(
+                                height: BootFormTokens.formElementGap,
+                              ),
                               MoviEnsureVisibleOnFocus(
                                 verticalAlignment: 0.22,
                                 child: Focus(
@@ -840,22 +1072,33 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                             _passFocusNode,
                                           ),
                                     },
-                                    child: TextField(
-                                      controller: _userCtrl,
-                                      focusNode: _userFocusNode,
-                                      enabled: !isBusy,
-                                      textInputAction: TextInputAction.next,
-                                      onSubmitted: (_) =>
-                                          _passFocusNode.requestFocus(),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Username',
-                                        border: OutlineInputBorder(),
+                                    child: BootFormTokens.constrainTextField(
+                                      TextField(
+                                        controller: _userCtrl,
+                                        focusNode: _userFocusNode,
+                                        enabled: !isBusy,
+                                        textInputAction: TextInputAction.next,
+                                        onChanged: (_) {
+                                          if (_formErrorMessage != null) {
+                                            setState(() => _formErrorMessage = null);
+                                          }
+                                        },
+                                        onSubmitted: (_) =>
+                                            _passFocusNode.requestFocus(),
+                                        decoration:
+                                            BootFormTokens.bootTextFieldDecoration(
+                                              Theme.of(context),
+                                            ).copyWith(
+                                              labelText: 'Nom d\'utilisateur',
+                                            ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.sm),
+                              const SizedBox(
+                                height: BootFormTokens.formElementGap,
+                              ),
                               MoviEnsureVisibleOnFocus(
                                 verticalAlignment: 0.22,
                                 child: Focus(
@@ -889,57 +1132,98 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                             _submitFocusNode,
                                           ),
                                     },
-                                    child: TextField(
-                                      controller: _passCtrl,
-                                      focusNode: _passFocusNode,
-                                      enabled: !isBusy,
-                                      obscureText: _obscurePassword,
-                                      textInputAction: TextInputAction.done,
-                                      onSubmitted: (_) =>
-                                          _submitFocusNode.requestFocus(),
-                                      decoration: InputDecoration(
-                                        labelText: 'Password',
-                                        border: const OutlineInputBorder(),
-                                        suffixIcon: Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 12,
-                                          ),
-                                          child: Focus(
-                                            canRequestFocus: false,
-                                            onKeyEvent: (_, event) =>
-                                                FocusDirectionalNavigation.handleDirectionalKey(
-                                                  event,
-                                                  left: _passFocusNode,
-                                                  down: _submitFocusNode,
-                                                  up: _userFocusNode,
-                                                  blockRight: true,
+                                    child: BootFormTokens.constrainTextField(
+                                      TextField(
+                                        controller: _passCtrl,
+                                        focusNode: _passFocusNode,
+                                        enabled: !isBusy,
+                                        obscureText: _obscurePassword,
+                                        textInputAction: TextInputAction.done,
+                                        onChanged: (_) {
+                                          if (_formErrorMessage != null) {
+                                            setState(() => _formErrorMessage = null);
+                                          }
+                                        },
+                                        onSubmitted: (_) =>
+                                            _submitFocusNode.requestFocus(),
+                                        decoration:
+                                            BootFormTokens.bootTextFieldDecoration(
+                                              Theme.of(context),
+                                            ).copyWith(
+                                              labelText: l10n
+                                                  .welcomeSourcePasswordLabel,
+                                              suffixIcon: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 12,
                                                 ),
-                                            child: IconButton(
-                                              focusNode:
-                                                  _passwordToggleFocusNode,
-                                              icon: Icon(
-                                                _obscurePassword
-                                                    ? Icons.visibility_off
-                                                    : Icons.visibility,
+                                                child: Focus(
+                                                  canRequestFocus: false,
+                                                  onKeyEvent: (_, event) =>
+                                                      FocusDirectionalNavigation.handleDirectionalKey(
+                                                        event,
+                                                        left: _passFocusNode,
+                                                        down: _submitFocusNode,
+                                                        up: _userFocusNode,
+                                                        blockRight: true,
+                                                      ),
+                                                  child: IconButton(
+                                                    focusNode:
+                                                        _passwordToggleFocusNode,
+                                                    icon: Icon(
+                                                      _obscurePassword
+                                                          ? Icons.visibility_off
+                                                          : Icons.visibility,
+                                                    ),
+                                                    onPressed: () => setState(
+                                                      () => _obscurePassword =
+                                                          !_obscurePassword,
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                              onPressed: () => setState(
-                                                () => _obscurePassword =
-                                                    !_obscurePassword,
-                                              ),
+                                              suffixIconColor: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
                                             ),
-                                          ),
-                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(
+                                height: BootFormTokens.formElementGap,
+                              ),
                               if (connectState.warning != null &&
                                   connectState.supabasePolicy !=
                                       IptvConnectSupabasePolicy.localOnly) ...[
                                 _InfoBox(message: connectState.warning!),
-                                const SizedBox(height: AppSpacing.sm),
+                                const SizedBox(
+                                  height: BootFormTokens.formElementGap,
+                                ),
+                              ],
+                              if (_formErrorMessage != null) ...[
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      _formErrorMessage!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.error,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: BootFormTokens.formElementGap,
+                                ),
                               ],
                               MoviEnsureVisibleOnFocus(
                                 verticalAlignment: 0.22,
@@ -953,19 +1237,24 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                         blockRight: true,
                                         blockDown: true,
                                       ),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: MoviPrimaryButton(
-                                      label: 'Activer',
+                                  child: BootFormTokens.constrainPrimaryAction(
+                                    MoviPrimaryButton(
+                                      label: hasNoSource
+                                          ? 'Ajouter la source'
+                                          : l10n.welcomeSourceActivateAction,
                                       focusNode: _submitFocusNode,
                                       onPressed: isBusy ? null : _activate,
                                       loading: connectState.isLoading,
+                                      height:
+                                          BootFormTokens.primaryActionHeight,
+                                      buttonStyle:
+                                          BootFormTokens.bootPrimaryButtonStyle(
+                                            Theme.of(context),
+                                          ),
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: AppSpacing.xl),
-                              const WelcomeFaqRow(),
                             ],
                           ),
                         ),
@@ -1057,6 +1346,7 @@ class _SourcesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Column(
         children: [
@@ -1107,8 +1397,13 @@ class _SourcesList extends StatelessWidget {
                         ),
                         subtitle: Text(
                           sources[index].expiresAt != null
-                              ? 'Expire: ${_formatDateOnly(context, sources[index].expiresAt!)}'
-                              : 'Aucune date d’expiration',
+                              ? l10n.welcomeSourceExpiresOn(
+                                  _formatDateOnly(
+                                    context,
+                                    sources[index].expiresAt!,
+                                  ),
+                                )
+                              : l10n.welcomeSourceNoExpiration,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),

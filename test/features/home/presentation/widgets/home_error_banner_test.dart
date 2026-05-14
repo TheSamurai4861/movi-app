@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/startup/domain/boot_contracts.dart';
 import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_error_banner.dart';
+
+Widget _wrap(Widget child) {
+  return MaterialApp(
+    locale: const Locale('en'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  );
+}
 
 void main() {
   testWidgets('exposes the primary Home retry action', (tester) async {
     RecoveryAction? selectedAction;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: HomeErrorBanner(
-            notice: const HomeDegradationNotice(
-              reasonCodes: <String>[StartupRecoveryReasonCodes.homeFeedFailed],
-              actions: <RecoveryAction>[RecoveryAction.retryHomeSections],
-            ),
-            onAction: (action) => selectedAction = action,
+      _wrap(
+        HomeErrorBanner(
+          notice: const HomeDegradationNotice(
+            reasonCodes: <String>[StartupRecoveryReasonCodes.homeFeedFailed],
+            actions: <RecoveryAction>[RecoveryAction.retryHomeSections],
           ),
+          onAction: (action) => selectedAction = action,
         ),
       ),
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Recharger'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Reload sections'));
     await tester.pump();
 
     expect(selectedAction, RecoveryAction.retryHomeSections);
@@ -31,29 +39,27 @@ void main() {
 
   testWidgets('keeps banner actions focusable', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: HomeErrorBanner(
-            notice: const HomeDegradationNotice(
-              reasonCodes: <String>[
-                StartupRecoveryReasonCodes.homeIptvSectionsEmpty,
-              ],
-              actions: <RecoveryAction>[
-                RecoveryAction.retryHomeSections,
-                RecoveryAction.resyncSource,
-              ],
-            ),
-            onAction: (_) {},
+      _wrap(
+        HomeErrorBanner(
+          notice: const HomeDegradationNotice(
+            reasonCodes: <String>[
+              StartupRecoveryReasonCodes.homeIptvSectionsEmpty,
+            ],
+            actions: <RecoveryAction>[
+              RecoveryAction.retryHomeSections,
+              RecoveryAction.resyncSource,
+            ],
           ),
+          onAction: (_) {},
         ),
       ),
     );
 
     final primary = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Recharger'),
+      find.widgetWithText(FilledButton, 'Reload sections'),
     );
     final secondary = tester.widget<TextButton>(
-      find.widgetWithText(TextButton, 'Resynchroniser'),
+      find.widgetWithText(TextButton, 'Resync source'),
     );
 
     expect(primary.onPressed, isNotNull);
@@ -66,35 +72,62 @@ void main() {
     final selectedActions = <RecoveryAction>[];
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: HomeErrorBanner(
-            notice: const HomeDegradationNotice(
-              reasonCodes: <String>[StartupRecoveryReasonCodes.homePartial],
-              actions: <RecoveryAction>[
-                RecoveryAction.retryLibrary,
-                RecoveryAction.retryHomeSections,
-              ],
-            ),
-            onAction: selectedActions.add,
+      _wrap(
+        HomeErrorBanner(
+          notice: const HomeDegradationNotice(
+            reasonCodes: <String>[StartupRecoveryReasonCodes.homePartial],
+            actions: <RecoveryAction>[
+              RecoveryAction.retryLibrary,
+              RecoveryAction.retryHomeSections,
+            ],
           ),
+          onAction: selectedActions.add,
         ),
       ),
     );
 
     expect(
-      find.text("Certaines sections n'ont pas pu etre chargees."),
+      find.text(
+        'Several areas of the home screen could not be loaded.',
+      ),
       findsOneWidget,
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Recharger'));
+    expect(find.text(StartupRecoveryReasonCodes.homePartial), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Reload sections'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(TextButton, 'Recharger la reprise'));
+    await tester.tap(
+      find.widgetWithText(TextButton, 'Reload continue watching'),
+    );
     await tester.pump();
 
     expect(selectedActions, <RecoveryAction>[
       RecoveryAction.retryHomeSections,
       RecoveryAction.retryLibrary,
     ]);
+  });
+
+  testWidgets('library-only degradation shows library message', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        HomeErrorBanner(
+          notice: const HomeDegradationNotice(
+            reasonCodes: <String>[
+              StartupRecoveryReasonCodes.libraryPreloadFailed,
+            ],
+            actions: <RecoveryAction>[RecoveryAction.retryLibrary],
+          ),
+          onAction: (_) {},
+        ),
+      ),
+    );
+
+    expect(
+      find.text('Continue watching could not be loaded.'),
+      findsOneWidget,
+    );
   });
 }

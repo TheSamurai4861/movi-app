@@ -1,5 +1,6 @@
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:movi/src/core/images/app_image_cache_manager.dart';
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_service.dart';
 
 class SafeImageCacheManager {
@@ -19,6 +20,7 @@ class SafeImageCacheManager {
         LoggingService.log(
           '[ImagePipeline] cache_manager_init_failed; falling back to network-only mode',
           category: 'image_pipeline',
+          level: LogLevel.warn,
           error: error,
           stackTrace: stackTrace,
         );

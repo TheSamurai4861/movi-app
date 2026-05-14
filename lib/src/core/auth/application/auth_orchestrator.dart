@@ -20,15 +20,21 @@ final class AuthOrchestrator {
     LocalCleanupPort? cleanupPort,
     AuthTelemetryPort? telemetry,
     Duration refreshTimeout = const Duration(seconds: 12),
+    Duration missingCurrentSessionRestoreTimeout = const Duration(
+      milliseconds: 900,
+    ),
   }) : _repo = repository,
        _cleanup = cleanupPort,
        _telemetry = telemetry,
-       _refreshTimeout = refreshTimeout;
+       _refreshTimeout = refreshTimeout,
+       _missingCurrentSessionRestoreTimeout =
+           missingCurrentSessionRestoreTimeout;
 
   final AuthRepository _repo;
   final LocalCleanupPort? _cleanup;
   final AuthTelemetryPort? _telemetry;
   final Duration _refreshTimeout;
+  final Duration _missingCurrentSessionRestoreTimeout;
 
   /// Resolves current auth state deterministically.
   ///
@@ -40,25 +46,26 @@ final class AuthOrchestrator {
 
     final current = _repo.currentSession;
     if (current == null) {
+      final restored = await _restoreMissingCurrentSession();
+      if (restored.session != null) {
+        _telemetry?.event(action: 'bootstrap_session', result: 'success');
+        return _authenticatedResult(restored.session!);
+      }
+
       _telemetry?.event(
         action: 'bootstrap_session',
         result: 'success',
-        reasonCode: AuthFailureCode.invalidSession,
+        reasonCode: restored.cause ?? AuthFailureCode.invalidSession,
       );
-      return _reauthRequiredResult(AuthFailureCode.invalidSession);
+      return _reauthRequiredResult(
+        restored.cause ?? AuthFailureCode.invalidSession,
+      );
     }
 
     final refreshed = await _refreshFailClosed();
     if (refreshed.session != null) {
       _telemetry?.event(action: 'bootstrap_session', result: 'success');
-      return AuthBootstrapResult(
-        snapshot: AuthSnapshot(
-          status: AuthStatus.authenticated,
-          session: refreshed.session,
-        ),
-        outcome: AuthBootstrapOutcome.authenticated,
-        reasonCode: 'authenticated',
-      );
+      return _authenticatedResult(refreshed.session!);
     }
 
     final cause = refreshed.cause ?? AuthFailureCode.refreshFailed;
@@ -112,16 +119,56 @@ final class AuthOrchestrator {
     return _cleanupBestEffort();
   }
 
-  Future<_RefreshSessionResult> _refreshFailClosed() async {
+  AuthBootstrapResult _authenticatedResult(AuthSession session) {
+    return AuthBootstrapResult(
+      snapshot: AuthSnapshot(
+        status: AuthStatus.authenticated,
+        session: session,
+      ),
+      outcome: AuthBootstrapOutcome.authenticated,
+      reasonCode: 'authenticated',
+    );
+  }
+
+  Future<_RefreshSessionResult> _restoreMissingCurrentSession() async {
+    final stopwatch = Stopwatch()..start();
+    _telemetry?.event(
+      action: 'restore_missing_current_session',
+      result: 'start',
+      reasonCode: AuthFailureCode.invalidSession,
+    );
+
+    final restored = await _refreshFailClosed(
+      action: 'restore_missing_current_session_refresh',
+      timeout: _missingCurrentSessionRestoreTimeout,
+    );
+    stopwatch.stop();
+
+    _telemetry?.event(
+      action: 'restore_missing_current_session',
+      result: restored.session == null ? 'failure' : 'success',
+      reasonCode: restored.session == null
+          ? restored.cause ?? AuthFailureCode.invalidSession
+          : null,
+      detail: 'elapsedMs=${stopwatch.elapsedMilliseconds}',
+    );
+    return restored;
+  }
+
+  Future<_RefreshSessionResult> _refreshFailClosed({
+    String action = 'refresh_session',
+    Duration? timeout,
+  }) async {
+    final effectiveTimeout = timeout ?? _refreshTimeout;
     try {
-      _telemetry?.event(action: 'refresh_session', result: 'start');
+      _telemetry?.event(action: action, result: 'start');
       final refreshed = await _repo.refreshSession().timeout(
-        _refreshTimeout,
+        effectiveTimeout,
         onTimeout: () => throw TimeoutException('auth refresh timeout'),
       );
       if (refreshed == null) {
         _telemetry?.event(
-          action: 'refresh_session',
+          action: action,
           result: 'failure',
           reasonCode: AuthFailureCode.invalidSession,
         );
@@ -129,11 +176,11 @@ final class AuthOrchestrator {
           cause: AuthFailureCode.invalidSession,
         );
       }
-      _telemetry?.event(action: 'refresh_session', result: 'success');
+      _telemetry?.event(action: action, result: 'success');
       return _RefreshSessionResult(session: refreshed);
     } on TimeoutException {
       _telemetry?.event(
-        action: 'refresh_session',
+        action: action,
         result: 'failure',
         reasonCode: AuthFailureCode.timeout,
       );
@@ -141,7 +188,7 @@ final class AuthOrchestrator {
     } catch (e) {
       final cause = _classifyRefreshFailure(e);
       _telemetry?.event(
-        action: 'refresh_session',
+        action: action,
         result: 'failure',
         reasonCode: cause,
         detail: kDebugMode ? 'type=${e.runtimeType}' : null,

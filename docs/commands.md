@@ -39,3 +39,11 @@ flutter build windows --dart-define-from-file=.env *>&1 | Tee-Object -FilePath o
 ```powershell
 flutter build apk --debug --dart-define-from-file=.env *>&1 | Tee-Object -FilePath output/flutter-build-apk-debug.log
 ```
+
+## Isoler le bruit Windows (optionnel)
+
+Pour relire un run boot sans les rafales visuelles non critiques:
+
+```powershell
+rg -v "home_hero_debug|image_pipeline|\\[SearchFocus\\]\\[debug\\]" output/flutter-run-windows.log | Tee-Object -FilePath output/flutter-run-windows-focused.log
+```

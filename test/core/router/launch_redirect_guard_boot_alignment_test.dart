@@ -25,7 +25,7 @@ void main() {
   });
 
   testWidgets(
-    'redirects welcome source loading back to launch while orchestrator is running',
+    'keeps welcome source loading visible while orchestrator is running',
     (tester) async {
       final harness = _GuardHarness(
         launchState: const AppLaunchState(
@@ -43,13 +43,13 @@ void main() {
       await tester.pumpWidget(harness.buildApp(router));
       await tester.pumpAndSettle();
 
-      expect(find.text('Launch'), findsOneWidget);
-      expect(find.text('Loading'), findsNothing);
+      expect(find.text('Loading'), findsOneWidget);
+      expect(find.text('Launch'), findsNothing);
     },
   );
 
   testWidgets(
-    'keeps welcome source loading reachable when source action destination allows it',
+    'redirects welcome source loading to source selection when destination requires it',
     (tester) async {
       final harness = _GuardHarness(
         launchState: const AppLaunchState(
@@ -68,8 +68,8 @@ void main() {
       await tester.pumpWidget(harness.buildApp(router));
       await tester.pumpAndSettle();
 
-      expect(find.text('Loading'), findsOneWidget);
-      expect(find.text('Choose Source'), findsNothing);
+      expect(find.text('Choose Source'), findsOneWidget);
+      expect(find.text('Loading'), findsNothing);
     },
   );
 
@@ -126,6 +126,36 @@ void main() {
     expect(find.text('Auth'), findsOneWidget);
     expect(find.text('Home'), findsNothing);
   });
+
+  testWidgets(
+    'redirects launch to auth when bootstrap resolved reauth before auth stream resolves',
+    (tester) async {
+      final authRepository = _FakeAuthRepository.unauthenticatedUnresolved();
+      final harness = _GuardHarness(
+        launchState: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          phase: AppLaunchPhase.done,
+          destination: BootstrapDestination.auth,
+        ),
+        authRepository: authRepository,
+      );
+      addTearDown(harness.dispose);
+
+      final router = harness.createRouter(
+        initialLocation: AppRoutePaths.launch,
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(harness.buildApp(router));
+      await tester.pump();
+
+      expect(find.text('Auth'), findsOneWidget);
+      expect(find.text('Launch'), findsNothing);
+
+      authRepository.emitUnauthenticated();
+      await tester.pump();
+    },
+  );
 
   testWidgets(
     'redirects Home to profile action page when profile is required',
@@ -206,6 +236,31 @@ void main() {
   );
 
   testWidgets(
+    'redirects launch to source selection page when source selection is required',
+    (tester) async {
+      final harness = _GuardHarness(
+        launchState: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          phase: AppLaunchPhase.done,
+          destination: BootstrapDestination.chooseSource,
+        ),
+      );
+      addTearDown(harness.dispose);
+
+      final router = harness.createRouter(
+        initialLocation: AppRoutePaths.launch,
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(harness.buildApp(router));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Choose Source'), findsOneWidget);
+      expect(find.text('Launch'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'redirects Home to source action page when recovery before Home is required',
     (tester) async {
       final harness = _GuardHarness(
@@ -233,12 +288,11 @@ final class _GuardHarness {
   _GuardHarness({
     required AppLaunchState launchState,
     _FakeAuthRepository? authRepository,
-  })
-    : localePreferences = _MemoryLocalePreferences(),
-      authRepository = authRepository ?? _FakeAuthRepository.authenticated(),
-      logger = _MemoryLogger(),
-      launchRegistry = AppLaunchStateRegistry(initial: launchState),
-      container = ProviderContainer() {
+  }) : localePreferences = _MemoryLocalePreferences(),
+       authRepository = authRepository ?? _FakeAuthRepository.authenticated(),
+       logger = _MemoryLogger(),
+       launchRegistry = AppLaunchStateRegistry(initial: launchState),
+       container = ProviderContainer() {
     sl.registerSingleton<LocalePreferences>(localePreferences);
   }
 
@@ -314,6 +368,8 @@ class _FakeAuthRepository implements AuthRepository {
   _FakeAuthRepository.authenticated()
     : _session = const AuthSession(userId: 'cloud-user');
 
+  _FakeAuthRepository.unauthenticatedUnresolved() : _session = null;
+
   _FakeAuthRepository.unauthenticatedResolved() : _session = null {
     Future<void>.microtask(() {
       if (!_controller.isClosed) {
@@ -332,6 +388,10 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   AuthSession? get currentSession => _session;
+
+  void emitUnauthenticated() {
+    _controller.add(AuthSnapshot.unauthenticated);
+  }
 
   @override
   Future<AuthSession?> refreshSession() async => _session;

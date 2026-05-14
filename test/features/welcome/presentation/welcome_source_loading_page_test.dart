@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:movi/src/features/welcome/presentation/pages/welcome_source_loading_page.dart';
+import 'package:movi/src/features/welcome/presentation/utils/welcome_source_loading_resolution.dart';
 
 void main() {
   test('restores the selected local source when active sources are empty', () {
