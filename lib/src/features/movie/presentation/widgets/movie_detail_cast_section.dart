@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
@@ -89,20 +90,21 @@ class _MovieDetailCastSectionState
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     return SizedBox(
-      height: MoviPersonCard.listHeight,
+      height: MoviPersonCard.listHeightForScale(uiScale),
       child: Builder(
         builder: (listContext) => MoviVerticalEnsureVisibleTarget(
           targetContext: listContext,
           child: ListView.separated(
             clipBehavior: Clip.none,
             padding: EdgeInsetsDirectional.only(
-              start: widget.horizontalPadding,
-              end: widget.horizontalPadding,
+              start: widget.horizontalPadding * uiScale,
+              end: widget.horizontalPadding * uiScale,
             ),
             scrollDirection: Axis.horizontal,
             itemCount: widget.cast.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            separatorBuilder: (_, __) => SizedBox(width: 16 * uiScale),
             itemBuilder: (context, index) {
               final p = widget.cast[index];
               return Focus(

@@ -169,6 +169,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsExportErrorLogs => '오류 로그 내보내기';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => '오류 로그 내보내기';
 
   @override
@@ -529,155 +542,246 @@ class AppLocalizationsKo extends AppLocalizations {
   String get bootCatalogLocalCacheReady => '로컬 카탈로그 준비됨 — 마무리 중…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => '시작 준비 중…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => '로딩 중…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => '세션 확인 중…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => '프로필 로딩 중…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => '프로필 확인 중…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => '소스 확인 중…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => '카탈로그 준비 중…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => '로그인 필요';
 
   @override
-  String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+  String get bootActionAuthMessage => '계속하려면 로그인하세요.';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionProfileTitle => '프로필 필요';
 
   @override
-  String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+  String get bootActionProfileMessage => '계속하려면 프로필을 만들거나 선택하세요.';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceRequiredTitle => '소스 필요';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceRequiredMessage => '계속하려면 소스를 추가하거나 재연결하세요.';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootActionSourceSelectionTitle => '소스 선택';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootActionSourceSelectionMessage => '사용할 소스를 선택하세요.';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceTimeoutTitle => '소스가 응답하지 않습니다';
 
   @override
-  String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+  String get bootRecoverySourceTimeoutMessage => '동기화를 다시 시도하거나 소스를 변경하세요.';
 
   @override
-  String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+  String get bootRecoverySourceProviderTitle => '소스를 로드할 수 없습니다';
 
   @override
-  String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+  String get bootRecoverySourceProviderMessage => '다시 로드하거나 소스를 변경하세요.';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceCredentialsTitle => '소스에 연결할 수 없습니다';
 
   @override
-  String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+  String get bootRecoverySourceCredentialsMessage => '계속하려면 소스를 재연결하세요.';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootRecoverySourceEmptyTitle => '콘텐츠를 찾을 수 없습니다';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootRecoverySourceEmptyMessage => '소스를 다시 동기화하거나 다른 소스를 선택하세요.';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootFailureTitle => '시작이 중단되었습니다';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootFailureMessage => '오류로 인해 시작이 불가능합니다.';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionExportLogs => '로그 내보내기';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionLogin => '로그인';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseProfile => '프로필 선택';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionAddSource => '소스 추가';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionChooseSource => '소스 변경';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionReconnectSource => '소스 재연결';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootActionResyncSource => '재동기화';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootActionOpenHome => '홈 열기';
+
+  @override
+  String get bootSemanticsSplashLogo => 'MOVI 스플래시 로고';
+
+  @override
+  String get bootSemanticsLoadingInProgress => '로딩 중';
+
+  @override
+  String get bootSemanticsPreparingCatalog => '카탈로그 준비 중';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => '저장된 소스';
+
+  @override
+  String get welcomeSourceRefreshTooltip => '새로 고침';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      'Supabase에서 소스를 찾을 수 없습니다. 아래에서 추가하거나 활성화하세요.';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => '소스 활성화';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => '소스 이름';
 
   @override
-  String get welcomeSourceNameHint => 'My IPTV';
+  String get welcomeSourceNameHint => '내 IPTV';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => '서버 URL';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => '사용자 이름';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => '비밀번호';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => '활성화';
+
+  @override
+  String get welcomeSourceAddModeTitle => '소스 추가';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle => '첫 번째 IPTV 소스를 추가하세요.';
+
+  @override
+  String get welcomeSourceAddPrompt => '소스를 추가하시겠어요?';
+
+  @override
+  String get welcomeSourceAddNewAction => '새 소스 추가';
+
+  @override
+  String get welcomeSourceRequiredFields => '모든 필드를 입력해야 합니다.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      '서버가 응답하는 데 너무 오래 걸립니다. 연결을 확인하고 다시 시도하세요.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      '잘못된 자격 증명입니다. 사용자 이름과 비밀번호를 확인하세요.';
+
+  @override
+  String get welcomeSourceErrorNetwork => '서버에 연결할 수 없습니다. URL과 네트워크를 확인하세요.';
+
+  @override
+  String get welcomeSourceErrorGeneric => '지금 소스를 로드할 수 없습니다. 다시 시도해 주세요.';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return '만료일: $date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => '만료일 없음';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => '프로필 잠김';
 
   @override
-  String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+  String get welcomeUserProfileLockedReason => '프로필을 전환하려면 PIN을 입력하세요.';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed => '프로필을 로드할 수 없습니다.';
+
+  @override
+  String get welcomeUserCreateTitle => '프로필 만들기';
+
+  @override
+  String get welcomeUserChooseTitle => '프로필 선택';
+
+  @override
+  String get welcomeUserCreateSubtitle => 'Movi의 첫 번째 프로필을 만드세요.';
+
+  @override
+  String get welcomeUserChooseSubtitle => '프로필 중 하나를 선택하세요.';
+
+  @override
+  String get welcomeUserProfileNameLabel => '프로필 이름';
+
+  @override
+  String get welcomeUserProfileNameHint => '프로필 이름';
+
+  @override
+  String get welcomeUserCreateProfileAction => '프로필 만들기';
+
+  @override
+  String get childPreloadTitle => '콘텐츠 안전 설정';
+
+  @override
+  String get childPreloadSubtitle => '연령 등급 확인 중...';
+
+  @override
+  String get childPreloadSkip => '건너뛰기';
+
+  @override
+  String get childPreloadPhaseResolvingIds => '식별자 확인 중...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => '등급 가져오는 중...';
+
+  @override
+  String get childPreloadPhaseCompleted => '완료';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return '약 $seconds초 남음';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return '약 $minutes분 남음';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return '약 $minutes분 $seconds초 남음';
+  }
 
   @override
   String get errorHomeLoadTimeout => '홈 로드 시간 초과';
@@ -1133,41 +1237,40 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authOtpChangeEmail => '이메일 변경';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => '대신 비밀번호 사용';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => '로그인';
 
   @override
-  String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+  String get authPasswordSubtitle => '계속하려면 이메일과 비밀번호를 입력하세요.';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => '이메일';
 
   @override
   String get authPasswordEmailHint => 'name@example.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp => '계정에 연결된 이메일을 사용하세요.';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => '비밀번호';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => '비밀번호 입력';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp => '비밀번호는 대소문자를 구분합니다.';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => '로그인';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => '비밀번호를 잊으셨나요?';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent => '비밀번호 재설정 이메일이 전송되었습니다.';
 
   @override
   String get authForgotPasswordTitle => '비밀번호를 잊으셨나요';
@@ -1186,7 +1289,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => '로그인으로 돌아가기';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => '대신 이메일 코드 사용';
 
   @override
   String get resumePlayback => '재생 이어보기';
@@ -1380,6 +1483,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => '배경';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => '배경 불투명도';

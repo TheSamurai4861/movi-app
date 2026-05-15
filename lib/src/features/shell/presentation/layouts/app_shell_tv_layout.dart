@@ -1,6 +1,7 @@
 // lib/src/features/shell/presentation/layouts/app_shell_tv_layout.dart
 
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/features/shell/presentation/widgets/navigation/sidebar_nav.dart';
 import 'package:movi/src/features/shell/presentation/widgets/regions/shell_content_host.dart';
 
@@ -39,6 +40,8 @@ class AppShellTvLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final contentStartPadding = 28.0 * uiScale;
     final surfaceColor = Theme.of(context).colorScheme.surface;
 
     return ColoredBox(
@@ -50,6 +53,7 @@ class AppShellTvLayout extends StatelessWidget {
             onDestinationSelected: onNavTap,
             onFocusedIndexChanged: onSidebarFocusedIndexChanged,
             destinations: destinations,
+            width: 64,
             logo: sidebarLogo,
             focusNode: sidebarFocusNode,
             autofocus: true,
@@ -58,7 +62,7 @@ class AppShellTvLayout extends StatelessWidget {
           Expanded(
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(left: 48),
+                padding: EdgeInsets.only(left: contentStartPadding),
                 child: ShellContentHost(
                   selectedIndex: selectedIndex,
                   pageBuilders: pageBuilders,

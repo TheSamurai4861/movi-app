@@ -78,11 +78,7 @@ class MoviPremiumSettingsTile extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: Colors.white70,
-                    ),
+              const Icon(Icons.chevron_right, size: 20, color: Colors.white70),
             ],
           ),
         ),

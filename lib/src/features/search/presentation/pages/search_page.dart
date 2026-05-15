@@ -14,6 +14,7 @@ import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
@@ -23,7 +24,8 @@ import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/features/search/presentation/controllers/search_instant_controller.dart';
 import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
-import 'package:movi/src/features/search/presentation/widgets/genres_grid.dart';
+// Section genres masquée (tous appareils).
+// import 'package:movi/src/features/search/presentation/widgets/genres_grid.dart';
 import 'package:movi/src/features/search/presentation/widgets/watch_providers_grid.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -58,7 +60,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     debugLabel: 'SearchFirstHistoryItem',
   );
   final _firstProviderFocusNode = FocusNode(debugLabel: 'SearchFirstProvider');
-  final _firstGenreFocusNode = FocusNode(debugLabel: 'SearchFirstGenre');
+  // final _firstGenreFocusNode = FocusNode(debugLabel: 'SearchFirstGenre');
   final _firstMovieResultFocusNode = FocusNode(
     debugLabel: 'SearchFirstMovieResult',
   );
@@ -79,6 +81,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   bool _syncedFromState = false;
   bool _historyVisibilityLock = false;
   bool _historySectionHasFocus = false;
+  bool _keepHistoryForDiscoveryNavigation = false;
   bool _searchInputActivated = false;
   Timer? _historyHideTimer;
 
@@ -92,8 +95,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   int _providerFocusRequestId = 0;
   int? _providerFocusRequestColumn;
-  int _genreFocusRequestId = 0;
-  int? _genreFocusRequestColumn;
+  // int _genreFocusRequestId = 0;
+  // int? _genreFocusRequestColumn;
+  MoviVerticalRevealPolicy _crossSectionRevealPolicy =
+      MoviVerticalRevealPolicy.anchor;
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -154,6 +159,31 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return ref.read(searchControllerProvider).uiMode == SearchUiMode.discovery;
   }
 
+  FocusNode _resolveInitialEntryNode({
+    required bool isMobileLayout,
+    required SearchUiMode uiMode,
+    required bool showHistory,
+    required bool showWatchProviders,
+    required SearchState state,
+  }) {
+    if (!isMobileLayout) return _focusNode;
+
+    if (uiMode == SearchUiMode.showingResults) {
+      if (state.movies.isNotEmpty) return _firstMovieResultFocusNode;
+      if (state.shows.isNotEmpty) return _firstShowResultFocusNode;
+      if (state.people.isNotEmpty) return _firstPersonResultFocusNode;
+      if (state.sagas.isNotEmpty) return _firstSagaResultFocusNode;
+    }
+
+    if (uiMode == SearchUiMode.discovery) {
+      if (showHistory) return _firstHistoryItemFocusNode;
+      if (showWatchProviders) return _firstProviderFocusNode;
+      return _focusNode;
+    }
+
+    return _focusNode;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -167,7 +197,32 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _textCtrl.addListener(_onTextChangedLocal);
     _focusNode.addListener(_onFocusChangedLocal);
     _clearFocusNode.addListener(_onClearFocusChangedLocal);
+    FocusManager.instance.addListener(_handleDiscoveryFocusForHistory);
     HardwareKeyboard.instance.addHandler(_handleSearchKeyboard);
+  }
+
+  void _handleDiscoveryFocusForHistory() {
+    if (!mounted || !_isDiscoveryMode()) return;
+    final active = ref.read(focusOrchestratorProvider).activeRegionId;
+    final keepHistory =
+        active == AppFocusRegionId.searchHistory ||
+        active == AppFocusRegionId.searchProviders;
+    // active == AppFocusRegionId.searchGenres,
+    if (_keepHistoryForDiscoveryNavigation == keepHistory) return;
+    setState(() {
+      _keepHistoryForDiscoveryNavigation = keepHistory;
+    });
+  }
+
+  bool _shouldShowDiscoveryHistory({
+    required bool hasHistoryItems,
+    required bool inputHasFocus,
+  }) {
+    return hasHistoryItems &&
+        (inputHasFocus ||
+            _historySectionHasFocus ||
+            _historyVisibilityLock ||
+            _keepHistoryForDiscoveryNavigation);
   }
 
   void _markProgrammaticTextChange(String reason) {
@@ -246,6 +301,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleSearchKeyboard);
     _historyHideTimer?.cancel();
+    FocusManager.instance.removeListener(_handleDiscoveryFocusForHistory);
     _textCtrl.removeListener(_onTextChangedLocal);
     _focusNode.removeListener(_onFocusChangedLocal);
     _clearFocusNode.removeListener(_onClearFocusChangedLocal);
@@ -254,7 +310,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _clearFocusNode.dispose();
     _firstHistoryItemFocusNode.dispose();
     _firstProviderFocusNode.dispose();
-    _firstGenreFocusNode.dispose();
+    // _firstGenreFocusNode.dispose();
     _firstMovieResultFocusNode.dispose();
     _firstShowResultFocusNode.dispose();
     _firstPersonResultFocusNode.dispose();
@@ -296,21 +352,33 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     });
   }
 
-  void _focusNearestProviderFromGenres(int column) {
+  void _onCrossSectionFocusApplied() {
     if (!mounted) return;
+    if (_crossSectionRevealPolicy == MoviVerticalRevealPolicy.anchor) {
+      return;
+    }
     setState(() {
-      _providerFocusRequestId++;
-      _providerFocusRequestColumn = column;
+      _crossSectionRevealPolicy = MoviVerticalRevealPolicy.anchor;
     });
   }
 
-  void _focusNearestGenreFromProviders(int column) {
-    if (!mounted) return;
-    setState(() {
-      _genreFocusRequestId++;
-      _genreFocusRequestColumn = column;
-    });
-  }
+  // void _focusNearestProviderFromGenres(int column) {
+  //   if (!mounted) return;
+  //   setState(() {
+  //     _crossSectionRevealPolicy = MoviVerticalRevealPolicy.minimal;
+  //     _providerFocusRequestId++;
+  //     _providerFocusRequestColumn = column;
+  //   });
+  // }
+
+  // void _focusNearestGenreFromProviders(int column) {
+  //   if (!mounted) return;
+  //   setState(() {
+  //     _crossSectionRevealPolicy = MoviVerticalRevealPolicy.minimal;
+  //     _genreFocusRequestId++;
+  //     _genreFocusRequestColumn = column;
+  //   });
+  // }
 
   AppFocusRegionId? _firstAvailableResultsRegion() {
     final state = ref.read(searchControllerProvider);
@@ -342,10 +410,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final isShowingResults = searchState.uiMode == SearchUiMode.showingResults;
     final showHistory =
         isDiscoveryMode &&
-        hasHistoryItems &&
-        ((_focusNode.hasFocus && hasHistoryItems) ||
-            _historySectionHasFocus ||
-            _historyVisibilityLock);
+        _shouldShowDiscoveryHistory(
+          hasHistoryItems: hasHistoryItems,
+          inputHasFocus: _focusNode.hasFocus,
+        );
     final showWatchProviders = ref
         .read(
           canAccessPremiumFeatureProvider(
@@ -359,7 +427,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         AppFocusRegionId.searchHistory,
       if (isDiscoveryMode && showWatchProviders)
         AppFocusRegionId.searchProviders,
-      if (isDiscoveryMode) AppFocusRegionId.searchGenres,
+      // if (isDiscoveryMode) AppFocusRegionId.searchGenres,
       if (isDiscoveryMode && !preferHistory && showHistory)
         AppFocusRegionId.searchHistory,
       if (isShowingResults && _firstAvailableResultsRegion() != null)
@@ -419,26 +487,29 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final horizontalPadding = _pageHorizontalPadding(context);
+    final uiScale = context.tvUiScale;
+    final horizontalPadding = _pageHorizontalPadding(context) * uiScale;
     final useDesktopLayout = _useDesktopSearchLayout(context);
     final contentMaxWidth = _contentMaxWidth(context);
     final gridMaxWidth = useDesktopLayout ? double.infinity : contentMaxWidth;
-    final searchFieldMaxWidth = _searchFieldMaxWidth(context);
-    final topSpacing = _topSpacing(context);
+    final searchFieldMaxWidth = _searchFieldMaxWidth(context) * uiScale;
+    final topSpacing = _topSpacing(context) * uiScale;
     final historyMaxWidth = useDesktopLayout
         ? double.infinity
         : _historyMaxWidth(context);
     final state = ref.watch(searchControllerProvider);
     final ctrl = ref.read(searchControllerProvider.notifier);
     final searchUiMode = state.uiMode;
+    final isMobileLayout = _screenTypeFor(context) == ScreenType.mobile;
     final hasHistoryItems = ref
         .watch(searchHistoryControllerProvider)
         .maybeWhen(data: (items) => items.isNotEmpty, orElse: () => false);
     final showHistory =
         searchUiMode == SearchUiMode.discovery &&
-        ((_focusNode.hasFocus && hasHistoryItems) ||
-            _historySectionHasFocus ||
-            _historyVisibilityLock);
+        _shouldShowDiscoveryHistory(
+          hasHistoryItems: hasHistoryItems,
+          inputHasFocus: _focusNode.hasFocus,
+        );
     final showWatchProviders = ref
         .watch(
           canAccessPremiumFeatureProvider(
@@ -446,6 +517,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
         )
         .maybeWhen(data: (value) => value, orElse: () => false);
+    final initialEntryNode = _resolveInitialEntryNode(
+      isMobileLayout: isMobileLayout,
+      uiMode: searchUiMode,
+      showHistory: showHistory,
+      showWatchProviders: showWatchProviders,
+      state: state,
+    );
     final resultsListPadding = EdgeInsets.symmetric(
       horizontal: horizontalPadding,
     );
@@ -557,12 +635,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     List<Widget> buildResultsChildren() {
       Widget section(Widget child) {
-        return Builder(
-          builder: (sectionContext) => MoviVerticalEnsureVisibleTarget(
-            targetContext: sectionContext,
-            child: child,
-          ),
-        );
+        return child;
       }
 
       return [
@@ -832,40 +905,31 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       DirectionalEdge.back: AppFocusRegionId.shellSidebar,
                     }),
                     debugLabel: 'SearchHistoryRegion',
-                    child: Builder(
-                      builder: (sectionContext) =>
-                          MoviVerticalEnsureVisibleTarget(
-                            targetContext: sectionContext,
-                            child: _SearchHistoryList(
-                              horizontalPadding: horizontalPadding,
-                              maxContentWidth: historyMaxWidth,
-                              useWideLayout: useDesktopLayout,
-                              firstItemFocusNode: _firstHistoryItemFocusNode,
-                              focusVerticalAlignment: _focusVerticalAlignment,
-                              onFocusChange: (hasFocus) {
-                                if (_historySectionHasFocus == hasFocus) {
-                                  return;
-                                }
-                                setState(() {
-                                  _historySectionHasFocus = hasFocus;
-                                });
-                              },
-                              onSelect: (q) {
-                                _debugSearchFocus('historySelect query="$q"');
-                                _markProgrammaticTextChange('history_select');
-                                _textCtrl.text = q;
-                                _textCtrl
-                                    .selection = TextSelection.fromPosition(
-                                  TextPosition(offset: _textCtrl.text.length),
-                                );
-                                _setSearchInputActivated(true);
-                                FocusDirectionalNavigation.requestFocus(
-                                  _focusNode,
-                                );
-                                unawaited(ctrl.submitQuery(q));
-                              },
-                            ),
-                          ),
+                    child: _SearchHistoryList(
+                      horizontalPadding: horizontalPadding,
+                      maxContentWidth: historyMaxWidth,
+                      useWideLayout: useDesktopLayout,
+                      firstItemFocusNode: _firstHistoryItemFocusNode,
+                      focusVerticalAlignment: _focusVerticalAlignment,
+                      onFocusChange: (hasFocus) {
+                        if (_historySectionHasFocus == hasFocus) {
+                          return;
+                        }
+                        setState(() {
+                          _historySectionHasFocus = hasFocus;
+                        });
+                      },
+                      onSelect: (q) {
+                        _debugSearchFocus('historySelect query="$q"');
+                        _markProgrammaticTextChange('history_select');
+                        _textCtrl.text = q;
+                        _textCtrl.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _textCtrl.text.length),
+                        );
+                        _setSearchInputActivated(true);
+                        FocusDirectionalNavigation.requestFocus(_focusNode);
+                        unawaited(ctrl.submitQuery(q));
+                      },
                     ),
                   ),
                 )
@@ -882,74 +946,53 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               DirectionalEdge.back: AppFocusRegionId.shellSidebar,
             }),
             debugLabel: 'SearchProvidersRegion',
-            child: Builder(
-              builder: (sectionContext) => MoviVerticalEnsureVisibleTarget(
-                targetContext: sectionContext,
-                child: WatchProvidersGrid(
-                  horizontalPadding: horizontalPadding,
-                  maxContentWidth: gridMaxWidth,
-                  firstItemFocusNode: _firstProviderFocusNode,
-                  onFirstItemLeft: () =>
-                      _resolveExitFromRegion(AppFocusRegionId.searchProviders),
-                  onLastRowDown: _focusNearestGenreFromProviders,
-                  focusVerticalAlignment: _focusVerticalAlignment,
-                  focusRequestId: _providerFocusRequestId,
-                  focusRequestColumn: _providerFocusRequestColumn,
-                ),
-              ),
+            child: WatchProvidersGrid(
+              horizontalPadding: horizontalPadding,
+              maxContentWidth: gridMaxWidth,
+              firstItemFocusNode: _firstProviderFocusNode,
+              onFirstItemLeft: () =>
+                  _resolveExitFromRegion(AppFocusRegionId.searchProviders),
+              // onLastRowDown: _focusNearestGenreFromProviders,
+              focusVerticalAlignment: _focusVerticalAlignment,
+              focusRequestId: _providerFocusRequestId,
+              focusRequestColumn: _providerFocusRequestColumn,
+              onFocusRequestApplied: _onCrossSectionFocusApplied,
             ),
           ),
         if (showWatchProviders) const SizedBox(height: 32),
-        FocusRegionScope(
-          regionId: AppFocusRegionId.searchGenres,
-          binding: FocusRegionBinding(
-            resolvePrimaryEntryNode: () => _firstGenreFocusNode,
-          ),
-          exitMap: FocusRegionExitMap({
-            DirectionalEdge.left: AppFocusRegionId.shellSidebar,
-            DirectionalEdge.back: AppFocusRegionId.shellSidebar,
-          }),
-          debugLabel: 'SearchGenresRegion',
-          child: Builder(
-            builder: (sectionContext) => MoviVerticalEnsureVisibleTarget(
-              targetContext: sectionContext,
-              child: GenresGrid(
-                horizontalPadding: horizontalPadding,
-                maxContentWidth: gridMaxWidth,
-                firstItemFocusNode: _firstGenreFocusNode,
-                onFirstItemLeft: () =>
-                    _resolveExitFromRegion(AppFocusRegionId.searchGenres),
-                onFirstRowUp: showWatchProviders
-                    ? _focusNearestProviderFromGenres
-                    : null,
-                focusRequestId: _genreFocusRequestId,
-                focusRequestColumn: _genreFocusRequestColumn,
-                focusVerticalAlignment: _focusVerticalAlignment,
-              ),
-            ),
-          ),
-        ),
+        // Section genres masquée (tous appareils).
+        // FocusRegionScope(
+        //   regionId: AppFocusRegionId.searchGenres,
+        //   binding: FocusRegionBinding(
+        //     resolvePrimaryEntryNode: () => _firstGenreFocusNode,
+        //   ),
+        //   exitMap: FocusRegionExitMap({
+        //     DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        //     DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+        //   }),
+        //   debugLabel: 'SearchGenresRegion',
+        //   child: GenresGrid(
+        //     horizontalPadding: horizontalPadding,
+        //     maxContentWidth: gridMaxWidth,
+        //     firstItemFocusNode: _firstGenreFocusNode,
+        //     onFirstItemLeft: () =>
+        //         _resolveExitFromRegion(AppFocusRegionId.searchGenres),
+        //     onFirstRowUp: showWatchProviders
+        //         ? _focusNearestProviderFromGenres
+        //         : null,
+        //     focusRequestId: _genreFocusRequestId,
+        //     focusRequestColumn: _genreFocusRequestColumn,
+        //     focusVerticalAlignment: _focusVerticalAlignment,
+        //     onFocusRequestApplied: _onCrossSectionFocusApplied,
+        //   ),
+        // ),
         const SizedBox(height: 125),
       ];
     }
 
     List<Widget> buildReadyToSubmitChildren() {
       return [
-        const SizedBox(height: 48),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: searchFieldMaxWidth),
-              child: FilledButton.icon(
-                onPressed: () => unawaited(ctrl.submitCurrentQuery()),
-                icon: const Icon(Icons.search_rounded),
-                label: Text(l10n.searchTitle),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 32),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Text(
@@ -1002,8 +1045,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return FocusRegionScope(
       regionId: AppFocusRegionId.searchInput,
       binding: FocusRegionBinding(
-        resolvePrimaryEntryNode: () => _focusNode,
-        resolveFallbackEntryNode: () => _clearFocusNode,
+        resolvePrimaryEntryNode: () => initialEntryNode,
+        resolveFallbackEntryNode: () {
+          if (!isMobileLayout) return _clearFocusNode;
+          if (showWatchProviders) return _firstProviderFocusNode;
+          return _clearFocusNode;
+        },
       ),
       exitMap: FocusRegionExitMap({
         DirectionalEdge.left: AppFocusRegionId.shellSidebar,
@@ -1025,9 +1072,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   .read(searchHistoryControllerProvider.notifier)
                   .refresh();
             },
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [...searchHeaderChildren, ...bodyChildren()],
+            child: MoviFocusRevealScope(
+              policy: _crossSectionRevealPolicy,
+              deferLayoutFrames:
+                  _crossSectionRevealPolicy ==
+                      MoviVerticalRevealPolicy.minimal
+                  ? 1
+                  : 0,
+              child: ListView(
+                controller: PrimaryScrollController.maybeOf(context),
+                padding: EdgeInsets.zero,
+                children: [...searchHeaderChildren, ...bodyChildren()],
+              ),
             ),
           ),
         ),
@@ -1075,6 +1131,7 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -1095,11 +1152,11 @@ class _SearchField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hintText,
           prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 12, right: 8),
-            child: const MoviAssetIcon(
+            padding: EdgeInsets.only(left: 12 * uiScale, right: 8 * uiScale),
+            child: MoviAssetIcon(
               AppAssets.iconSearch,
-              width: 25,
-              height: 25,
+              width: 25 * uiScale,
+              height: 25 * uiScale,
               color: Colors.white70,
             ),
           ),
@@ -1115,10 +1172,10 @@ class _SearchField extends StatelessWidget {
                   },
                   child: IconButton(
                     focusNode: clearFocusNode,
-                    icon: const MoviAssetIcon(
+                    icon: MoviAssetIcon(
                       AppAssets.iconDelete,
-                      width: 25,
-                      height: 25,
+                      width: 25 * uiScale,
+                      height: 25 * uiScale,
                       color: Colors.white,
                     ),
                     onPressed: onClear,
@@ -1127,20 +1184,23 @@ class _SearchField extends StatelessWidget {
                 )
               : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(999 * uiScale),
             borderSide: BorderSide(color: colorScheme.outlineVariant),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(999 * uiScale),
             borderSide: BorderSide(color: colorScheme.outlineVariant),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(999),
-            borderSide: BorderSide(color: colorScheme.primary, width: 2),
+            borderRadius: BorderRadius.circular(999 * uiScale),
+            borderSide: BorderSide(
+              color: colorScheme.primary,
+              width: 2 * uiScale,
+            ),
           ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 16,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 16 * uiScale,
           ),
         ),
       ),
@@ -1384,6 +1444,27 @@ class _SearchHistoryList extends ConsumerWidget {
                         ),
                         if (hasItems)
                           TextButton(
+                            style: ButtonStyle(
+                              shape: WidgetStatePropertyAll(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              side: WidgetStateProperty.resolveWith<BorderSide>(
+                                (states) {
+                                  if (states.contains(WidgetState.focused)) {
+                                    return BorderSide(
+                                      color: theme.colorScheme.primary,
+                                      width: 2,
+                                    );
+                                  }
+                                  return BorderSide(
+                                    color: Colors.transparent,
+                                    width: 2,
+                                  );
+                                },
+                              ),
+                            ),
                             onPressed: () {
                               ref
                                   .read(
@@ -1534,7 +1615,7 @@ class _SearchHistoryList extends ConsumerWidget {
   }
 }
 
-class _SearchHistoryItem extends StatelessWidget {
+class _SearchHistoryItem extends StatefulWidget {
   const _SearchHistoryItem({
     required this.query,
     required this.onTap,
@@ -1550,25 +1631,44 @@ class _SearchHistoryItem extends StatelessWidget {
   final double focusVerticalAlignment;
 
   @override
+  State<_SearchHistoryItem> createState() => _SearchHistoryItemState();
+}
+
+class _SearchHistoryItemState extends State<_SearchHistoryItem> {
+  bool _isFocused = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
-    return MoviEnsureVisibleOnFocus(
-      verticalAlignment: focusVerticalAlignment,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(
+    final accentColor = colorScheme.primary;
+    final itemBorder = _isFocused
+        ? Border.all(color: accentColor, width: 2)
+        : Border(
             bottom: BorderSide(
               color: colorScheme.outlineVariant.withValues(alpha: 0.45),
             ),
-          ),
+          );
+    final borderRadius = _isFocused ? BorderRadius.circular(12) : null;
+
+    return MoviEnsureVisibleOnFocus(
+      verticalAlignment: widget.focusVerticalAlignment,
+      child: Container(
+        margin: _isFocused ? const EdgeInsets.symmetric(vertical: 2) : null,
+        decoration: BoxDecoration(
+          border: itemBorder,
+          borderRadius: borderRadius,
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            focusNode: focusNode,
-            onTap: onTap,
+            focusNode: widget.focusNode,
+            borderRadius: borderRadius,
+            onFocusChange: (hasFocus) {
+              if (_isFocused == hasFocus) return;
+              setState(() => _isFocused = hasFocus);
+            },
+            onTap: widget.onTap,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               child: Row(
@@ -1581,7 +1681,7 @@ class _SearchHistoryItem extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      query,
+                      widget.query,
                       style: theme.textTheme.bodyLarge,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -1595,7 +1695,7 @@ class _SearchHistoryItem extends StatelessWidget {
                       height: 25,
                       color: Colors.white,
                     ),
-                    onPressed: onRemove,
+                    onPressed: widget.onRemove,
                     tooltip: AppLocalizations.of(context)!.delete,
                   ),
                 ],

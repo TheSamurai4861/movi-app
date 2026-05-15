@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 
 /// Grille média avec navigation TV explicite.
@@ -184,8 +185,12 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
     }
   }
 
-  double _slotWidthFor(double availableWidth, int crossAxisCount) {
-    return (availableWidth - (widget.gridGapH * (crossAxisCount - 1))) /
+  double _slotWidthFor(
+    double availableWidth,
+    int crossAxisCount, {
+    required double gridGapH,
+  }) {
+    return (availableWidth - (gridGapH * (crossAxisCount - 1))) /
         crossAxisCount;
   }
 
@@ -317,21 +322,26 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
       return const SizedBox.shrink();
     }
 
-    final posterAspectRatio = widget.posterHeight / widget.cardWidth;
-    final cardChromeHeight = widget.itemHeight - widget.posterHeight;
-    final baseLayoutCardWidth = widget.cardWidth + widget.focusBleed;
-
     return LayoutBuilder(
       builder: (context, constraints) {
+        final uiScale = context.tvUiScale;
+        final pageHorizontalPadding = widget.pageHorizontalPadding * uiScale;
+        final cardWidth = widget.cardWidth * uiScale;
+        final posterHeight = widget.posterHeight * uiScale;
+        final itemHeight = widget.itemHeight * uiScale;
+        final gridGapH = widget.gridGapH * uiScale;
+        final gridGapV = widget.gridGapV * uiScale;
+        final focusBleed = widget.focusBleed * uiScale;
+        final minLargeCardWidth = widget.minLargeCardWidth * uiScale;
         final availableWidth =
-            constraints.maxWidth - (widget.pageHorizontalPadding * 2);
+            constraints.maxWidth - (pageHorizontalPadding * 2);
         final isLargeScreen = _isLargeScreen(context);
         _syncFocusEnabled(isLargeScreen);
 
-        int crossAxisCount =
-            (availableWidth / (baseLayoutCardWidth + widget.gridGapH))
-                .floor()
-                .clamp(1, 6);
+        final baseLayoutCardWidth = cardWidth + focusBleed;
+        int crossAxisCount = (availableWidth / (baseLayoutCardWidth + gridGapH))
+            .floor()
+            .clamp(1, 6);
 
         if (crossAxisCount < 1) {
           crossAxisCount = 1;
@@ -342,28 +352,36 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
         if (isLargeScreen) {
           crossAxisCount += 2;
           while (crossAxisCount > 1 &&
-              (_slotWidthFor(availableWidth, crossAxisCount) -
-                      widget.focusBleed) <
-                  widget.minLargeCardWidth) {
+              (_slotWidthFor(
+                        availableWidth,
+                        crossAxisCount,
+                        gridGapH: gridGapH,
+                      ) -
+                      focusBleed) <
+                  minLargeCardWidth) {
             crossAxisCount--;
           }
         }
 
-        final layoutCardWidth = _slotWidthFor(availableWidth, crossAxisCount);
-        final resolvedCardWidth = layoutCardWidth - widget.focusBleed;
+        final posterAspectRatio = posterHeight / cardWidth;
+        final cardChromeHeight = itemHeight - posterHeight;
+        final layoutCardWidth = _slotWidthFor(
+          availableWidth,
+          crossAxisCount,
+          gridGapH: gridGapH,
+        );
+        final resolvedCardWidth = layoutCardWidth - focusBleed;
         final resolvedPosterHeight = resolvedCardWidth * posterAspectRatio;
         final layoutItemHeight =
-            resolvedPosterHeight + cardChromeHeight + widget.focusBleed;
+            resolvedPosterHeight + cardChromeHeight + focusBleed;
         final gridWidth =
             (layoutCardWidth * crossAxisCount) +
-            widget.gridGapH * (crossAxisCount - 1);
+            gridGapH * (crossAxisCount - 1);
 
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: widget.pageHorizontalPadding,
-            ),
+            padding: EdgeInsets.symmetric(horizontal: pageHorizontalPadding),
             child: SizedBox(
               width: gridWidth,
               child: GridView.builder(
@@ -373,8 +391,8 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
                 itemCount: widget.itemCount,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: widget.gridGapV,
-                  crossAxisSpacing: widget.gridGapH,
+                  mainAxisSpacing: gridGapV,
+                  crossAxisSpacing: gridGapH,
                   childAspectRatio: layoutCardWidth / layoutItemHeight,
                 ),
                 itemBuilder: (context, index) {

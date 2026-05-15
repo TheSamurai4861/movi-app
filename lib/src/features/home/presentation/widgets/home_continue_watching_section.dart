@@ -9,6 +9,7 @@ import 'package:movi/src/core/images/image_loading_policy.dart';
 import 'package:movi/src/core/images/safe_image_cache_manager.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/widgets/premium_feature_gate.dart';
@@ -76,6 +77,7 @@ class _HomeContinueWatchingSectionState
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final inProgressAsync = ref.watch(hp.homeInProgressProvider);
     final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
@@ -103,10 +105,15 @@ class _HomeContinueWatchingSectionState
               child: HomeFirstSectionTransition(
                 enabled: widget.applyHeroTransition,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  padding: EdgeInsets.fromLTRB(
+                    20 * uiScale,
+                    0,
+                    20 * uiScale,
+                    0,
+                  ),
                   child: Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16 * uiScale),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -114,7 +121,7 @@ class _HomeContinueWatchingSectionState
                             AppLocalizations.of(context)!.homeContinueWatching,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8 * uiScale),
                           Text(
                             localizer.contextualUpsellBody,
                             style: Theme.of(context).textTheme.bodyMedium
@@ -124,9 +131,9 @@ class _HomeContinueWatchingSectionState
                                   ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16 * uiScale),
                           SizedBox(
-                            width: 220,
+                            width: 220 * uiScale,
                             child: MoviPrimaryButton(
                               label: localizer.contextualUpsellAction,
                               onPressed: () {
@@ -310,6 +317,7 @@ class HomeContinueWatchingSpacer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final uiScale = context.tvUiScale;
     final inProgressAsync = ref.watch(hp.homeInProgressProvider);
 
     return inProgressAsync.when(
@@ -317,8 +325,8 @@ class HomeContinueWatchingSpacer extends ConsumerWidget {
         if (inProgress.isEmpty) {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
-        return const SliverToBoxAdapter(
-          child: SizedBox(height: HomeLayoutConstants.sectionGap),
+        return SliverToBoxAdapter(
+          child: SizedBox(height: HomeLayoutConstants.sectionGap * uiScale),
         );
       },
       loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),

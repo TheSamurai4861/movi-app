@@ -115,7 +115,7 @@ final class AppStartupOrchestrator {
       final failure = StartupFailure(
         code: code,
         phase: phase,
-        message: 'startup_failed phase=${phase.name} type=${e.runtimeType}',
+        message: 'startup_failed:${phase.name}:${e.runtimeType}',
         original: e,
       );
 

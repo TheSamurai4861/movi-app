@@ -8,6 +8,7 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/core/widgets/movi_detail_hero.dart';
+import 'package:movi/src/core/widgets/movi_tv_action_menu.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/features/movie/presentation/models/movie_detail_view_model.dart';
@@ -250,17 +251,15 @@ void main() {
     await tester.tap(find.text('Watch'));
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
+    expect(find.byType(MoviTvActionMenuDialog), findsOneWidget);
     expect(find.text('The.Matrix.1999.1080p.TRUEFRENCH'), findsOneWidget);
     expect(find.text('The.Matrix.1999.2160p.VOSTFR'), findsOneWidget);
 
-    final variantKey = find.byKey(const Key('movie_variant_1'));
-    await tester.scrollUntilVisible(
-      variantKey,
-      200,
-      scrollable: find.byType(Scrollable).last,
+    final variantLabel = find.descendant(
+      of: find.byType(MoviTvActionMenuDialog),
+      matching: find.text('The.Matrix.1999.2160p.VOSTFR'),
     );
-    await tester.tap(variantKey, warnIfMissed: false);
+    await tester.tap(variantLabel.first);
     for (var i = 0; i < 20 && pushedSources.isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -343,7 +342,7 @@ void main() {
       await tester.tap(find.text('Watch'));
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
+      expect(find.byType(MoviTvActionMenuDialog), findsOneWidget);
       expect(find.text('The.Matrix.1999.2160p.VF.VOSTFR'), findsOneWidget);
       expect(find.text('The.Matrix.1999.1080p.VO.SUB'), findsOneWidget);
       expect(find.text('4K'), findsNothing);
@@ -424,7 +423,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(selectionCalls, 1);
-      expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
+      expect(find.byType(MoviTvActionMenuDialog), findsOneWidget);
     },
   );
 

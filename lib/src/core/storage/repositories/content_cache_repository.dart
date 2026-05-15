@@ -121,6 +121,12 @@ class ContentCacheRepository {
     });
   }
 
+  Future<void> clearAll() async {
+    await _runWrite(() {
+      return _db.delete('content_cache');
+    });
+  }
+
   Future<void> remove(String key) async {
     await _runWrite(() {
       return _db.delete(

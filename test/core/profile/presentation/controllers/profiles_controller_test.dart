@@ -87,6 +87,36 @@ void main() {
     },
   );
 
+  test(
+    'does not auto-select a profile when multiple profiles have no local selection',
+    () async {
+      final prefs = _MemorySelectedProfilePreferences();
+
+      final harness = _ProfilesControllerHarness(
+        prefs: prefs,
+        repo: _FakeProfileRepository([
+          const Profile(
+            id: '11111111-1111-4111-8111-111111111111',
+            accountId: 'cloud-user',
+            name: 'Cloud A',
+            color: 0xFF123456,
+          ),
+          const Profile(
+            id: '22222222-2222-4222-8222-222222222222',
+            accountId: 'cloud-user',
+            name: 'Cloud B',
+            color: 0xFF654321,
+          ),
+        ]),
+      );
+      addTearDown(harness.dispose);
+
+      await harness.container.read(profilesControllerProvider.future);
+
+      expect(prefs.selectedProfileId, isNull);
+    },
+  );
+
   test('keeps the selected cloud profile when it is already valid', () async {
     final prefs = _MemorySelectedProfilePreferences();
     await prefs.setSelectedProfileId('22222222-2222-4222-8222-222222222222');

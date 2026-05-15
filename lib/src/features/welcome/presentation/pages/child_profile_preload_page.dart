@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/parental/application/services/child_profile_rating_preload_service.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 
@@ -81,6 +82,7 @@ class _ChildProfilePreloadPageState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final accentColor = ref.watch(currentAccentColorProvider);
     final progress = _progress;
     final theme = Theme.of(context);
@@ -96,7 +98,7 @@ class _ChildProfilePreloadPageState
               Icon(Icons.child_care, size: 64, color: accentColor),
               const SizedBox(height: 32),
               Text(
-                'Sécurisation du contenu',
+                l10n.childPreloadTitle,
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -104,7 +106,7 @@ class _ChildProfilePreloadPageState
               ),
               const SizedBox(height: 8),
               Text(
-                'Vérification des classifications d\'âge...',
+                l10n.childPreloadSubtitle,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -153,7 +155,7 @@ class _ChildProfilePreloadPageState
               if (widget.onSkip != null && progress != null)
                 TextButton(
                   onPressed: widget.onSkip,
-                  child: const Text('Passer'),
+                  child: Text(l10n.childPreloadSkip),
                 ),
             ],
           ),
@@ -163,18 +165,19 @@ class _ChildProfilePreloadPageState
   }
 
   Widget _buildCounters(ThemeData theme, PreloadProgress progress) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         _buildCounterRow(
           theme,
-          'Films',
+          l10n.moviesTitle,
           progress.moviesProcessed,
           progress.moviesTotal,
         ),
         const SizedBox(height: 12),
         _buildCounterRow(
           theme,
-          'Séries',
+          l10n.seriesTitle,
           progress.seriesProcessed,
           progress.seriesTotal,
         ),
@@ -204,28 +207,30 @@ class _ChildProfilePreloadPageState
   }
 
   String _getPhaseText(PreloadPhase phase) {
+    final l10n = AppLocalizations.of(context)!;
     switch (phase) {
       case PreloadPhase.resolvingIds:
-        return 'Résolution des identifiants...';
+        return l10n.childPreloadPhaseResolvingIds;
       case PreloadPhase.fetchingRatings:
-        return 'Récupération des classifications...';
+        return l10n.childPreloadPhaseFetchingRatings;
       case PreloadPhase.completed:
-        return 'Terminé';
+        return l10n.childPreloadPhaseCompleted;
     }
   }
 
   String _formatTimeRemaining(int seconds) {
+    final l10n = AppLocalizations.of(context)!;
     if (seconds < 60) {
-      return 'Environ $seconds seconde${seconds > 1 ? 's' : ''} restante${seconds > 1 ? 's' : ''}';
+      return l10n.childPreloadEtaSeconds(seconds);
     }
 
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
 
     if (remainingSeconds == 0) {
-      return 'Environ $minutes minute${minutes > 1 ? 's' : ''} restante${minutes > 1 ? 's' : ''}';
+      return l10n.childPreloadEtaMinutes(minutes);
     }
 
-    return 'Environ $minutes min $remainingSeconds sec restantes';
+    return l10n.childPreloadEtaMinutesSeconds(minutes, remainingSeconds);
   }
 }

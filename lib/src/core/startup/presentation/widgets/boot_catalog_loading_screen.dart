@@ -4,6 +4,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
@@ -41,12 +42,15 @@ class BootCatalogLoadingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final theme = Theme.of(context);
     final accentColor = _resolveAccentColor(ref, theme);
     final bottom = 24.0 + MediaQuery.of(context).padding.bottom;
     final duration = fadeInDuration ?? const Duration(milliseconds: 300);
 
-    final baseText = message.trim().isEmpty ? 'Chargement…' : message.trim();
+    final baseText = message.trim().isEmpty
+        ? (l10n?.bootLoadingDefault ?? 'Loading…')
+        : message.trim();
     final secondary = secondaryMessage?.trim();
 
     return TweenAnimationBuilder<double>(
@@ -61,14 +65,14 @@ class BootCatalogLoadingScreen extends ConsumerWidget {
             if (showLogo)
               Center(
                 child: Semantics(
-                  label: 'MOVI splash logo',
+                  label: l10n?.bootSemanticsSplashLogo ?? 'MOVI splash logo',
                   child: MoviAssetIcon(
                     AppAssets.iconAppLogoSvg,
                     width: _logoSize,
                     height: _logoSize,
                     color: accentColor,
                     excludeFromSemantics: false,
-                    semanticLabel: 'MOVI splash logo',
+                    semanticLabel: l10n?.bootSemanticsSplashLogo ?? 'MOVI splash logo',
                   ),
                 ),
               ),
@@ -87,7 +91,9 @@ class BootCatalogLoadingScreen extends ConsumerWidget {
                     children: [
                       if (showProgress) ...[
                         Semantics(
-                          label: 'Préparation du catalogue',
+                          label:
+                              l10n?.bootSemanticsPreparingCatalog ??
+                              'Preparing catalog',
                           child: SizedBox(
                             width: 28,
                             height: 28,

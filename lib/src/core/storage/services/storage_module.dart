@@ -16,6 +16,7 @@ import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
 import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
     as content_cache_repo;
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/services/xtream_lookup.dart';
 
@@ -24,7 +25,7 @@ import 'package:movi/src/shared/domain/services/xtream_lookup.dart';
 /// In tests, prefer overriding repositories with in-memory fakes before calling
 /// [register] to avoid touching the on-disk SQLite database.
 class StorageModule {
-  static const int _databaseVersion = 24;
+  static const int _databaseVersion = 25;
 
   static Future<void> register({bool? allowInMemoryFallback}) async {
     final stopwatch = Stopwatch()..start();
@@ -230,6 +231,21 @@ class StorageModule {
         () => IptvLocalRepository(
           sl<Database>(),
           ownerIdProvider: () {
+            if (!sl.isRegistered<AuthRepository>()) {
+              return null;
+            }
+            return sl<AuthRepository>().currentSession?.userId;
+          },
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<EntryBootStateRepository>() &&
+        sl.isRegistered<Database>()) {
+      sl.registerLazySingleton<EntryBootStateRepository>(
+        () => EntryBootStateRepository(
+          sl<Database>(),
+          accountIdProvider: () {
             if (!sl.isRegistered<AuthRepository>()) {
               return null;
             }

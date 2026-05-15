@@ -5,6 +5,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
@@ -132,10 +133,11 @@ class HomeNoIptvSourcesMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     return HomeFirstSectionTransition(
       enabled: applyHeroTransition,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg * uiScale),
         child: Text(
           AppLocalizations.of(context)!.homeNoIptvSources,
           style: Theme.of(context).textTheme.bodyMedium,
@@ -153,6 +155,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final screenType = context.resolveScreenType(
       MediaQuery.of(context).size.width,
       MediaQuery.of(context).size.height,
@@ -176,7 +179,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
             horizontalFocusAlignment: 0.18,
             items: List.generate(itemLimit, (_) => const HomeLoadingSkeleton()),
           ),
-          const SizedBox(height: HomeLayoutConstants.sectionGap),
+          SizedBox(height: HomeLayoutConstants.sectionGap * uiScale),
           MoviItemsList(
             title: '',
             itemSpacing: HomeLayoutConstants.itemSpacing,
@@ -185,7 +188,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
             horizontalFocusAlignment: 0.18,
             items: List.generate(itemLimit, (_) => const HomeLoadingSkeleton()),
           ),
-          const SizedBox(height: HomeLayoutConstants.sectionGap),
+          SizedBox(height: HomeLayoutConstants.sectionGap * uiScale),
         ],
       ),
     );

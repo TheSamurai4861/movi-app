@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 
 class MoviTvActionMenuAction {
@@ -60,6 +61,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final viewportHeight = MediaQuery.sizeOf(context).height;
@@ -76,29 +78,37 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
       debugLabel: 'MoviTvActionMenuDialog',
       child: Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        insetPadding: EdgeInsets.symmetric(
+          horizontal: 32 * uiScale,
+          vertical: 24 * uiScale,
+        ),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: 520,
+            maxWidth: 520 * uiScale,
             maxHeight: maxDialogHeight,
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: const Color(0xFF1C1C1E),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20 * uiScale),
               border: Border.all(
                 color: colorScheme.outlineVariant.withValues(alpha: 0.45),
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 32,
-                  spreadRadius: 2,
+                  blurRadius: 32 * uiScale,
+                  spreadRadius: 2 * uiScale,
                 ),
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+              padding: EdgeInsets.fromLTRB(
+                24 * uiScale,
+                24 * uiScale,
+                24 * uiScale,
+                20 * uiScale,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -112,7 +122,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20 * uiScale),
                   ],
                   Flexible(
                     fit: FlexFit.loose,
@@ -139,24 +149,20 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                                     ? _cancelFocusNode
                                     : _actionFocusNodes[i + 1],
                                 onPressed: () {
+                                  final action = widget.actions[i];
                                   Navigator.of(context).pop();
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
-                                    if (!mounted) return;
-                                    widget.actions[i].onPressed();
-                                  });
+                                  action.onPressed();
                                 },
                               ),
                               if (i != widget.actions.length - 1)
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12 * uiScale),
                             ],
                           ],
                         ),
                       ),
                     ),
                   ),
-                  if (widget.actions.isNotEmpty) const SizedBox(height: 18),
+                  if (widget.actions.isNotEmpty) SizedBox(height: 18 * uiScale),
                   _MoviTvActionMenuButton(
                     label: widget.cancelLabel,
                     focusNode: _cancelFocusNode,
@@ -259,6 +265,7 @@ class _MoviTvActionMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final colorScheme = Theme.of(context).colorScheme;
     final isDangerAction = destructive || isCancel;
     final foreground = isDangerAction
@@ -282,8 +289,11 @@ class _MoviTvActionMenuButton extends StatelessWidget {
           builder: (context, state) {
             return MoviFocusFrame(
               scale: state.focused ? focusScale : 1,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              borderRadius: BorderRadius.circular(20),
+              padding: EdgeInsets.symmetric(
+                horizontal: 18 * uiScale,
+                vertical: 16 * uiScale,
+              ),
+              borderRadius: BorderRadius.circular(20 * uiScale),
               backgroundColor: state.focused
                   ? colorScheme.primary.withValues(alpha: 0.16)
                   : colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
@@ -296,8 +306,8 @@ class _MoviTvActionMenuButton extends StatelessWidget {
                 children: [
                   if (leadingColor != null) ...[
                     Container(
-                      width: 12,
-                      height: 12,
+                      width: 12 * uiScale,
+                      height: 12 * uiScale,
                       decoration: BoxDecoration(
                         color: leadingColor,
                         shape: BoxShape.circle,
@@ -306,7 +316,7 @@ class _MoviTvActionMenuButton extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10 * uiScale),
                   ],
                   Flexible(
                     child: Text(

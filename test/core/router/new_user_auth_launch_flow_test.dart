@@ -422,6 +422,216 @@ void main() {
     ]);
     expect(appStateController.activeIptvSourceIds, {'source-2'});
   });
+
+  testWidgets(
+    'returning account first install selects profile then source before Home',
+    (tester) async {
+      final localePreferences = _MemoryLocalePreferences();
+      final authRepository = _ScriptedAuthRepository.unauthenticatedResolved()
+        ..setAuthenticated();
+      final logger = _MemoryLogger();
+      final launchRegistry = AppLaunchStateRegistry();
+
+      sl.registerSingleton<LocalePreferences>(localePreferences);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      addTearDown(localePreferences.dispose);
+      addTearDown(authRepository.dispose);
+
+      final appStateController = container.read(appStateControllerProvider);
+      final routeHistory = <String>[];
+      final stateHistory = <String>[];
+      final launchRunner = _ScriptedLaunchRunner(
+        registry: launchRegistry,
+        stateHistory: stateHistory,
+        scriptedDestinations: <BootstrapDestination>[
+          BootstrapDestination.welcomeUser,
+          BootstrapDestination.chooseSource,
+        ],
+      );
+
+      final guard = LaunchRedirectGuard(
+        logger: logger,
+        appStateController: appStateController,
+        authRepository: authRepository,
+        launchRegistry: launchRegistry,
+      );
+      addTearDown(guard.dispose);
+
+      final router = GoRouter(
+        initialLocation: AppRoutePaths.launch,
+        refreshListenable: guard,
+        redirect: guard.handle,
+        routes: [
+          GoRoute(
+            path: AppRoutePaths.launch,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.launch,
+              label: 'Launch',
+              history: routeHistory,
+              onEnter: () => launchRunner.runNext(),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.authOtp,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.authOtp,
+              label: 'Auth OTP',
+              history: routeHistory,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.bootstrap,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.bootstrap,
+              label: 'Bootstrap',
+              history: routeHistory,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.welcomeUser,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.welcomeUser,
+              label: 'Welcome User',
+              history: routeHistory,
+              child: ElevatedButton(
+                key: const Key('select-profile'),
+                onPressed: () {
+                  stateHistory.add('welcomeUser:selectProfile');
+                  launchRunner.resetToIdle();
+                  context.go(AppRoutePaths.launch);
+                },
+                child: const Text('Select profile'),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.welcomeSources,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.welcomeSources,
+              label: 'Welcome Sources',
+              history: routeHistory,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.welcomeSourceSelect,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.welcomeSourceSelect,
+              label: 'Choose Source',
+              history: routeHistory,
+              child: ElevatedButton(
+                key: const Key('select-source'),
+                onPressed: () {
+                  stateHistory.add('welcomeSourceSelect:selectSource');
+                  launchRegistry.update(
+                    const AppLaunchState(
+                      status: AppLaunchStatus.running,
+                      phase: AppLaunchPhase.preloadCompleteHome,
+                    ),
+                  );
+                  context.go(AppRoutePaths.welcomeSourceLoading);
+                },
+                child: const Text('Select source'),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.welcomeSourceLoading,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.welcomeSourceLoading,
+              label: 'Welcome Source Loading',
+              history: routeHistory,
+              onEnter: () {
+                stateHistory.add('welcomeSourceLoading:homeReady');
+                appStateController.setActiveIptvSources({'source-2'});
+                launchRegistry.update(
+                  AppLaunchState(
+                    status: AppLaunchStatus.success,
+                    phase: AppLaunchPhase.done,
+                    destination: BootstrapDestination.home,
+                    criteria: const AppLaunchCriteria(
+                      hasSession: true,
+                      hasSelectedProfile: true,
+                      hasSelectedSource: true,
+                      hasIptvCatalogReady: true,
+                      hasHomePreloaded: true,
+                      hasLibraryReady: true,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.home,
+            builder: (context, state) => _TrackedStepPage(
+              route: AppRoutePaths.home,
+              label: 'Home',
+              history: routeHistory,
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Welcome User'), findsOneWidget);
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeUser,
+      ]);
+      expect(stateHistory, <String>['launch:welcomeUser']);
+
+      await tester.tap(find.byKey(const Key('select-profile')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Choose Source'), findsOneWidget);
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeUser,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeSourceSelect,
+      ]);
+      expect(stateHistory, <String>[
+        'launch:welcomeUser',
+        'welcomeUser:selectProfile',
+        'launch:resetToIdle',
+        'launch:chooseSource',
+      ]);
+
+      await tester.tap(find.byKey(const Key('select-source')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home'), findsOneWidget);
+      expect(routeHistory, <String>[
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeUser,
+        AppRoutePaths.launch,
+        AppRoutePaths.welcomeSourceSelect,
+        AppRoutePaths.welcomeSourceLoading,
+        AppRoutePaths.home,
+      ]);
+      expect(stateHistory, <String>[
+        'launch:welcomeUser',
+        'welcomeUser:selectProfile',
+        'launch:resetToIdle',
+        'launch:chooseSource',
+        'welcomeSourceSelect:selectSource',
+        'welcomeSourceLoading:homeReady',
+      ]);
+      expect(appStateController.activeIptvSourceIds, {'source-2'});
+    },
+  );
 }
 
 class _TrackedStepPage extends StatefulWidget {

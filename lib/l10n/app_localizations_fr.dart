@@ -174,6 +174,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsExportErrorLogs => 'Exporter les logs d’erreurs';
 
   @override
+  String get settingsClearCache => 'Vider le cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Vider le cache ?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'Les images et données catalogue en cache seront supprimées. Les décalages de synchronisation audio et sous-titres de votre profil seront conservés.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache vidé';
+
+  @override
   String get diagnosticsExportTitle => 'Exporter les logs d’erreurs';
 
   @override
@@ -549,7 +562,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bootLoadingPreparingLaunch => 'Lancement de Movi...';
 
   @override
+  String get bootLoadingDefault => 'Chargement…';
+
+  @override
   String get bootLoadingCheckingSession => 'Vérification de la session…';
+
+  @override
+  String get bootLoadingProfile => 'Chargement du profil...';
 
   @override
   String get bootLoadingCheckingProfile => 'Vérification du profil…';
@@ -649,6 +668,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bootActionOpenHome => 'Ouvrir l\'accueil';
 
   @override
+  String get bootSemanticsSplashLogo => 'Logo de démarrage MOVI';
+
+  @override
+  String get bootSemanticsLoadingInProgress => 'Chargement en cours';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'Préparation du catalogue';
+
+  @override
   String get welcomeSourceSavedSourcesTitle => 'Sources sauvegardées';
 
   @override
@@ -683,6 +711,39 @@ class AppLocalizationsFr extends AppLocalizations {
   String get welcomeSourceActivateAction => 'Activer';
 
   @override
+  String get welcomeSourceAddModeTitle => 'Ajout d’une source';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle =>
+      'Ajoutez votre première source IPTV.';
+
+  @override
+  String get welcomeSourceAddPrompt => 'Vous voulez ajouter une source ?';
+
+  @override
+  String get welcomeSourceAddNewAction => 'Ajouter une nouvelle source';
+
+  @override
+  String get welcomeSourceRequiredFields =>
+      'Tous les champs sont obligatoires.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'Le serveur met trop de temps à répondre. Vérifiez la connexion puis réessayez.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      'Identifiants invalides. Vérifiez le nom d’utilisateur et le mot de passe.';
+
+  @override
+  String get welcomeSourceErrorNetwork =>
+      'Connexion au serveur impossible. Vérifiez l’URL et votre réseau.';
+
+  @override
+  String get welcomeSourceErrorGeneric =>
+      'Impossible de charger la source pour le moment. Réessayez.';
+
+  @override
   String welcomeSourceExpiresOn(String date) {
     return 'Expire : $date';
   }
@@ -700,6 +761,63 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get welcomeUserProfilesLoadFailed =>
       'Impossible de charger les profils.';
+
+  @override
+  String get welcomeUserCreateTitle => 'Création du profil';
+
+  @override
+  String get welcomeUserChooseTitle => 'Choisir un profil';
+
+  @override
+  String get welcomeUserCreateSubtitle =>
+      'Créez votre premier profil pour l’app Movi.';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'Choisissez l’un de vos profils.';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'Nom du profil';
+
+  @override
+  String get welcomeUserProfileNameHint => 'Nom du profil';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'Créer le profil';
+
+  @override
+  String get childPreloadTitle => 'Sécurisation du contenu';
+
+  @override
+  String get childPreloadSubtitle =>
+      'Vérification des classifications d\'âge...';
+
+  @override
+  String get childPreloadSkip => 'Passer';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'Résolution des identifiants...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings =>
+      'Récupération des classifications...';
+
+  @override
+  String get childPreloadPhaseCompleted => 'Terminé';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return 'Environ ${seconds}s restantes';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return 'Environ $minutes min restantes';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return 'Environ $minutes min ${seconds}s restantes';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'Timeout de chargement de l\'accueil';
@@ -1419,6 +1537,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => 'Fond';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'Pas de fond';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => 'Opacité du fond';

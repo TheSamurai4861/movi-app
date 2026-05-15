@@ -299,6 +299,18 @@ final class LocalDatabaseSchema {
       );
     ''');
 
+    await db.execute('''
+      CREATE TABLE entry_boot_state (
+        account_id TEXT PRIMARY KEY,
+        profile_selected_locally INTEGER NOT NULL DEFAULT 0,
+        source_selected_locally INTEGER NOT NULL DEFAULT 0,
+        selected_profile_id TEXT,
+        selected_source_id TEXT,
+        first_launch_completed_at INTEGER,
+        updated_at INTEGER NOT NULL
+      );
+    ''');
+
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_tracked_series_user_id ON tracked_series(user_id);',
     );
@@ -350,6 +362,9 @@ final class LocalDatabaseSchema {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_local_profiles_account_created ON local_profiles(account_id, created_at);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_entry_boot_state_updated_at ON entry_boot_state(updated_at);',
     );
   }
 }

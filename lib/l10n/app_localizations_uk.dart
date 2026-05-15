@@ -177,6 +177,19 @@ class AppLocalizationsUk extends AppLocalizations {
   String get settingsExportErrorLogs => 'Експорт журналів помилок';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => 'Експорт журналів помилок';
 
   @override
@@ -546,155 +559,258 @@ class AppLocalizationsUk extends AppLocalizations {
       'Локальний каталог готовий — завершення…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => 'Підготовка до запуску…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => 'Завантаження…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => 'Перевірка сесії…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => 'Завантаження профілю…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => 'Перевірка профілю…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => 'Перевірка джерела…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => 'Підготовка каталогу…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => 'Потрібен вхід';
+
+  @override
+  String get bootActionAuthMessage => 'Увійдіть, щоб продовжити.';
+
+  @override
+  String get bootActionProfileTitle => 'Потрібен профіль';
 
   @override
   String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+      'Створіть або виберіть профіль, щоб продовжити.';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionSourceRequiredTitle => 'Потрібне джерело';
 
   @override
   String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+      'Додайте або перепідключіть джерело, щоб продовжити.';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceSelectionTitle => 'Вибір джерела';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceSelectionMessage =>
+      'Виберіть джерело для використання.';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootRecoverySourceTimeoutTitle => 'Джерело не відповідає';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootRecoverySourceTimeoutMessage =>
+      'Повторіть синхронізацію або змініть джерело.';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceProviderTitle => 'Неможливо завантажити джерело';
 
   @override
   String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+      'Повторіть завантаження або змініть джерело.';
 
   @override
   String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+      'Неможливо підключитися до джерела';
 
   @override
   String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+      'Перепідключіть джерело, щоб продовжити.';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceEmptyTitle => 'Вміст не знайдено';
 
   @override
   String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+      'Повторно синхронізуйте джерело або виберіть інше.';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootFailureTitle => 'Запуск перервано';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootFailureMessage => 'Помилка перешкоджає запуску.';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootActionExportLogs => 'Експортувати журнали';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootActionLogin => 'Увійти';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionChooseProfile => 'Вибрати профіль';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionAddSource => 'Додати джерело';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseSource => 'Змінити джерело';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionReconnectSource => 'Перепідключити джерело';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionResyncSource => 'Повторна синхронізація';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionOpenHome => 'Відкрити головну';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootSemanticsSplashLogo => 'Заставочний логотип MOVI';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootSemanticsLoadingInProgress => 'Завантаження виконується';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'Підготовка каталогу';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => 'Збережені джерела';
+
+  @override
+  String get welcomeSourceRefreshTooltip => 'Оновити';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      'Джерело на Supabase не знайдено. Додайте або активуйте його нижче.';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => 'Активувати джерело';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => 'Назва джерела';
 
   @override
-  String get welcomeSourceNameHint => 'My IPTV';
+  String get welcomeSourceNameHint => 'Мій IPTV';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => 'URL сервера';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => 'Ім\'я користувача';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => 'Пароль';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => 'Активувати';
+
+  @override
+  String get welcomeSourceAddModeTitle => 'Додати джерело';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle =>
+      'Додайте своє перше джерело IPTV.';
+
+  @override
+  String get welcomeSourceAddPrompt => 'Хочете додати джерело?';
+
+  @override
+  String get welcomeSourceAddNewAction => 'Додати нове джерело';
+
+  @override
+  String get welcomeSourceRequiredFields => 'Усі поля обов\'язкові.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'Сервер надто довго не відповідає. Перевірте з\'єднання та спробуйте ще раз.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      'Недійсні облікові дані. Перевірте ім\'я користувача та пароль.';
+
+  @override
+  String get welcomeSourceErrorNetwork =>
+      'Неможливо підключитися до сервера. Перевірте URL та мережу.';
+
+  @override
+  String get welcomeSourceErrorGeneric =>
+      'Не вдалося завантажити джерело. Будь ласка, спробуйте ще раз.';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return 'Закінчується: $date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => 'Без дати закінчення';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => 'Профіль заблоковано';
 
   @override
-  String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+  String get welcomeUserProfileLockedReason => 'Введіть PIN для зміни профілю.';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed => 'Не вдалося завантажити профілі.';
+
+  @override
+  String get welcomeUserCreateTitle => 'Створити профіль';
+
+  @override
+  String get welcomeUserChooseTitle => 'Вибрати профіль';
+
+  @override
+  String get welcomeUserCreateSubtitle =>
+      'Створіть свій перший профіль для Movi.';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'Виберіть один із своїх профілів.';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'Ім\'я профілю';
+
+  @override
+  String get welcomeUserProfileNameHint => 'Ім\'я профілю';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'Створити профіль';
+
+  @override
+  String get childPreloadTitle => 'Налаштування захисту вмісту';
+
+  @override
+  String get childPreloadSubtitle => 'Перевірка вікових рейтингів...';
+
+  @override
+  String get childPreloadSkip => 'Пропустити';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'Вирішення ідентифікаторів...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => 'Отримання рейтингів...';
+
+  @override
+  String get childPreloadPhaseCompleted => 'Готово';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return 'Залишилось близько $seconds с';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return 'Залишилось близько $minutes хв';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return 'Залишилось близько $minutes хв $seconds с';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'Таймаут завантаження головної';
@@ -1157,41 +1273,42 @@ class AppLocalizationsUk extends AppLocalizations {
   String get authOtpChangeEmail => 'Змінити email';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => 'Натомість використати пароль';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => 'Увійти';
 
   @override
   String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+      'Введіть e-mail та пароль, щоб продовжити.';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => 'E-mail';
 
   @override
   String get authPasswordEmailHint => 'name@example.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp =>
+      'Використовуйте e-mail, пов\'язаний з вашим обліковим записом.';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => 'Пароль';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => 'Ваш пароль';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp => 'Пароль чутливий до регістру.';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => 'Увійти';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => 'Забули пароль?';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent => 'Лист для скидання пароля надіслано.';
 
   @override
   String get authForgotPasswordTitle => 'Забули пароль';
@@ -1211,7 +1328,7 @@ class AppLocalizationsUk extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => 'Повернутися до входу';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => 'Натомість використати код з e-mail';
 
   @override
   String get resumePlayback => 'Продовжити відтворення';
@@ -1409,6 +1526,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => 'Тло';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => 'Непрозорість тла';

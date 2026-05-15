@@ -64,6 +64,10 @@
   "actionRetry": "Réessayer",
   "settingsHelpDiagnosticsSection": "Aide & diagnostic",
   "settingsExportErrorLogs": "Exporter les logs d’erreurs",
+  "settingsClearCache": "Vider le cache",
+  "settingsClearCacheConfirmTitle": "Vider le cache ?",
+  "settingsClearCacheConfirmMessage": "Les images et données catalogue en cache seront supprimées. Les décalages de synchronisation audio et sous-titres de votre profil seront conservés.",
+  "settingsClearCacheSuccess": "Cache vidé",
   "diagnosticsExportTitle": "Exporter les logs d’erreurs",
   "diagnosticsExportDescription": "Le diagnostic inclut uniquement des logs WARN/ERROR récents et des identifiants compte/profil hachés (si activé). Aucune clé/token ne doit apparaître.",
   "diagnosticsIncludeHashedIdsTitle": "Inclure identifiants compte/profil (hachés)",
@@ -264,7 +268,9 @@
   "overlayPreparingMetadata": "Préparation des métadonnées…",
   "bootCatalogLocalCacheReady": "Catalogue local prêt — finalisation…",
   "bootLoadingPreparingLaunch": "Lancement de Movi...",
+  "bootLoadingDefault": "Chargement…",
   "bootLoadingCheckingSession": "Vérification de la session…",
+  "bootLoadingProfile": "Chargement du profil...",
   "bootLoadingCheckingProfile": "Vérification du profil…",
   "bootLoadingCheckingSource": "Vérification de la source…",
   "bootLoadingPreparingCatalog": "Préparation du catalogue…",
@@ -294,6 +300,9 @@
   "bootActionReconnectSource": "Reconnecter la source",
   "bootActionResyncSource": "Resynchroniser",
   "bootActionOpenHome": "Ouvrir l'accueil",
+  "bootSemanticsSplashLogo": "Logo de démarrage MOVI",
+  "bootSemanticsLoadingInProgress": "Chargement en cours",
+  "bootSemanticsPreparingCatalog": "Préparation du catalogue",
   "welcomeSourceSavedSourcesTitle": "Sources sauvegardées",
   "welcomeSourceRefreshTooltip": "Rafraîchir",
   "welcomeSourceNoRemoteSourcesMessage": "Aucune source trouvée sur Supabase. Ajoutez ou activez une source ci-dessous.",
@@ -305,6 +314,15 @@
   "welcomeSourceUsernameLabel": "Nom d'utilisateur",
   "welcomeSourcePasswordLabel": "Mot de passe",
   "welcomeSourceActivateAction": "Activer",
+  "welcomeSourceAddModeTitle": "Ajout d’une source",
+  "welcomeSourceFirstSourceSubtitle": "Ajoutez votre première source IPTV.",
+  "welcomeSourceAddPrompt": "Vous voulez ajouter une source ?",
+  "welcomeSourceAddNewAction": "Ajouter une nouvelle source",
+  "welcomeSourceRequiredFields": "Tous les champs sont obligatoires.",
+  "welcomeSourceErrorTimeout": "Le serveur met trop de temps à répondre. Vérifiez la connexion puis réessayez.",
+  "welcomeSourceErrorInvalidCredentials": "Identifiants invalides. Vérifiez le nom d’utilisateur et le mot de passe.",
+  "welcomeSourceErrorNetwork": "Connexion au serveur impossible. Vérifiez l’URL et votre réseau.",
+  "welcomeSourceErrorGeneric": "Impossible de charger la source pour le moment. Réessayez.",
   "welcomeSourceExpiresOn": "Expire : {date}",
   "@welcomeSourceExpiresOn": {
     "placeholders": {
@@ -317,6 +335,46 @@
   "welcomeUserProfileLockedTitle": "Profil verrouillé",
   "welcomeUserProfileLockedReason": "Saisissez le PIN pour changer de profil.",
   "welcomeUserProfilesLoadFailed": "Impossible de charger les profils.",
+  "welcomeUserCreateTitle": "Création du profil",
+  "welcomeUserChooseTitle": "Choisir un profil",
+  "welcomeUserCreateSubtitle": "Créez votre premier profil pour l’app Movi.",
+  "welcomeUserChooseSubtitle": "Choisissez l’un de vos profils.",
+  "welcomeUserProfileNameLabel": "Nom du profil",
+  "welcomeUserProfileNameHint": "Nom du profil",
+  "welcomeUserCreateProfileAction": "Créer le profil",
+  "childPreloadTitle": "Sécurisation du contenu",
+  "childPreloadSubtitle": "Vérification des classifications d'âge...",
+  "childPreloadSkip": "Passer",
+  "childPreloadPhaseResolvingIds": "Résolution des identifiants...",
+  "childPreloadPhaseFetchingRatings": "Récupération des classifications...",
+  "childPreloadPhaseCompleted": "Terminé",
+  "childPreloadEtaSeconds": "Environ {seconds}s restantes",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "Environ {minutes} min restantes",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "Environ {minutes} min {seconds}s restantes",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "errorHomeLoadTimeout": "Timeout de chargement de l'accueil",
   "faqLabel": "FAQ",
   "iptvUsernameLabel": "Nom d’utilisateur",
@@ -690,6 +748,7 @@
   "settingsSubtitlesPreviewTitle": "Aperçu",
   "settingsSubtitlesPreviewSample": "Ceci est un aperçu des sous-titres.\nAjustez la lisibilité en temps réel.",
   "settingsSubtitlesBackgroundTitle": "Fond",
+  "settingsSubtitlesBackgroundNone": "Pas de fond",
   "settingsSubtitlesBackgroundOpacityLabel": "Opacité du fond",
   "settingsSubtitlesShadowTitle": "Ombre",
   "settingsSubtitlesShadowOff": "Aucune",

@@ -11,7 +11,7 @@ abstract final class BootFormTokens {
   /// Largeur max bouton principal alignée sur les champs.
   static const double primaryActionMaxWidth = textFieldMaxWidth;
 
-  /// Hauteur bouton principal (Figma 50).
+  /// Hauteur de référence pour aligner les actions secondaires boot (ex. TextButton).
   static const double primaryActionHeight = 50;
 
   /// Largeur max champ (desktop/tablette).
@@ -84,8 +84,9 @@ abstract final class BootFormTokens {
   static ButtonStyle bootPrimaryButtonStyle(ThemeData theme) {
     final scheme = theme.colorScheme;
     return FilledButton.styleFrom(
-      minimumSize: const Size(48, primaryActionHeight),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      minimumSize: Size.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),

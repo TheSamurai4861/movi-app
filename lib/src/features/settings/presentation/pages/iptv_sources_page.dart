@@ -795,6 +795,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     final accent = ref.watch(asp.currentAccentColorProvider);
     final activeIds = ref.watch(asp.activeIptvSourcesProvider);
     final accountsAsync = ref.watch(allIptvAccountsProvider);
+    final isTvLayout = _screenTypeFor(context) == ScreenType.tv;
     final initialFocusNode = accountsAsync.maybeWhen(
       data: (accounts) =>
           accounts.isEmpty ? _bottomAddFocusNode : _refreshFocusNode,
@@ -857,6 +858,8 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                   final lastOtherDeleteNode = otherAccounts.isNotEmpty
                       ? _otherDeleteFocusNodes[otherAccounts.last.id]
                       : null;
+                  final showOrganizeAction =
+                      activeAccount != null && !isTvLayout;
 
                   _applyPendingFocusTarget(activeAccount: activeAccount);
                   _ensureFocusStillVisible(
@@ -1048,7 +1051,10 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                                   event,
                                   up: _activeDeleteFocusNode,
                                   down: activeAccount.isStalker
-                                      ? _organizeFocusNode
+                                      ? (showOrganizeAction
+                                            ? _organizeFocusNode
+                                            : (firstOtherDeleteNode ??
+                                                  _bottomAddFocusNode))
                                       : _editFocusNode,
                                 ),
                                 child: MoviEnsureVisibleOnFocus(
@@ -1073,7 +1079,10 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                                       _handleDirectionalKey(
                                         event,
                                         up: _refreshFocusNode,
-                                        down: _organizeFocusNode,
+                                        down: showOrganizeAction
+                                            ? _organizeFocusNode
+                                            : (firstOtherDeleteNode ??
+                                                  _bottomAddFocusNode),
                                       ),
                                   child: MoviEnsureVisibleOnFocus(
                                     verticalAlignment: _focusVerticalAlignment,
@@ -1102,30 +1111,32 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                                     ),
                                   ),
                                 ),
-                              const SizedBox(height: 16),
-                              Focus(
-                                canRequestFocus: false,
-                                onKeyEvent: (_, event) => _handleDirectionalKey(
-                                  event,
-                                  up: activeAccount.isStalker
-                                      ? _refreshFocusNode
-                                      : _editFocusNode,
-                                  down:
-                                      firstOtherDeleteNode ??
-                                      _bottomAddFocusNode,
-                                ),
-                                child: MoviEnsureVisibleOnFocus(
-                                  verticalAlignment: _focusVerticalAlignment,
-                                  child: MoviPrimaryButton(
-                                    label: 'Organiser les catégories',
-                                    focusNode: _organizeFocusNode,
-                                    onPressed: () => context.push(
-                                      AppRouteNames.iptvSourceOrganize,
-                                      extra: activeAccount.id,
+                              if (showOrganizeAction) const SizedBox(height: 16),
+                              if (showOrganizeAction)
+                                Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: activeAccount.isStalker
+                                            ? _refreshFocusNode
+                                            : _editFocusNode,
+                                        down:
+                                            firstOtherDeleteNode ??
+                                            _bottomAddFocusNode,
+                                      ),
+                                  child: MoviEnsureVisibleOnFocus(
+                                    verticalAlignment: _focusVerticalAlignment,
+                                    child: MoviPrimaryButton(
+                                      label: 'Organiser les catégories',
+                                      focusNode: _organizeFocusNode,
+                                      onPressed: () => context.push(
+                                        AppRouteNames.iptvSourceOrganize,
+                                        extra: activeAccount.id,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
                             ],
                             const SizedBox(height: 32),
                             Container(
@@ -1170,7 +1181,11 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                                   event,
                                   up: index == 0
                                       ? (activeAccount != null
-                                            ? _organizeFocusNode
+                                            ? (showOrganizeAction
+                                                  ? _organizeFocusNode
+                                                  : (activeAccount.isStalker
+                                                        ? _refreshFocusNode
+                                                        : _editFocusNode))
                                             : (_isSearchVisible
                                                   ? _searchFieldFocusNode
                                                   : _changeSourceFocusNode))
@@ -1195,7 +1210,11 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                                 up:
                                     lastOtherDeleteNode ??
                                     (activeAccount != null
-                                        ? _organizeFocusNode
+                                        ? (showOrganizeAction
+                                              ? _organizeFocusNode
+                                              : (activeAccount.isStalker
+                                                    ? _refreshFocusNode
+                                                    : _editFocusNode))
                                         : _changeSourceFocusNode),
                                 blockDown: true,
                               ),

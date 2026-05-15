@@ -51,6 +51,32 @@ class HomeLayoutConstants {
   static const double heroMobileLogoHeight = 100.0;
   static const double heroMobileLogoWidthFactor = 0.8;
 
+  /// Keeps scaling bounded to avoid unusable values.
+  static double normalizeUiScale(double scale) {
+    if (!scale.isFinite || scale <= 0) return 1.0;
+    return scale.clamp(0.85, 1.0).toDouble();
+  }
+
+  /// Scaled hero height for TV compact rendering.
+  static double heroTotalHeightForScale(double scale) {
+    return heroTotalHeight * normalizeUiScale(scale);
+  }
+
+  /// Scaled visual bleed for desktop/TV hero layouts.
+  static double heroDesktopVisualBleedForScale(double scale) {
+    return heroDesktopVisualBleed * normalizeUiScale(scale);
+  }
+
+  /// Scaled first section inset under hero on desktop/TV layouts.
+  static double heroDesktopFirstSectionInsetForScale(double scale) {
+    return heroDesktopFirstSectionInset * normalizeUiScale(scale);
+  }
+
+  /// Scaled first section shield height under hero on desktop/TV layouts.
+  static double heroDesktopFirstSectionShieldHeightForScale(double scale) {
+    return heroDesktopFirstSectionShieldHeight * normalizeUiScale(scale);
+  }
+
   // Seuils de progression pour "en cours"
   static const double minProgressThreshold = 0.05; // 5% minimum pour "en cours"
   static const double maxProgressThreshold = 0.95; // 95% max pour "en cours"

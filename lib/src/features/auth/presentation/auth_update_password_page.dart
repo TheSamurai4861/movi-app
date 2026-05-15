@@ -278,7 +278,6 @@ class _AuthUpdatePasswordPageState
                         label: 'Mettre a jour',
                         loading: isBusy,
                         onPressed: isBusy ? null : _onSubmit,
-                        height: BootFormTokens.primaryActionHeight,
                         buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
                           theme,
                         ),
@@ -289,7 +288,6 @@ class _AuthUpdatePasswordPageState
                       MoviPrimaryButton(
                         label: 'Se reconnecter',
                         onPressed: () => context.go(AppRoutePaths.authOtp),
-                        height: BootFormTokens.primaryActionHeight,
                         buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
                           theme,
                         ),

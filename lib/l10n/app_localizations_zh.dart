@@ -169,6 +169,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsExportErrorLogs => '导出错误日志';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => '导出错误日志';
 
   @override
@@ -525,155 +538,244 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bootCatalogLocalCacheReady => '本地目录已就绪 — 正在完成…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => '正在准备启动…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => '加载中…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => '正在检查会话…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => '正在加载档案…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => '正在检查档案…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => '正在检查源…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => '正在准备目录…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => '需要登录';
 
   @override
-  String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+  String get bootActionAuthMessage => '请登录以继续。';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionProfileTitle => '需要档案';
 
   @override
-  String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+  String get bootActionProfileMessage => '请创建或选择档案以继续。';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceRequiredTitle => '需要源';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceRequiredMessage => '请添加或重新连接源以继续。';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootActionSourceSelectionTitle => '选择源';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootActionSourceSelectionMessage => '请选择要使用的源。';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceTimeoutTitle => '源未响应';
 
   @override
-  String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+  String get bootRecoverySourceTimeoutMessage => '重试同步或更换源。';
 
   @override
-  String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+  String get bootRecoverySourceProviderTitle => '无法加载源';
 
   @override
-  String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+  String get bootRecoverySourceProviderMessage => '重试加载或更换源。';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceCredentialsTitle => '无法连接到源';
 
   @override
-  String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+  String get bootRecoverySourceCredentialsMessage => '重新连接源以继续。';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootRecoverySourceEmptyTitle => '未找到内容';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootRecoverySourceEmptyMessage => '重新同步源或选择其他源。';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootFailureTitle => '启动中断';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootFailureMessage => '错误导致无法启动。';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionExportLogs => '导出日志';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionLogin => '登录';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseProfile => '选择档案';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionAddSource => '添加源';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionChooseSource => '更换源';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionReconnectSource => '重新连接源';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootActionResyncSource => '重新同步';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootActionOpenHome => '打开主页';
+
+  @override
+  String get bootSemanticsSplashLogo => 'MOVI 启动标志';
+
+  @override
+  String get bootSemanticsLoadingInProgress => '正在加载';
+
+  @override
+  String get bootSemanticsPreparingCatalog => '正在准备目录';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => '已保存的源';
+
+  @override
+  String get welcomeSourceRefreshTooltip => '刷新';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      '在 Supabase 上未找到源。请在下方添加或激活一个。';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => '激活源';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => '源名称';
 
   @override
-  String get welcomeSourceNameHint => 'My IPTV';
+  String get welcomeSourceNameHint => '我的 IPTV';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => '服务器 URL';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => '用户名';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => '密码';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => '激活';
+
+  @override
+  String get welcomeSourceAddModeTitle => '添加源';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle => '添加您的第一个 IPTV 源。';
+
+  @override
+  String get welcomeSourceAddPrompt => '想要添加源吗？';
+
+  @override
+  String get welcomeSourceAddNewAction => '添加新源';
+
+  @override
+  String get welcomeSourceRequiredFields => '所有字段都是必填的。';
+
+  @override
+  String get welcomeSourceErrorTimeout => '服务器响应时间过长，请检查您的连接并重试。';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials => '凭据无效，请检查用户名和密码。';
+
+  @override
+  String get welcomeSourceErrorNetwork => '无法连接到服务器，请检查 URL 和网络。';
+
+  @override
+  String get welcomeSourceErrorGeneric => '目前无法加载源，请重试。';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return '过期日期：$date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => '无过期日期';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => '档案已锁定';
 
   @override
-  String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+  String get welcomeUserProfileLockedReason => '请输入 PIN 以切换档案。';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed => '无法加载档案。';
+
+  @override
+  String get welcomeUserCreateTitle => '创建档案';
+
+  @override
+  String get welcomeUserChooseTitle => '选择档案';
+
+  @override
+  String get welcomeUserCreateSubtitle => '为 Movi 创建您的第一个档案。';
+
+  @override
+  String get welcomeUserChooseSubtitle => '选择您的一个档案。';
+
+  @override
+  String get welcomeUserProfileNameLabel => '档案名称';
+
+  @override
+  String get welcomeUserProfileNameHint => '档案名称';
+
+  @override
+  String get welcomeUserCreateProfileAction => '创建档案';
+
+  @override
+  String get childPreloadTitle => '内容安全设置';
+
+  @override
+  String get childPreloadSubtitle => '正在检查年龄分级...';
+
+  @override
+  String get childPreloadSkip => '跳过';
+
+  @override
+  String get childPreloadPhaseResolvingIds => '正在解析标识符...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => '正在获取评级...';
+
+  @override
+  String get childPreloadPhaseCompleted => '完成';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return '约剩 $seconds秒';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return '约剩 $minutes 分钟';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return '约剩 $minutes 分 $seconds秒';
+  }
 
   @override
   String get errorHomeLoadTimeout => '首页加载超时';
@@ -1127,41 +1229,40 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authOtpChangeEmail => '更换邮箱';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => '改用密码';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => '登录';
 
   @override
-  String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+  String get authPasswordSubtitle => '请输入邮箱和密码以继续。';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => '电子邮件';
 
   @override
   String get authPasswordEmailHint => 'name@example.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp => '请使用与您账户关联的邮箱。';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => '密码';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => '请输入密码';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp => '密码区分大小写。';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => '登录';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => '忘记密码？';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent => '密码重置邮件已发送。';
 
   @override
   String get authForgotPasswordTitle => '忘记密码';
@@ -1179,7 +1280,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => '返回登录';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => '改用邮件验证码';
 
   @override
   String get resumePlayback => '继续播放';
@@ -1372,6 +1473,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => '背景';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => '背景不透明度';
@@ -1976,6 +2080,246 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get bootCatalogLocalCacheReady => '本地目录已就绪 — 正在完成…';
 
   @override
+  String get bootLoadingPreparingLaunch => '正在准备启动…';
+
+  @override
+  String get bootLoadingDefault => '加载中…';
+
+  @override
+  String get bootLoadingCheckingSession => '正在检查会话…';
+
+  @override
+  String get bootLoadingProfile => '正在加载档案…';
+
+  @override
+  String get bootLoadingCheckingProfile => '正在检查档案…';
+
+  @override
+  String get bootLoadingCheckingSource => '正在检查源…';
+
+  @override
+  String get bootLoadingPreparingCatalog => '正在准备目录…';
+
+  @override
+  String get bootActionAuthTitle => '需要登录';
+
+  @override
+  String get bootActionAuthMessage => '请登录以继续。';
+
+  @override
+  String get bootActionProfileTitle => '需要档案';
+
+  @override
+  String get bootActionProfileMessage => '请创建或选择档案以继续。';
+
+  @override
+  String get bootActionSourceRequiredTitle => '需要源';
+
+  @override
+  String get bootActionSourceRequiredMessage => '请添加或重新连接源以继续。';
+
+  @override
+  String get bootActionSourceSelectionTitle => '选择源';
+
+  @override
+  String get bootActionSourceSelectionMessage => '请选择要使用的源。';
+
+  @override
+  String get bootRecoverySourceTimeoutTitle => '源未响应';
+
+  @override
+  String get bootRecoverySourceTimeoutMessage => '重试同步或更换源。';
+
+  @override
+  String get bootRecoverySourceProviderTitle => '无法加载源';
+
+  @override
+  String get bootRecoverySourceProviderMessage => '重试加载或更换源。';
+
+  @override
+  String get bootRecoverySourceCredentialsTitle => '无法连接到源';
+
+  @override
+  String get bootRecoverySourceCredentialsMessage => '重新连接源以继续。';
+
+  @override
+  String get bootRecoverySourceEmptyTitle => '未找到内容';
+
+  @override
+  String get bootRecoverySourceEmptyMessage => '重新同步源或选择其他源。';
+
+  @override
+  String get bootFailureTitle => '启动中断';
+
+  @override
+  String get bootFailureMessage => '错误导致无法启动。';
+
+  @override
+  String get bootActionExportLogs => '导出日志';
+
+  @override
+  String get bootActionLogin => '登录';
+
+  @override
+  String get bootActionChooseProfile => '选择档案';
+
+  @override
+  String get bootActionAddSource => '添加源';
+
+  @override
+  String get bootActionChooseSource => '更换源';
+
+  @override
+  String get bootActionReconnectSource => '重新连接源';
+
+  @override
+  String get bootActionResyncSource => '重新同步';
+
+  @override
+  String get bootActionOpenHome => '打开主页';
+
+  @override
+  String get bootSemanticsSplashLogo => 'MOVI 启动标志';
+
+  @override
+  String get bootSemanticsLoadingInProgress => '正在加载';
+
+  @override
+  String get bootSemanticsPreparingCatalog => '正在准备目录';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => '已保存的源';
+
+  @override
+  String get welcomeSourceRefreshTooltip => '刷新';
+
+  @override
+  String get welcomeSourceNoRemoteSourcesMessage =>
+      '在 Supabase 上未找到源。请在下方添加或激活一个。';
+
+  @override
+  String get welcomeSourceActivateSectionTitle => '激活源';
+
+  @override
+  String get welcomeSourceNameLabel => '源名称';
+
+  @override
+  String get welcomeSourceNameHint => '我的 IPTV';
+
+  @override
+  String get welcomeSourceServerUrlLabel => '服务器 URL';
+
+  @override
+  String get welcomeSourceServerUrlHint => 'https://example.com:port';
+
+  @override
+  String get welcomeSourceUsernameLabel => '用户名';
+
+  @override
+  String get welcomeSourcePasswordLabel => '密码';
+
+  @override
+  String get welcomeSourceActivateAction => '激活';
+
+  @override
+  String get welcomeSourceAddModeTitle => '添加源';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle => '添加您的第一个 IPTV 源。';
+
+  @override
+  String get welcomeSourceAddPrompt => '想要添加源吗？';
+
+  @override
+  String get welcomeSourceAddNewAction => '添加新源';
+
+  @override
+  String get welcomeSourceRequiredFields => '所有字段都是必填的。';
+
+  @override
+  String get welcomeSourceErrorTimeout => '服务器响应时间过长，请检查您的连接并重试。';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials => '凭据无效，请检查用户名和密码。';
+
+  @override
+  String get welcomeSourceErrorNetwork => '无法连接到服务器，请检查 URL 和网络。';
+
+  @override
+  String get welcomeSourceErrorGeneric => '目前无法加载源，请重试。';
+
+  @override
+  String welcomeSourceExpiresOn(String date) {
+    return '过期日期：$date';
+  }
+
+  @override
+  String get welcomeSourceNoExpiration => '无过期日期';
+
+  @override
+  String get welcomeUserProfileLockedTitle => '档案已锁定';
+
+  @override
+  String get welcomeUserProfileLockedReason => '请输入 PIN 以切换档案。';
+
+  @override
+  String get welcomeUserProfilesLoadFailed => '无法加载档案。';
+
+  @override
+  String get welcomeUserCreateTitle => '创建档案';
+
+  @override
+  String get welcomeUserChooseTitle => '选择档案';
+
+  @override
+  String get welcomeUserCreateSubtitle => '为 Movi 创建您的第一个档案。';
+
+  @override
+  String get welcomeUserChooseSubtitle => '选择您的一个档案。';
+
+  @override
+  String get welcomeUserProfileNameLabel => '档案名称';
+
+  @override
+  String get welcomeUserProfileNameHint => '档案名称';
+
+  @override
+  String get welcomeUserCreateProfileAction => '创建档案';
+
+  @override
+  String get childPreloadTitle => '内容安全设置';
+
+  @override
+  String get childPreloadSubtitle => '正在检查年龄分级...';
+
+  @override
+  String get childPreloadSkip => '跳过';
+
+  @override
+  String get childPreloadPhaseResolvingIds => '正在解析标识符...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => '正在获取评级...';
+
+  @override
+  String get childPreloadPhaseCompleted => '完成';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return '约剩 $seconds秒';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return '约剩 $minutes 分钟';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return '约剩 $minutes 分 $seconds秒';
+  }
+
+  @override
   String get errorHomeLoadTimeout => '首页加载超时';
 
   @override
@@ -2427,6 +2771,42 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get authOtpChangeEmail => '更换邮箱';
 
   @override
+  String get authOtpUsePassword => '改用密码';
+
+  @override
+  String get authPasswordTitle => '登录';
+
+  @override
+  String get authPasswordSubtitle => '请输入邮箱和密码以继续。';
+
+  @override
+  String get authPasswordEmailLabel => '电子邮件';
+
+  @override
+  String get authPasswordEmailHint => 'name@example.com';
+
+  @override
+  String get authPasswordEmailHelp => '请使用与您账户关联的邮箱。';
+
+  @override
+  String get authPasswordPasswordLabel => '密码';
+
+  @override
+  String get authPasswordPasswordHint => '请输入密码';
+
+  @override
+  String get authPasswordPasswordHelp => '密码区分大小写。';
+
+  @override
+  String get authPasswordPrimarySubmit => '登录';
+
+  @override
+  String get authPasswordForgotPassword => '忘记密码？';
+
+  @override
+  String get authPasswordResetSent => '密码重置邮件已发送。';
+
+  @override
   String get authForgotPasswordTitle => '忘记密码';
 
   @override
@@ -2440,6 +2820,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get authForgotPasswordBackToSignIn => '返回登录';
+
+  @override
+  String get authPasswordUseOtp => '改用邮件验证码';
 
   @override
   String get resumePlayback => '继续播放';

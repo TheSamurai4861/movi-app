@@ -167,6 +167,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsExportErrorLogs => 'Hata günlüklerini dışa aktar';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => 'Hata günlüklerini dışa aktar';
 
   @override
@@ -533,155 +546,259 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yerel katalog hazır — tamamlanıyor…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => 'Başlatma hazırlanıyor…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => 'Yükleniyor…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => 'Oturum kontrol ediliyor…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => 'Profil yükleniyor…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => 'Profil kontrol ediliyor…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => 'Kaynak kontrol ediliyor…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => 'Katalog hazırlanıyor…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => 'Giriş gerekli';
+
+  @override
+  String get bootActionAuthMessage => 'Devam etmek için giriş yapın.';
+
+  @override
+  String get bootActionProfileTitle => 'Profil gerekli';
 
   @override
   String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+      'Devam etmek için bir profil oluşturun veya seçin.';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionSourceRequiredTitle => 'Kaynak gerekli';
 
   @override
   String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+      'Devam etmek için bir kaynak ekleyin veya yeniden bağlayın.';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceSelectionTitle => 'Kaynak seçimi';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceSelectionMessage => 'Kullanılacak kaynağı seçin.';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootRecoverySourceTimeoutTitle => 'Kaynak yanıt vermiyor';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootRecoverySourceTimeoutMessage =>
+      'Senkronizasyonu yeniden deneyin veya kaynağı değiştirin.';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceProviderTitle => 'Kaynak yüklenemiyor';
 
   @override
   String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+      'Yeniden yüklemeyi deneyin veya kaynağı değiştirin.';
 
   @override
-  String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+  String get bootRecoverySourceCredentialsTitle => 'Kaynağa bağlanılamıyor';
 
   @override
   String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+      'Devam etmek için kaynağı yeniden bağlayın.';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceEmptyTitle => 'İçerik bulunamadı';
 
   @override
   String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+      'Kaynağı yeniden senkronize edin veya başka bir tane seçin.';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootFailureTitle => 'Başlatma kesintiye uğradı';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootFailureMessage => 'Bir hata başlatmayı engelliyor.';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootActionExportLogs => 'Günlükleri dışa aktar';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootActionLogin => 'Giriş yap';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionChooseProfile => 'Profil seç';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionAddSource => 'Kaynak ekle';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseSource => 'Kaynağı değiştir';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionReconnectSource => 'Kaynağı yeniden bağla';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionResyncSource => 'Yeniden senkronize et';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionOpenHome => 'Ana sayfayı aç';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootSemanticsSplashLogo => 'MOVI açılış logosu';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootSemanticsLoadingInProgress => 'Yükleme devam ediyor';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'Katalog hazırlanıyor';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => 'Kaydedilen kaynaklar';
+
+  @override
+  String get welcomeSourceRefreshTooltip => 'Yenile';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      'Supabase\'de kaynak bulunamadı. Aşağıdan bir tane ekleyin veya etkinleştirin.';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => 'Bir kaynak etkinleştir';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => 'Kaynak adı';
 
   @override
-  String get welcomeSourceNameHint => 'My IPTV';
+  String get welcomeSourceNameHint => 'IPTV\'m';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => 'Sunucu URL\'si';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => 'Kullanıcı adı';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => 'Şifre';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => 'Etkinleştir';
+
+  @override
+  String get welcomeSourceAddModeTitle => 'Bir kaynak ekle';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle =>
+      'İlk IPTV kaynağınızı ekleyin.';
+
+  @override
+  String get welcomeSourceAddPrompt => 'Bir kaynak eklemek ister misiniz?';
+
+  @override
+  String get welcomeSourceAddNewAction => 'Yeni kaynak ekle';
+
+  @override
+  String get welcomeSourceRequiredFields => 'Tüm alanlar zorunludur.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'Sunucu çok uzun süredir yanıt vermiyor. Bağlantınızı kontrol edin ve tekrar deneyin.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      'Geçersiz kimlik bilgileri. Kullanıcı adını ve şifreyi kontrol edin.';
+
+  @override
+  String get welcomeSourceErrorNetwork =>
+      'Sunucuya bağlanılamıyor. URL\'yi ve ağınızı kontrol edin.';
+
+  @override
+  String get welcomeSourceErrorGeneric =>
+      'Kaynak şu anda yüklenemiyor. Lütfen tekrar deneyin.';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return 'Son kullanma tarihi: $date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => 'Son kullanma tarihi yok';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => 'Profil kilitli';
 
   @override
   String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+      'Profili değiştirmek için PIN\'i girin.';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed => 'Profiller yüklenemedi.';
+
+  @override
+  String get welcomeUserCreateTitle => 'Profil oluştur';
+
+  @override
+  String get welcomeUserChooseTitle => 'Profil seç';
+
+  @override
+  String get welcomeUserCreateSubtitle =>
+      'Movi için ilk profilinizi oluşturun.';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'Profillerinizden birini seçin.';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'Profil adı';
+
+  @override
+  String get welcomeUserProfileNameHint => 'Profil adı';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'Profil oluştur';
+
+  @override
+  String get childPreloadTitle => 'İçerik güvenliği kurulumu';
+
+  @override
+  String get childPreloadSubtitle =>
+      'Yaş sınıflandırmaları kontrol ediliyor...';
+
+  @override
+  String get childPreloadSkip => 'Atla';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'Tanımlayıcılar çözümleniyor...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings =>
+      'Değerlendirmeler getiriliyor...';
+
+  @override
+  String get childPreloadPhaseCompleted => 'Tamamlandı';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return 'Yaklaşık $seconds saniye kaldı';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return 'Yaklaşık $minutes dakika kaldı';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return 'Yaklaşık $minutes dakika $seconds saniye kaldı';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'Ana sayfa yükleme zaman aşımı';
@@ -1144,41 +1261,42 @@ class AppLocalizationsTr extends AppLocalizations {
   String get authOtpChangeEmail => 'E‑postayı değiştir';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => 'Bunun yerine şifre kullan';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => 'Giriş yap';
 
   @override
   String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+      'Devam etmek için e-posta ve şifrenizi girin.';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => 'E-posta';
 
   @override
-  String get authPasswordEmailHint => 'name@example.com';
+  String get authPasswordEmailHint => 'ad@ornek.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp => 'Hesabınıza bağlı e-postayı kullanın.';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => 'Şifre';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => 'Şifreniz';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp =>
+      'Şifreniz büyük/küçük harf duyarlıdır.';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => 'Giriş yap';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => 'Şifrenizi mi unuttunuz?';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent => 'Şifre sıfırlama e-postası gönderildi.';
 
   @override
   String get authForgotPasswordTitle => 'Şifremi unuttum';
@@ -1198,7 +1316,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => 'Girişe dön';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => 'Bunun yerine e-posta kodu kullan';
 
   @override
   String get resumePlayback => 'Oynatmaya devam et';
@@ -1396,6 +1514,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => 'Arka plan';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => 'Arka plan opaklığı';

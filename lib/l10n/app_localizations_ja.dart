@@ -170,6 +170,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsExportErrorLogs => 'エラーログを書き出し';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => 'エラーログを書き出し';
 
   @override
@@ -529,155 +542,246 @@ class AppLocalizationsJa extends AppLocalizations {
   String get bootCatalogLocalCacheReady => 'ローカルカタログの準備が完了しました — 仕上げ中…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => '起動の準備中…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => '読み込み中…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => 'セッションを確認中…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => 'プロフィールを読み込み中…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => 'プロフィールを確認中…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => 'ソースを確認中…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => 'カタログを準備中…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => 'サインインが必要です';
 
   @override
-  String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+  String get bootActionAuthMessage => '続行するにはサインインしてください。';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionProfileTitle => 'プロフィールが必要です';
 
   @override
-  String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+  String get bootActionProfileMessage => '続行するにはプロフィールを作成または選択してください。';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceRequiredTitle => 'ソースが必要です';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceRequiredMessage => '続行するにはソースを追加または再接続してください。';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootActionSourceSelectionTitle => 'ソースの選択';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootActionSourceSelectionMessage => '使用するソースを選択してください。';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceTimeoutTitle => 'ソースが応答しません';
 
   @override
-  String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+  String get bootRecoverySourceTimeoutMessage => '同期を再試行するかソースを変更してください。';
 
   @override
-  String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+  String get bootRecoverySourceProviderTitle => 'ソースを読み込めません';
 
   @override
-  String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+  String get bootRecoverySourceProviderMessage => '再読み込みを試みるかソースを変更してください。';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceCredentialsTitle => 'ソースに接続できません';
 
   @override
-  String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+  String get bootRecoverySourceCredentialsMessage => '続行するにはソースを再接続してください。';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootRecoverySourceEmptyTitle => 'コンテンツが見つかりません';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootRecoverySourceEmptyMessage => 'ソースを再同期するか別のソースを選択してください。';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootFailureTitle => '起動が中断されました';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootFailureMessage => 'エラーが起動を妨げています。';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionExportLogs => 'ログをエクスポート';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionLogin => 'サインイン';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseProfile => 'プロフィールを選択';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionAddSource => 'ソースを追加';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionChooseSource => 'ソースを変更';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionReconnectSource => 'ソースを再接続';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootActionResyncSource => '再同期';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootActionOpenHome => 'ホームを開く';
+
+  @override
+  String get bootSemanticsSplashLogo => 'MOVIスプラッシュロゴ';
+
+  @override
+  String get bootSemanticsLoadingInProgress => '読み込み中';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'カタログを準備中';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => '保存済みのソース';
+
+  @override
+  String get welcomeSourceRefreshTooltip => '更新';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      'Supabaseにソースが見つかりませんでした。以下でソースを追加または有効にしてください。';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => 'ソースを有効化';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => 'ソース名';
 
   @override
-  String get welcomeSourceNameHint => 'My IPTV';
+  String get welcomeSourceNameHint => 'マイIPTV';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => 'サーバーURL';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => 'ユーザー名';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => 'パスワード';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => '有効化';
+
+  @override
+  String get welcomeSourceAddModeTitle => 'ソースを追加';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle => '最初のIPTVソースを追加してください。';
+
+  @override
+  String get welcomeSourceAddPrompt => 'ソースを追加しますか？';
+
+  @override
+  String get welcomeSourceAddNewAction => '新しいソースを追加';
+
+  @override
+  String get welcomeSourceRequiredFields => 'すべてのフィールドは必須です。';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'サーバーの応答に時間がかかりすぎています。接続を確認してもう一度お試しください。';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      '認証情報が無効です。ユーザー名とパスワードを確認してください。';
+
+  @override
+  String get welcomeSourceErrorNetwork => 'サーバーに接続できません。URLとネットワークを確認してください。';
+
+  @override
+  String get welcomeSourceErrorGeneric => '現在ソースを読み込めません。もう一度お試しください。';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return '有効期限: $date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => '有効期限なし';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => 'プロフィールがロックされています';
 
   @override
-  String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+  String get welcomeUserProfileLockedReason => 'PINを入力してプロフィールを切り替えてください。';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed => 'プロフィールを読み込めませんでした。';
+
+  @override
+  String get welcomeUserCreateTitle => 'プロフィールを作成';
+
+  @override
+  String get welcomeUserChooseTitle => 'プロフィールを選択';
+
+  @override
+  String get welcomeUserCreateSubtitle => 'Movi用の最初のプロフィールを作成してください。';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'プロフィールのひとつを選択してください。';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'プロフィール名';
+
+  @override
+  String get welcomeUserProfileNameHint => 'プロフィール名';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'プロフィールを作成';
+
+  @override
+  String get childPreloadTitle => 'コンテンツ安全設定';
+
+  @override
+  String get childPreloadSubtitle => '年齢レーティングを確認中...';
+
+  @override
+  String get childPreloadSkip => 'スキップ';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'IDを解決中...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => 'レーティングを取得中...';
+
+  @override
+  String get childPreloadPhaseCompleted => '完了';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return '残り約$seconds秒';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return '残り約$minutes分';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return '残り約$minutes分$seconds秒';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'ホームの読み込みがタイムアウトしました';
@@ -1132,41 +1236,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authOtpChangeEmail => 'メールを変更';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => '代わりにパスワードを使用';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => 'サインイン';
 
   @override
-  String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+  String get authPasswordSubtitle => 'メールアドレスとパスワードを入力して続行してください。';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => 'メールアドレス';
 
   @override
   String get authPasswordEmailHint => 'name@example.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp => 'アカウントに紐付けられたメールアドレスを使用してください。';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => 'パスワード';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => 'パスワードを入力';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp => 'パスワードは大文字と小文字を区別します。';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => 'サインイン';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => 'パスワードをお忘れですか？';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent => 'パスワードリセットメールを送信しました。';
 
   @override
   String get authForgotPasswordTitle => 'パスワードをお忘れですか';
@@ -1186,7 +1289,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => 'サインインに戻る';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => '代わりにメールコードを使用';
 
   @override
   String get resumePlayback => '再生を再開';
@@ -1381,6 +1484,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => '背景';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => '背景の不透明度';

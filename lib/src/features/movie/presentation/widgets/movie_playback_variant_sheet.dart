@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/widgets/movi_tv_action_menu.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 
 class MoviePlaybackVariantSheet extends StatelessWidget {
@@ -19,14 +22,24 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
     required List<PlaybackVariant> variants,
     FocusNode? triggerFocusNode,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final effectiveTriggerFocusNode =
         triggerFocusNode ?? FocusManager.instance.primaryFocus;
 
-    final selected = await showCupertinoModalPopup<PlaybackVariant>(
-      context: context,
-      builder: (sheetContext) =>
-          MoviePlaybackVariantSheet(movieTitle: movieTitle, variants: variants),
-    );
+    final selected = await (_useDesktopTvModal(context)
+        ? _showDesktopTvModal(
+            context: context,
+            movieTitle: movieTitle,
+            variants: variants,
+            l10n: l10n,
+          )
+        : showCupertinoModalPopup<PlaybackVariant>(
+            context: context,
+            builder: (sheetContext) => MoviePlaybackVariantSheet(
+              movieTitle: movieTitle,
+              variants: variants,
+            ),
+          ));
 
     if (selected == null &&
         effectiveTriggerFocusNode != null &&
@@ -41,6 +54,37 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
     }
 
     return selected;
+  }
+
+  static Future<PlaybackVariant?> _showDesktopTvModal({
+    required BuildContext context,
+    required String movieTitle,
+    required List<PlaybackVariant> variants,
+    required AppLocalizations l10n,
+  }) async {
+    PlaybackVariant? selected;
+    await showMoviTvActionMenu(
+      context: context,
+      title: movieTitle,
+      cancelLabel: l10n.actionCancel,
+      actions: List<MoviTvActionMenuAction>.generate(variants.length, (index) {
+        final variant = variants[index];
+        final label = _buildVariantTitleStatic(variant, index, l10n);
+        return MoviTvActionMenuAction(
+          label: label,
+          onPressed: () {
+            selected = variant;
+          },
+        );
+      }),
+    );
+    return selected;
+  }
+
+  static bool _useDesktopTvModal(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final screenType = context.resolveScreenType(size.width, size.height);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 
   KeyEventResult _handleSheetKeyEvent(BuildContext context, KeyEvent event) {
@@ -83,6 +127,14 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
   }
 
   String _buildVariantTitle(
+    PlaybackVariant variant,
+    int index,
+    AppLocalizations l10n,
+  ) {
+    return _buildVariantTitleStatic(variant, index, l10n);
+  }
+
+  static String _buildVariantTitleStatic(
     PlaybackVariant variant,
     int index,
     AppLocalizations l10n,

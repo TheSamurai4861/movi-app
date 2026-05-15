@@ -69,12 +69,12 @@ final class StartupRecoveryMapper {
       StartupFailureCode.configTimeout => _plan(
         StartupRecoveryReasonCodes.bootConfigTimeout,
         const [RecoveryAction.retry, RecoveryAction.exportLogs],
-        message: 'Config registration timed out.',
+        message: StartupRecoveryReasonCodes.bootConfigTimeout,
       ),
       StartupFailureCode.dependenciesInitTimeout => _plan(
         StartupRecoveryReasonCodes.bootDependenciesTimeout,
         const [RecoveryAction.retry, RecoveryAction.exportLogs],
-        message: 'Dependency initialization timed out.',
+        message: StartupRecoveryReasonCodes.bootDependenciesTimeout,
       ),
       StartupFailureCode.configInvalid ||
       StartupFailureCode.dependenciesInitFailed ||
@@ -85,7 +85,7 @@ final class StartupRecoveryMapper {
       StartupFailureCode.unknown => _plan(
         StartupRecoveryReasonCodes.bootTechnicalFailure,
         const [RecoveryAction.retry, RecoveryAction.exportLogs],
-        message: 'Technical boot failure: ${code.name}.',
+        message: '${StartupRecoveryReasonCodes.bootTechnicalFailure}:${code.name}',
       ),
     };
   }
@@ -100,27 +100,27 @@ final class StartupRecoveryMapper {
       'iptvnetworktimeout' => _plan(
         StartupRecoveryReasonCodes.catalogSyncTimeout,
         const [RecoveryAction.retry, RecoveryAction.chooseSource],
-        message: 'IPTV catalog sync timed out at step $step.',
+        message: '${StartupRecoveryReasonCodes.catalogSyncTimeout}:$step',
       ),
       'iptvprovidererror' => _plan(
         StartupRecoveryReasonCodes.catalogProviderError,
         const [RecoveryAction.retry, RecoveryAction.chooseSource],
-        message: 'IPTV provider failed at step $step.',
+        message: '${StartupRecoveryReasonCodes.catalogProviderError}:$step',
       ),
       'iptvcredentialsinvalid' => _plan(
         StartupRecoveryReasonCodes.catalogCredentialsInvalid,
         const [RecoveryAction.reconnectSource],
-        message: 'IPTV credentials are invalid at step $step.',
+        message: '${StartupRecoveryReasonCodes.catalogCredentialsInvalid}:$step',
       ),
       'iptvemptydata' => _plan(
         StartupRecoveryReasonCodes.catalogEmpty,
         const [RecoveryAction.resyncSource, RecoveryAction.chooseSource],
-        message: 'IPTV catalog is empty at step $step.',
+        message: '${StartupRecoveryReasonCodes.catalogEmpty}:$step',
       ),
       'librarypreloadtimeout' => _plan(
         StartupRecoveryReasonCodes.libraryPreloadTimeout,
         const [RecoveryAction.retryLibrary],
-        message: 'Library preload timed out at step $step.',
+        message: '${StartupRecoveryReasonCodes.libraryPreloadTimeout}:$step',
       ),
       'homepreloadinvalidstate' => mapHomeFailure(
         reasonCode: StartupRecoveryReasonCodes.homePreloadInvalidState,
@@ -129,7 +129,7 @@ final class StartupRecoveryMapper {
       _ => _plan(
         StartupRecoveryReasonCodes.bootTechnicalFailure,
         const [RecoveryAction.retry, RecoveryAction.exportLogs],
-        message: 'Launch failed at step $step.',
+        message: '${StartupRecoveryReasonCodes.bootTechnicalFailure}:$step',
       ),
     };
   }
@@ -143,62 +143,62 @@ final class StartupRecoveryMapper {
       StartupRecoveryReasonCodes.homeFeedFailed => _plan(
         StartupRecoveryReasonCodes.homeFeedFailed,
         const [RecoveryAction.retryHomeSections],
-        message: 'Home feed failed.',
+        message: StartupRecoveryReasonCodes.homeFeedFailed,
       ),
       StartupRecoveryReasonCodes.homeIptvSectionsEmpty => _plan(
         StartupRecoveryReasonCodes.homeIptvSectionsEmpty,
         const [RecoveryAction.retryHomeSections, RecoveryAction.resyncSource],
-        message: 'Home IPTV sections are empty.',
+        message: StartupRecoveryReasonCodes.homeIptvSectionsEmpty,
       ),
       StartupRecoveryReasonCodes.homePartial => _plan(
         StartupRecoveryReasonCodes.homePartial,
         const [RecoveryAction.retryHomeSections, RecoveryAction.retryLibrary],
-        message: 'Home is partially degraded.',
+        message: StartupRecoveryReasonCodes.homePartial,
       ),
       StartupRecoveryReasonCodes.libraryPreloadTimeout => _plan(
         StartupRecoveryReasonCodes.libraryPreloadTimeout,
         const [RecoveryAction.retryLibrary],
-        message: 'Library preload timed out.',
+        message: StartupRecoveryReasonCodes.libraryPreloadTimeout,
       ),
       StartupRecoveryReasonCodes.libraryPreloadFailed => _plan(
         StartupRecoveryReasonCodes.libraryPreloadFailed,
         const [RecoveryAction.retryLibrary],
-        message: 'Library preload failed.',
+        message: StartupRecoveryReasonCodes.libraryPreloadFailed,
       ),
       StartupRecoveryReasonCodes.catalogSnapshotMissing => _plan(
         StartupRecoveryReasonCodes.catalogSnapshotMissing,
         const [RecoveryAction.resyncSource, RecoveryAction.chooseSource],
-        message: 'Catalog snapshot is missing.',
+        message: StartupRecoveryReasonCodes.catalogSnapshotMissing,
       ),
       StartupRecoveryReasonCodes.catalogSyncTimeout => _plan(
         StartupRecoveryReasonCodes.catalogSyncTimeout,
         const [RecoveryAction.retry, RecoveryAction.chooseSource],
-        message: 'Catalog sync timed out.',
+        message: StartupRecoveryReasonCodes.catalogSyncTimeout,
       ),
       StartupRecoveryReasonCodes.catalogProviderError => _plan(
         StartupRecoveryReasonCodes.catalogProviderError,
         const [RecoveryAction.retry, RecoveryAction.chooseSource],
-        message: 'Catalog provider failed.',
+        message: StartupRecoveryReasonCodes.catalogProviderError,
       ),
       StartupRecoveryReasonCodes.catalogCredentialsInvalid => _plan(
         StartupRecoveryReasonCodes.catalogCredentialsInvalid,
         const [RecoveryAction.reconnectSource],
-        message: 'Catalog credentials are invalid.',
+        message: StartupRecoveryReasonCodes.catalogCredentialsInvalid,
       ),
       StartupRecoveryReasonCodes.catalogEmpty => _plan(
         StartupRecoveryReasonCodes.catalogEmpty,
         const [RecoveryAction.resyncSource, RecoveryAction.chooseSource],
-        message: 'Catalog is empty.',
+        message: StartupRecoveryReasonCodes.catalogEmpty,
       ),
       StartupRecoveryReasonCodes.homePreloadInvalidState ||
       'homepreloadinvalidstate' => _plan(
         StartupRecoveryReasonCodes.homePreloadInvalidState,
         const [RecoveryAction.retry, RecoveryAction.exportLogs],
-        message: 'Home preload reached an invalid state.',
+        message: StartupRecoveryReasonCodes.homePreloadInvalidState,
       ),
       _ => _plan(StartupRecoveryReasonCodes.homeFeedFailed, const [
         RecoveryAction.retryHomeSections,
-      ], message: 'Home failed.'),
+      ], message: StartupRecoveryReasonCodes.homeFeedFailed),
     };
   }
 

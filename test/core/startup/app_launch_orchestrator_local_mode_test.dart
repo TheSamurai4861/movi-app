@@ -28,6 +28,7 @@ import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
 import 'package:movi/src/core/startup/entry_journey_orchestrator.dart';
 import 'package:movi/src/core/startup/domain/boot_contracts.dart';
 import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
@@ -123,7 +124,7 @@ void main() {
   );
 
   test(
-    'restores a valid local profile selection when multiple profiles exist',
+    'requires profile selection when multiple profiles are not locally confirmed',
     () async {
       final harness = await _LaunchHarness.create();
       addTearDown(harness.dispose);
@@ -138,6 +139,37 @@ void main() {
       );
       await harness.selectedProfilePreferences.setSelectedProfileId(
         selected.id,
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeUser);
+      expect(result.meta.profilesCount, 2);
+      expect(result.meta.selectedProfileId, isNull);
+      expect(harness.selectedProfilePreferences.selectedProfileId, isNull);
+    },
+  );
+
+  test(
+    'restores a valid profile selection when it is locally confirmed',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'First Profile',
+        color: 0xFF2160AB,
+      );
+      final selected = await harness.localProfiles.createProfile(
+        name: 'Selected Profile',
+        color: 0xFF1F8A70,
+      );
+      await harness.selectedProfilePreferences.setSelectedProfileId(
+        selected.id,
+      );
+      await harness.entryBootStateRepository.confirmProfileSelected(
+        profileId: selected.id,
       );
 
       final result = await harness.run();
@@ -851,6 +883,121 @@ void main() {
   );
 
   test(
+    'authenticated first install requires profile then source selection and later restores them',
+    () async {
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        trackCloudSync: true,
+      );
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+
+      const selectedProfileId = '11111111-1111-4111-8111-111111111111';
+      await harness.localProfiles.upsertProfiles([
+        Profile(
+          id: selectedProfileId,
+          accountId: 'cloud-user',
+          name: 'Adult',
+          color: 0xFF2160AB,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+        Profile(
+          id: '22222222-2222-4222-8222-222222222222',
+          accountId: 'cloud-user',
+          name: 'Kids',
+          color: 0xFF1F8A70,
+          createdAt: DateTime(2026, 1, 2),
+        ),
+      ]);
+
+      Future<void> saveSource(String accountId) async {
+        await harness.iptvLocal.saveAccount(
+          XtreamAccount(
+            id: accountId,
+            alias: accountId,
+            endpoint: XtreamEndpoint.parse('http://example.com'),
+            username: 'demo',
+            status: XtreamAccountStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_$accountId',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film $accountId',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      await saveSource('source_1');
+      await saveSource('source_2');
+
+      final firstInstallResult = await harness.run();
+
+      expect(firstInstallResult.isSuccess, isTrue);
+      expect(firstInstallResult.destination, BootstrapDestination.welcomeUser);
+      expect(firstInstallResult.meta.accountId, 'cloud-user');
+      expect(firstInstallResult.meta.profilesCount, 2);
+      expect(firstInstallResult.meta.selectedProfileId, isNull);
+      expect(harness.selectedProfilePreferences.selectedProfileId, isNull);
+      expect(harness.homeController.loadCalls, 0);
+
+      await harness.selectedProfilePreferences.setSelectedProfileId(
+        selectedProfileId,
+      );
+      await harness.entryBootStateRepository.confirmProfileSelected(
+        profileId: selectedProfileId,
+        accountId: 'cloud-user',
+      );
+
+      final sourceSelectionResult = await harness.run();
+
+      expect(sourceSelectionResult.isSuccess, isTrue);
+      expect(
+        sourceSelectionResult.destination,
+        BootstrapDestination.chooseSource,
+      );
+      expect(sourceSelectionResult.meta.selectedProfileId, selectedProfileId);
+      expect(sourceSelectionResult.meta.selectedSourceId, isNull);
+      expect(harness.selectedSourcePreferences.selectedSourceId, isNull);
+      expect(harness.trackingCloudSyncService!.pullUserPreferencesCalls, 0);
+      expect(harness.homeController.loadCalls, 0);
+
+      await harness.selectedSourcePreferences.setSelectedSourceId('source_2');
+      await harness.entryBootStateRepository.confirmSourceSelected(
+        sourceId: 'source_2',
+        accountId: 'cloud-user',
+      );
+
+      final restoredSelectionResult = await harness.run();
+
+      expect(restoredSelectionResult.isSuccess, isTrue);
+      expect(restoredSelectionResult.destination, BootstrapDestination.home);
+      expect(restoredSelectionResult.meta.selectedProfileId, selectedProfileId);
+      expect(restoredSelectionResult.meta.selectedSourceId, 'source_2');
+      expect(
+        harness.container.read(appStateControllerProvider).activeIptvSourceIds,
+        {'source_2'},
+      );
+      expect(harness.homeController.loadCalls, 1);
+    },
+  );
+
+  test(
     'triggers cloud auto-resync in background after authenticated bootstrap',
     () async {
       final harness = await _LaunchHarness.create(
@@ -1161,7 +1308,7 @@ void main() {
   );
 
   test(
-    'restores the last valid selected source when multiple local sources exist',
+    'requires source selection when multiple local sources have no local confirmation',
     () async {
       final harness = await _LaunchHarness.create();
       addTearDown(harness.dispose);
@@ -1206,6 +1353,66 @@ void main() {
       await saveSource('source_1');
       await saveSource('source_2');
       await harness.selectedSourcePreferences.setSelectedSourceId('source_2');
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.chooseSource);
+      expect(result.meta.selectedSourceId, isNull);
+      expect(harness.selectedSourcePreferences.selectedSourceId, isNull);
+      expect(harness.homeController.loadCalls, 0);
+    },
+  );
+
+  test(
+    'opens home when multiple local sources have a locally confirmed selection',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+
+      Future<void> saveSource(String accountId) async {
+        await harness.iptvLocal.saveAccount(
+          XtreamAccount(
+            id: accountId,
+            alias: accountId,
+            endpoint: XtreamEndpoint.parse('http://example.com'),
+            username: 'demo',
+            status: XtreamAccountStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_$accountId',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film $accountId',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      await saveSource('source_1');
+      await saveSource('source_2');
+      await harness.selectedSourcePreferences.setSelectedSourceId('source_2');
+      await harness.entryBootStateRepository.confirmSourceSelected(
+        sourceId: 'source_2',
+      );
 
       final result = await harness.run();
 
@@ -1876,6 +2083,9 @@ void main() {
       await harness.selectedSourcePreferences.setSelectedSourceId(
         selectedAccountId,
       );
+      await harness.entryBootStateRepository.confirmSourceSelected(
+        sourceId: selectedAccountId,
+      );
 
       final result = await harness.run();
 
@@ -1888,7 +2098,7 @@ void main() {
       );
       expect(model.primaryAction, BootActionIntent.reconnectSource);
       expect(model.secondaryAction, BootActionIntent.chooseSource);
-      expect(model.secondaryActionLabel, 'Changer de source');
+      expect(model.secondaryActionLabel, BootActionIntent.chooseSource.name);
     },
   );
 
@@ -2347,6 +2557,7 @@ class _LaunchHarness {
     required this.refreshXtreamCatalog,
     required this.refreshStalkerCatalog,
     required this.xtreamSyncService,
+    required this.entryBootStateRepository,
     this.trackingCloudSyncService,
     this.supabaseClient,
   });
@@ -2364,6 +2575,7 @@ class _LaunchHarness {
   final _FakeRefreshXtreamCatalog refreshXtreamCatalog;
   final _FakeRefreshStalkerCatalog refreshStalkerCatalog;
   final _NoopXtreamSyncService xtreamSyncService;
+  final EntryBootStateRepository entryBootStateRepository;
   final _TrackingComprehensiveCloudSyncService? trackingCloudSyncService;
   final SupabaseClient? supabaseClient;
 
@@ -2413,6 +2625,10 @@ class _LaunchHarness {
     final authRepository = _FakeAuthRepository();
     final localProfiles = LocalProfileRepository(db);
     final iptvLocal = IptvLocalRepository(db);
+    final entryBootStateRepository = EntryBootStateRepository(
+      db,
+      accountIdProvider: () => authRepository.currentSession?.userId,
+    );
     final contentCache = ContentCacheRepository(db);
     final logger = _MemoryLogger();
     final refreshXtreamCatalog = _FakeRefreshXtreamCatalog();
@@ -2444,6 +2660,7 @@ class _LaunchHarness {
       FallbackProfileRepository(local: localProfiles, auth: authRepository),
     );
     sl.registerSingleton<IptvLocalRepository>(iptvLocal);
+    sl.registerSingleton<EntryBootStateRepository>(entryBootStateRepository);
     sl.registerSingleton<AppLaunchStateRegistry>(AppLaunchStateRegistry());
     sl.registerSingleton<TunnelStateRegistry>(TunnelStateRegistry());
     sl.registerSingleton<RefreshXtreamCatalog>(refreshXtreamCatalog);
@@ -2517,6 +2734,7 @@ class _LaunchHarness {
       refreshXtreamCatalog: refreshXtreamCatalog,
       refreshStalkerCatalog: refreshStalkerCatalog,
       xtreamSyncService: xtreamSyncService,
+      entryBootStateRepository: entryBootStateRepository,
       trackingCloudSyncService: trackingCloudSyncService,
       supabaseClient: supabaseClient,
     );
@@ -3076,6 +3294,7 @@ final class _TrackingComprehensiveCloudSyncService
     bool Function()? shouldCancel,
     Set<String>? knownIptvAccountIds,
     bool preferLocalAccent = false,
+    bool allowSelectionRestore = true,
     String context = 'default',
   }) async {
     pullUserPreferencesCalls += 1;

@@ -317,7 +317,6 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                     label: l10n.authPasswordPrimarySubmit,
                                     loading: isSigningIn,
                                     onPressed: isBusy ? null : _onSignIn,
-                                    height: BootFormTokens.primaryActionHeight,
                                     buttonStyle:
                                         BootFormTokens.bootPrimaryButtonStyle(
                                       Theme.of(context),
@@ -356,7 +355,6 @@ class _AuthPasswordPageState extends ConsumerState<AuthPasswordPage> {
                                       focusNode: _signUpFocusNode,
                                       label: 'S\'inscrire',
                                       onPressed: isBusy ? null : _onSignUp,
-                                      height: BootFormTokens.primaryActionHeight,
                                       buttonStyle:
                                           BootFormTokens.bootPrimaryButtonStyle(
                                         Theme.of(context),

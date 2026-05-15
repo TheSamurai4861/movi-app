@@ -12,6 +12,7 @@ import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -673,6 +674,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String overviewText,
     required String movieId,
   }) {
+    final uiScale = context.tvUiScale;
     final titleStyle =
         Theme.of(context).textTheme.displaySmall?.copyWith(
           color: Colors.white,
@@ -704,14 +706,14 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     imageUrl: logo.toString(),
                     semanticLabel: mediaTitle,
                     alignment: Alignment.centerLeft,
-                    maxWidth: 520,
-                    reservedHeight: 72,
-                    wideMaxHeight: 72,
-                    tallMaxHeight: 128,
-                    blockyMaxHeight: 160,
+                    maxWidth: 520 * uiScale,
+                    reservedHeight: 72 * uiScale,
+                    wideMaxHeight: 72 * uiScale,
+                    tallMaxHeight: 128 * uiScale,
+                    blockyMaxHeight: 160 * uiScale,
                     blockyRatioThreshold: 1.45,
                     overflowUpFactor: 1.0,
-                    extraUpOffset: 18,
+                    extraUpOffset: 18 * uiScale,
                     onErrorFallback: (_) => Text(
                       mediaTitle,
                       maxLines: 2,
@@ -720,7 +722,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     ),
                   ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * uiScale),
           _buildMetaPills(
             yearText: yearText,
             durationText: durationText,
@@ -728,9 +730,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             alignment: WrapAlignment.start,
           ),
           if (overviewText.trim().isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16 * uiScale),
             SizedBox(
-              height: 72,
+              height: 72 * uiScale,
               child: Text(
                 overviewText,
                 maxLines: 3,
@@ -748,7 +750,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               ),
             ),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * uiScale),
           _buildActionButtons(
             mediaTitle: mediaTitle,
             movieId: movieId,
@@ -767,6 +769,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String ratingText,
     required String movieId,
   }) {
+    final uiScale = context.tvUiScale;
     final titleStyle =
         Theme.of(context).textTheme.headlineSmall?.copyWith(
           color: Colors.white,
@@ -781,9 +784,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     const heroPillBackground = Color(0x80383838);
 
     return Positioned(
-      left: AppSpacing.lg,
-      right: AppSpacing.lg,
-      bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+      left: AppSpacing.lg * uiScale,
+      right: AppSpacing.lg * uiScale,
+      bottom: HomeLayoutConstants.heroMobileContentBottomInset * uiScale,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -800,11 +803,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     overflow: TextOverflow.ellipsis,
                   )
                 : Transform.translate(
-                    offset: const Offset(0, -16),
+                    offset: Offset(0, -16 * uiScale),
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         maxWidth: screenWidth * 0.8,
-                        maxHeight: 100,
+                        maxHeight: 100 * uiScale,
                       ),
                       child: MoviNetworkImage(
                         logo.toString(),
@@ -823,7 +826,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     ),
                   ),
           ),
-          const SizedBox(height: AppSpacing.m),
+          SizedBox(height: AppSpacing.m * uiScale),
           _buildMetaPills(
             yearText: yearText,
             durationText: durationText,
@@ -841,16 +844,17 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String overviewText,
     required String movieId,
   }) {
+    final uiScale = context.tvUiScale;
     return AnimatedSize(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          12,
-          AppSpacing.lg,
-          HomeLayoutConstants.heroMobileContentBottomInset,
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg * uiScale,
+          12 * uiScale,
+          AppSpacing.lg * uiScale,
+          HomeLayoutConstants.heroMobileContentBottomInset * uiScale,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -858,8 +862,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             if (overviewText.trim().isNotEmpty)
               MovieDetailSynopsisSection(text: overviewText)
             else
-              const SizedBox(height: 8),
-            const SizedBox(height: AppSpacing.m),
+              SizedBox(height: 8 * uiScale),
+            SizedBox(height: AppSpacing.m * uiScale),
             _buildActionButtons(
               mediaTitle: mediaTitle,
               movieId: movieId,
@@ -878,32 +882,42 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required WrapAlignment alignment,
     Color? pillColor,
   }) {
+    final uiScale = context.tvUiScale;
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 8 * uiScale,
+      runSpacing: 8 * uiScale,
       alignment: alignment,
       children: [
         MoviPill(
           yearText,
           large: true,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 4 * uiScale,
+          ),
           color: pillColor,
         ),
         MoviPill(
           durationText,
           large: true,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 4 * uiScale,
+          ),
           color: pillColor,
         ),
         MoviPill(
           ratingText,
           large: true,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 4 * uiScale,
+          ),
           color: pillColor,
-          trailingIcon: const MoviAssetIcon(
+          trailingIcon: MoviAssetIcon(
             AppAssets.iconStarFilled,
-            width: 18,
-            height: 18,
+            width: 18 * uiScale,
+            height: 18 * uiScale,
             color: AppColors.ratingAccent,
           ),
         ),
@@ -916,6 +930,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String movieId,
     required bool expandPrimary,
   }) {
+    final uiScale = context.tvUiScale;
     final cs = Theme.of(context).colorScheme;
     const iconActionFocusedBackground = Color(0x807A7A7A);
     final launchPlanAsync = ref.watch(
@@ -953,13 +968,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
     final playButton = expandPrimary
         ? Expanded(child: primaryButton)
-        : SizedBox(width: 320, child: primaryButton);
+        : SizedBox(width: 320 * uiScale, child: primaryButton);
     final changeVersionButton = Semantics(
       button: true,
       label: AppLocalizations.of(context)!.actionChangeVersion,
       child: SizedBox(
-        width: 44,
-        height: 44,
+        width: 44 * uiScale,
+        height: 44 * uiScale,
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
@@ -972,7 +987,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               if (_changeVersionFocused == focused) return;
               setState(() => _changeVersionFocused = focused);
             },
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(22 * uiScale),
             child: AnimatedScale(
               scale: _changeVersionFocused ? 1.05 : 1,
               duration: const Duration(milliseconds: 180),
@@ -980,12 +995,12 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.all(5),
+                padding: EdgeInsets.all(5 * uiScale),
                 decoration: BoxDecoration(
                   color: _changeVersionFocused
                       ? iconActionFocusedBackground
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(22 * uiScale),
                   border: Border.all(
                     color: _changeVersionFocused
                         ? cs.primary
@@ -994,10 +1009,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                   ),
                 ),
                 alignment: Alignment.center,
-                child: const MoviAssetIcon(
+                child: MoviAssetIcon(
                   AppAssets.iconChange,
-                  width: 28,
-                  height: 28,
+                  width: 28 * uiScale,
+                  height: 28 * uiScale,
                   color: Colors.white,
                 ),
               ),
@@ -1010,14 +1025,17 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final isAvailable =
         ref.watch(mdp.movieAvailabilityOnIptvProvider(movieId)).value ?? true;
 
-    return SizedBox(
-      height: expandPrimary ? 55 : 48,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: (expandPrimary ? 55 : 48) * uiScale,
+      ),
       child: Row(
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           playButton,
           if (isAvailable) ...[
-            const SizedBox(width: 12),
+            SizedBox(width: 12 * uiScale),
             MoviEnsureVisibleOnFocus(
               verticalAlignment: _heroFocusVerticalAlignment,
               child: Focus(
@@ -1026,13 +1044,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                 child: changeVersionButton,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12 * uiScale),
           ] else ...[
-            const SizedBox(width: 12),
+            SizedBox(width: 12 * uiScale),
           ],
           SizedBox(
-            width: 44,
-            height: 44,
+            width: 44 * uiScale,
+            height: 44 * uiScale,
             child: MoviEnsureVisibleOnFocus(
               verticalAlignment: _heroFocusVerticalAlignment,
               child: Focus(

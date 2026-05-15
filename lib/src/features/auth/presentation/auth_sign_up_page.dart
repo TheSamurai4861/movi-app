@@ -506,8 +506,6 @@ class _AuthSignUpPageState extends ConsumerState<AuthSignUpPage> {
                                               : (_step == _SignUpStep.form
                                                     ? _onSignUp
                                                     : _onConfirmEmail),
-                                          height:
-                                              BootFormTokens.primaryActionHeight,
                                           buttonStyle: BootFormTokens
                                               .bootPrimaryButtonStyle(
                                             Theme.of(context),
@@ -545,7 +543,6 @@ class _AuthSignUpPageState extends ConsumerState<AuthSignUpPage> {
                                       label: 'Se connecter',
                                       onPressed:
                                           _isSubmitting ? null : _onSignIn,
-                                      height: BootFormTokens.primaryActionHeight,
                                       buttonStyle:
                                           BootFormTokens.bootPrimaryButtonStyle(
                                         Theme.of(context),

@@ -304,7 +304,6 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                                           ? l10n.authOtpPrimarySubmit
                                           : l10n.authOtpPrimarySend,
                                       loading: isBusy,
-                                      height: BootFormTokens.primaryActionHeight,
                                       buttonStyle:
                                           BootFormTokens.bootPrimaryButtonStyle(
                                         Theme.of(context),

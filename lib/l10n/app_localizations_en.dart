@@ -172,6 +172,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsExportErrorLogs => 'Export error logs';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => 'Export error logs';
 
   @override
@@ -538,7 +551,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bootLoadingPreparingLaunch => 'Preparing launch…';
 
   @override
+  String get bootLoadingDefault => 'Loading…';
+
+  @override
   String get bootLoadingCheckingSession => 'Checking session…';
+
+  @override
+  String get bootLoadingProfile => 'Loading profile…';
 
   @override
   String get bootLoadingCheckingProfile => 'Checking profile…';
@@ -634,6 +653,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bootActionOpenHome => 'Open home';
 
   @override
+  String get bootSemanticsSplashLogo => 'MOVI splash logo';
+
+  @override
+  String get bootSemanticsLoadingInProgress => 'Loading in progress';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'Preparing catalog';
+
+  @override
   String get welcomeSourceSavedSourcesTitle => 'Saved sources';
 
   @override
@@ -668,6 +696,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get welcomeSourceActivateAction => 'Activate';
 
   @override
+  String get welcomeSourceAddModeTitle => 'Add a source';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle => 'Add your first IPTV source.';
+
+  @override
+  String get welcomeSourceAddPrompt => 'Want to add a source?';
+
+  @override
+  String get welcomeSourceAddNewAction => 'Add a new source';
+
+  @override
+  String get welcomeSourceRequiredFields => 'All fields are required.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'The server is taking too long to respond. Check your connection and try again.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      'Invalid credentials. Check the username and password.';
+
+  @override
+  String get welcomeSourceErrorNetwork =>
+      'Unable to connect to server. Check the URL and your network.';
+
+  @override
+  String get welcomeSourceErrorGeneric =>
+      'Unable to load the source right now. Please try again.';
+
+  @override
   String welcomeSourceExpiresOn(String date) {
     return 'Expires: $date';
   }
@@ -684,6 +743,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+
+  @override
+  String get welcomeUserCreateTitle => 'Create profile';
+
+  @override
+  String get welcomeUserChooseTitle => 'Choose profile';
+
+  @override
+  String get welcomeUserCreateSubtitle => 'Create your first profile for Movi.';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'Choose one of your profiles.';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'Profile name';
+
+  @override
+  String get welcomeUserProfileNameHint => 'Profile name';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'Create profile';
+
+  @override
+  String get childPreloadTitle => 'Content safety setup';
+
+  @override
+  String get childPreloadSubtitle => 'Checking age ratings...';
+
+  @override
+  String get childPreloadSkip => 'Skip';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'Resolving identifiers...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => 'Fetching ratings...';
+
+  @override
+  String get childPreloadPhaseCompleted => 'Done';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return 'About ${seconds}s remaining';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return 'About $minutes min remaining';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return 'About $minutes min ${seconds}s remaining';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'Home load timeout';
@@ -1399,6 +1512,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => 'Background';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => 'Background opacity';

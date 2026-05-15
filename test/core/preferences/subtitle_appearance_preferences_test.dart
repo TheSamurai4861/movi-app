@@ -121,6 +121,23 @@ void main() {
       expect(decoded.fontScale, 1.0);
     });
 
+    test('transparent background removes subtitle text background', () {
+      const prefs = SubtitleAppearancePrefs(
+        sizePreset: SubtitleSizePreset.medium,
+        textColorHex: SubtitleAppearancePrefs.defaultTextColorHex,
+        fontFamilyKey: SubtitleAppearancePrefs.defaultFontFamilyKey,
+        backgroundColorHex:
+            SubtitleAppearancePrefs.transparentBackgroundColorHex,
+        backgroundOpacity: SubtitleAppearancePrefs.defaultBackgroundOpacity,
+        shadowPreset: SubtitleShadowPreset.off,
+        fontScale: 1.0,
+      );
+
+      expect(prefs.usesTransparentSubtitleBackground, isTrue);
+      expect(prefs.subtitleTextBackgroundColor(), isNull);
+      expect(prefs.toTextStyle().backgroundColor, isNull);
+    });
+
     test('clamps invalid fontScale and backgroundOpacity', () {
       final decoded = SubtitleAppearancePrefs.fromJson(<String, Object?>{
         'sizePreset': 'large',

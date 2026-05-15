@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -252,12 +253,15 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final mediaQuery = MediaQuery.of(context);
     final isMobileLandscape =
         mediaQuery.orientation == Orientation.landscape &&
         mediaQuery.size.shortestSide < 600;
-    final bottomBlockVerticalPadding = isMobileLandscape ? 8.0 : 16.0;
-    final bottomSectionVerticalPadding = isMobileLandscape ? 4.0 : 8.0;
+    final bottomBlockVerticalPadding =
+        (isMobileLandscape ? 8.0 : 16.0) * uiScale;
+    final bottomSectionVerticalPadding =
+        (isMobileLandscape ? 4.0 : 8.0) * uiScale;
     final progress = widget.duration.inMilliseconds == 0
         ? 0.0
         : widget.position.inMilliseconds / widget.duration.inMilliseconds;
@@ -277,7 +281,7 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
             left: 0,
             right: 0,
             child: Container(
-              height: 120,
+              height: 120 * uiScale,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -292,7 +296,7 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
             left: 0,
             right: 0,
             child: Container(
-              height: 200,
+              height: 200 * uiScale,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -308,9 +312,9 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 20 * uiScale,
+                  vertical: 16 * uiScale,
                 ),
                 child: Center(
                   child: Text(
@@ -319,7 +323,7 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
-                    ),
+                    ).copyWith(fontSize: 18 * uiScale),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
@@ -334,9 +338,9 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 20 * uiScale,
+                  vertical: 12 * uiScale,
                 ),
                 child: Row(
                   children: [
@@ -695,8 +699,9 @@ class _PlayerIconAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = isLarge ? 64.0 : 48.0;
-    final iconSize = isLarge ? 32.0 : 24.0;
+    final uiScale = context.tvUiScale;
+    final buttonSize = (isLarge ? 64.0 : 48.0) * uiScale;
+    final iconSize = (isLarge ? 32.0 : 24.0) * uiScale;
     final effectiveIconColor =
         iconColor ?? (onPressed == null ? Colors.white54 : Colors.white);
 
@@ -733,10 +738,10 @@ class _PlayerIconAction extends StatelessWidget {
                 ),
               ),
               if (label != null && label!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: 4 * uiScale),
                 Text(
                   label!,
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
+                  style: TextStyle(fontSize: 12 * uiScale, color: Colors.white),
                 ),
               ],
             ],
@@ -764,6 +769,7 @@ class _PlayerTextAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     return Focus(
       onKeyEvent: (_, event) => onKeyEvent(event),
       child: MoviFocusableAction(
@@ -773,25 +779,31 @@ class _PlayerTextAction extends StatelessWidget {
         builder: (context, state) {
           return MoviFocusFrame(
             scale: state.focused ? 1.02 : 1,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(14 * uiScale),
             backgroundColor: state.focused
                 ? Colors.white.withValues(alpha: 0.16)
                 : Colors.transparent,
             borderColor: state.focused ? Colors.white : Colors.transparent,
             borderWidth: 2,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: 12 * uiScale,
+              vertical: 8 * uiScale,
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 16 * uiScale,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
                   ),
                 ),
-                if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+                if (trailing != null) ...[
+                  SizedBox(width: 8 * uiScale),
+                  trailing!,
+                ],
               ],
             ),
           );

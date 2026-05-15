@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 
-/// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
+/// Carte "Voir tout" alignée sur [MoviMediaCard] (largeur 150, poster 225).
 /// Affiche un motif 2x2 stylisé et le libellé "Voir tout".
 class SeeAllCard extends StatefulWidget {
   const SeeAllCard({
@@ -29,43 +30,68 @@ class _SeeAllCardState extends State<SeeAllCard> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final scaledWidth = widget.width * uiScale;
+    final scaledPosterHeight = widget.posterHeight * uiScale;
+    final focusRadius = 18.0 * uiScale;
+    final cardTitleGap = 12.0 * uiScale;
+    final focusBorderWidth = 2.0 * uiScale;
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final seeAllLabel = l10n?.actionSeeAll ?? 'Voir tout';
+    final textStyle =
+        theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 16 * uiScale,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+          height: 1.2,
+        ) ??
+        TextStyle(
+          fontSize: 16 * uiScale,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+          height: 1.2,
+        );
+
     return SizedBox(
-      width: widget.width,
+      width: scaledWidth,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(focusRadius),
           onTap: widget.onTap,
           onFocusChange: (focused) {
             if (_focused == focused) return;
             setState(() => _focused = focused);
           },
           child: AnimatedScale(
-            scale: _focused ? 1.03 : 1,
+            scale: _focused ? 1.035 : 1,
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.all(2),
+                  padding: EdgeInsets.all(focusBorderWidth),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(focusRadius),
                     border: Border.all(
                       color: _focused
                           ? theme.colorScheme.primary
                           : Colors.transparent,
-                      width: 2,
+                      width: focusBorderWidth,
                     ),
                   ),
-                  child: _buildPoster(context),
+                  child: _buildPoster(
+                    width: scaledWidth,
+                    height: scaledPosterHeight,
+                    uiScale: uiScale,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: cardTitleGap),
                 Semantics(
                   label: '$seeAllLabel ${widget.title}',
                   button: true,
@@ -73,17 +99,7 @@ class _SeeAllCardState extends State<SeeAllCard> {
                     seeAllLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
+                    style: textStyle,
                   ),
                 ),
               ],
@@ -94,16 +110,23 @@ class _SeeAllCardState extends State<SeeAllCard> {
     );
   }
 
-  Widget _buildPoster(BuildContext context) {
+  Widget _buildPoster({
+    required double width,
+    required double height,
+    required double uiScale,
+  }) {
+    final innerPadding = 12.0 * uiScale;
+    final tileGap = 8.0 * uiScale;
+    final tileRadius = 8.0 * uiScale;
     final container = Container(
-      height: widget.posterHeight,
-      width: widget.width,
+      height: height,
+      width: width,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12 * uiScale),
         color: const Color(0xFF202020),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(innerPadding),
         child: Column(
           children: [
             Expanded(
@@ -111,35 +134,35 @@ class _SeeAllCardState extends State<SeeAllCard> {
                 children: [
                   Expanded(
                     child: _miniTile(
-                      context,
                       Colors.white.withValues(alpha: 0.12),
+                      tileRadius,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: tileGap),
                   Expanded(
                     child: _miniTile(
-                      context,
                       Colors.white.withValues(alpha: 0.2),
+                      tileRadius,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: tileGap),
             Expanded(
               child: Row(
                 children: [
                   Expanded(
                     child: _miniTile(
-                      context,
                       Colors.white.withValues(alpha: 0.16),
+                      tileRadius,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: tileGap),
                   Expanded(
                     child: _miniTile(
-                      context,
                       Colors.white.withValues(alpha: 0.08),
+                      tileRadius,
                     ),
                   ),
                 ],
@@ -154,10 +177,10 @@ class _SeeAllCardState extends State<SeeAllCard> {
     return Hero(tag: widget.heroTag!, child: container);
   }
 
-  Widget _miniTile(BuildContext context, Color color) {
+  Widget _miniTile(Color color, double radius) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(radius),
         color: color,
       ),
     );

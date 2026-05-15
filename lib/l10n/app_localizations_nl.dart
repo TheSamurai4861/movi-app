@@ -176,6 +176,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsExportErrorLogs => 'Foutlogboeken exporteren';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => 'Foutlogboeken exporteren';
 
   @override
@@ -543,155 +556,261 @@ class AppLocalizationsNl extends AppLocalizations {
   String get bootCatalogLocalCacheReady => 'Lokale catalogus klaar — afronden…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => 'Start voorbereiden…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => 'Laden…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => 'Sessie controleren…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => 'Profiel laden…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => 'Profiel controleren…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => 'Bron controleren…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => 'Catalogus voorbereiden…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => 'Aanmelden vereist';
+
+  @override
+  String get bootActionAuthMessage => 'Meld je aan om door te gaan.';
+
+  @override
+  String get bootActionProfileTitle => 'Profiel vereist';
 
   @override
   String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+      'Maak een profiel aan of kies er een om door te gaan.';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionSourceRequiredTitle => 'Bron vereist';
 
   @override
   String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+      'Voeg een bron toe of herstel de verbinding om door te gaan.';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceSelectionTitle => 'Bronkeuze';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceSelectionMessage => 'Kies de te gebruiken bron.';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootRecoverySourceTimeoutTitle => 'Bron reageert niet';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootRecoverySourceTimeoutMessage =>
+      'Probeer opnieuw te synchroniseren of verander van bron.';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceProviderTitle => 'Bron kan niet worden geladen';
 
   @override
   String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+      'Probeer opnieuw te laden of verander van bron.';
 
   @override
   String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+      'Kan geen verbinding maken met de bron';
 
   @override
   String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+      'Maak opnieuw verbinding met de bron om door te gaan.';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceEmptyTitle => 'Geen inhoud gevonden';
 
   @override
   String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+      'Synchroniseer de bron opnieuw of kies een andere.';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootFailureTitle => 'Start onderbroken';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootFailureMessage => 'Een fout verhindert de start.';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootActionExportLogs => 'Logboeken exporteren';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootActionLogin => 'Aanmelden';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionChooseProfile => 'Profiel kiezen';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionAddSource => 'Bron toevoegen';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseSource => 'Bron wijzigen';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionReconnectSource => 'Bron opnieuw verbinden';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionResyncSource => 'Opnieuw synchroniseren';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionOpenHome => 'Home openen';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootSemanticsSplashLogo => 'MOVI splash logo';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootSemanticsLoadingInProgress => 'Laden bezig';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'Catalogus voorbereiden';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => 'Opgeslagen bronnen';
+
+  @override
+  String get welcomeSourceRefreshTooltip => 'Vernieuwen';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      'Geen bron gevonden op Supabase. Voeg er een toe of activeer er een hieronder.';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => 'Een bron activeren';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => 'Bronnaam';
 
   @override
-  String get welcomeSourceNameHint => 'My IPTV';
+  String get welcomeSourceNameHint => 'Mijn IPTV';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => 'Server-URL';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => 'Gebruikersnaam';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => 'Wachtwoord';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => 'Activeren';
+
+  @override
+  String get welcomeSourceAddModeTitle => 'Een bron toevoegen';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle =>
+      'Voeg je eerste IPTV-bron toe.';
+
+  @override
+  String get welcomeSourceAddPrompt => 'Wil je een bron toevoegen?';
+
+  @override
+  String get welcomeSourceAddNewAction => 'Nieuwe bron toevoegen';
+
+  @override
+  String get welcomeSourceRequiredFields => 'Alle velden zijn verplicht.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'De server reageert te traag. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      'Ongeldige inloggegevens. Controleer gebruikersnaam en wachtwoord.';
+
+  @override
+  String get welcomeSourceErrorNetwork =>
+      'Kan geen verbinding maken met de server. Controleer de URL en je netwerk.';
+
+  @override
+  String get welcomeSourceErrorGeneric =>
+      'De bron kan momenteel niet worden geladen. Probeer het opnieuw.';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return 'Verloopt op: $date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => 'Geen vervaldatum';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => 'Profiel vergrendeld';
 
   @override
   String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+      'Voer de PIN in om van profiel te wisselen.';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed =>
+      'Profielen konden niet worden geladen.';
+
+  @override
+  String get welcomeUserCreateTitle => 'Profiel aanmaken';
+
+  @override
+  String get welcomeUserChooseTitle => 'Profiel kiezen';
+
+  @override
+  String get welcomeUserCreateSubtitle =>
+      'Maak je eerste profiel voor Movi aan.';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'Kies een van je profielen.';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'Profielnaam';
+
+  @override
+  String get welcomeUserProfileNameHint => 'Profielnaam';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'Profiel aanmaken';
+
+  @override
+  String get childPreloadTitle => 'Inhoudsbeveiliging instellen';
+
+  @override
+  String get childPreloadSubtitle =>
+      'Leeftijdsclassificaties worden gecontroleerd...';
+
+  @override
+  String get childPreloadSkip => 'Overslaan';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'ID\'s worden omgezet...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings =>
+      'Beoordelingen worden opgehaald...';
+
+  @override
+  String get childPreloadPhaseCompleted => 'Klaar';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return 'Nog ca. ${seconds}s';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return 'Nog ca. $minutes min';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return 'Nog ca. $minutes min ${seconds}s';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'Time-out bij laden startpagina';
@@ -1156,41 +1275,44 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authOtpChangeEmail => 'E-mail wijzigen';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => 'Gebruik in plaats daarvan een wachtwoord';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => 'Aanmelden';
 
   @override
   String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+      'Voer je e-mailadres en wachtwoord in om door te gaan.';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => 'E-mailadres';
 
   @override
-  String get authPasswordEmailHint => 'name@example.com';
+  String get authPasswordEmailHint => 'naam@voorbeeld.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp =>
+      'Gebruik het e-mailadres dat aan je account is gekoppeld.';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => 'Wachtwoord';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => 'Je wachtwoord';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp =>
+      'Je wachtwoord is hoofdlettergevoelig.';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => 'Aanmelden';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => 'Wachtwoord vergeten?';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent =>
+      'E-mail voor wachtwoordherstel verstuurd.';
 
   @override
   String get authForgotPasswordTitle => 'Wachtwoord vergeten';
@@ -1210,7 +1332,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => 'Terug naar aanmelden';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => 'Gebruik in plaats daarvan e-mailcode';
 
   @override
   String get resumePlayback => 'Afspelen hervatten';
@@ -1408,6 +1530,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => 'Achtergrond';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => 'Achtergronddekking';

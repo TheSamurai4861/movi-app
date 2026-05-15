@@ -163,6 +163,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
       }
 
       final target = _mapDestination(launchState.destination);
+      final allowBootSourceCreationPage =
+          launchState.destination == BootstrapDestination.chooseSource &&
+          current == AppRoutePaths.welcomeSources;
       final keepSignUpForAuthFlow =
           launchState.destination == BootstrapDestination.auth &&
           current == AppRoutePaths.authSignUp;
@@ -179,6 +182,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
       if (target != null &&
           launchState.destination != BootstrapDestination.home &&
           current != target) {
+        if (allowBootSourceCreationPage) {
+          return null;
+        }
         if (keepSignUpForAuthFlow) {
           return null;
         }
@@ -196,6 +202,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
         return null;
       }
       if (target != null && current != target) {
+        if (allowBootSourceCreationPage) {
+          return null;
+        }
         return target;
       }
       return null;
@@ -246,6 +255,13 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (!isStartupRoute) {
+      return null;
+    }
+
+    final allowBootSourceCreationPage =
+        surface == TunnelSurface.chooseSource &&
+        current == AppRoutePaths.welcomeSources;
+    if (allowBootSourceCreationPage) {
       return null;
     }
 

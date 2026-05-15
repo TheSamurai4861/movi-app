@@ -64,6 +64,10 @@
   "actionRetry": "Retry",
   "settingsHelpDiagnosticsSection": "Help & diagnostics",
   "settingsExportErrorLogs": "Export error logs",
+  "settingsClearCache": "Clear cache",
+  "settingsClearCacheConfirmTitle": "Clear cache?",
+  "settingsClearCacheConfirmMessage": "This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.",
+  "settingsClearCacheSuccess": "Cache cleared",
   "diagnosticsExportTitle": "Export error logs",
   "diagnosticsExportDescription": "The diagnostic only includes recent WARN/ERROR logs and hashed account/profile identifiers (if enabled). No key/token should appear.",
   "diagnosticsIncludeHashedIdsTitle": "Include account/profile identifiers (hashed)",
@@ -264,7 +268,9 @@
   "overlayPreparingMetadata": "Preparing metadata…",
   "bootCatalogLocalCacheReady": "Local catalog ready — finishing…",
   "bootLoadingPreparingLaunch": "Preparing launch…",
+  "bootLoadingDefault": "Loading…",
   "bootLoadingCheckingSession": "Checking session…",
+  "bootLoadingProfile": "Loading profile…",
   "bootLoadingCheckingProfile": "Checking profile…",
   "bootLoadingCheckingSource": "Checking source…",
   "bootLoadingPreparingCatalog": "Preparing catalog…",
@@ -294,6 +300,9 @@
   "bootActionReconnectSource": "Reconnect source",
   "bootActionResyncSource": "Resync",
   "bootActionOpenHome": "Open home",
+  "bootSemanticsSplashLogo": "MOVI splash logo",
+  "bootSemanticsLoadingInProgress": "Loading in progress",
+  "bootSemanticsPreparingCatalog": "Preparing catalog",
   "welcomeSourceSavedSourcesTitle": "Saved sources",
   "welcomeSourceRefreshTooltip": "Refresh",
   "welcomeSourceNoRemoteSourcesMessage": "No source found on Supabase. Add or activate one below.",
@@ -305,6 +314,15 @@
   "welcomeSourceUsernameLabel": "Username",
   "welcomeSourcePasswordLabel": "Password",
   "welcomeSourceActivateAction": "Activate",
+  "welcomeSourceAddModeTitle": "Add a source",
+  "welcomeSourceFirstSourceSubtitle": "Add your first IPTV source.",
+  "welcomeSourceAddPrompt": "Want to add a source?",
+  "welcomeSourceAddNewAction": "Add a new source",
+  "welcomeSourceRequiredFields": "All fields are required.",
+  "welcomeSourceErrorTimeout": "The server is taking too long to respond. Check your connection and try again.",
+  "welcomeSourceErrorInvalidCredentials": "Invalid credentials. Check the username and password.",
+  "welcomeSourceErrorNetwork": "Unable to connect to server. Check the URL and your network.",
+  "welcomeSourceErrorGeneric": "Unable to load the source right now. Please try again.",
   "welcomeSourceExpiresOn": "Expires: {date}",
   "@welcomeSourceExpiresOn": {
     "placeholders": {
@@ -317,6 +335,46 @@
   "welcomeUserProfileLockedTitle": "Profile locked",
   "welcomeUserProfileLockedReason": "Enter the PIN to switch profile.",
   "welcomeUserProfilesLoadFailed": "Unable to load profiles.",
+  "welcomeUserCreateTitle": "Create profile",
+  "welcomeUserChooseTitle": "Choose profile",
+  "welcomeUserCreateSubtitle": "Create your first profile for Movi.",
+  "welcomeUserChooseSubtitle": "Choose one of your profiles.",
+  "welcomeUserProfileNameLabel": "Profile name",
+  "welcomeUserProfileNameHint": "Profile name",
+  "welcomeUserCreateProfileAction": "Create profile",
+  "childPreloadTitle": "Content safety setup",
+  "childPreloadSubtitle": "Checking age ratings...",
+  "childPreloadSkip": "Skip",
+  "childPreloadPhaseResolvingIds": "Resolving identifiers...",
+  "childPreloadPhaseFetchingRatings": "Fetching ratings...",
+  "childPreloadPhaseCompleted": "Done",
+  "childPreloadEtaSeconds": "About {seconds}s remaining",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "About {minutes} min remaining",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "About {minutes} min {seconds}s remaining",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "errorHomeLoadTimeout": "Home load timeout",
   "faqLabel": "FAQ",
   "iptvUsernameLabel": "Username",
@@ -691,6 +749,7 @@
   "settingsSubtitlesPreviewTitle": "Preview",
   "settingsSubtitlesPreviewSample": "This is a subtitles preview.\nFine tune readability in real time.",
   "settingsSubtitlesBackgroundTitle": "Background",
+  "settingsSubtitlesBackgroundNone": "No background",
   "settingsSubtitlesBackgroundOpacityLabel": "Background opacity",
   "settingsSubtitlesShadowTitle": "Shadow",
   "settingsSubtitlesShadowOff": "Off",

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
 import 'package:movi/src/core/widgets/movi_network_image.dart';
@@ -59,6 +60,8 @@ Widget _buildPersonImage(
 class MoviPersonCard extends StatefulWidget {
   static const double listHeight = 286;
 
+  static double listHeightForScale(double scale) => listHeight * scale;
+
   const MoviPersonCard({
     super.key,
     required this.person,
@@ -85,6 +88,15 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final scaledWidth = widget.width * uiScale;
+    final scaledHeight = widget.height * uiScale;
+    final focusRadius = 18.0 * uiScale;
+    final focusBorderWidth = 2.0 * uiScale;
+    final focusBlurRadius = 18.0 * uiScale;
+    final focusSpreadRadius = 2.0 * uiScale;
+    final nameRoleGap = 12.0 * uiScale;
+    final roleGap = 4.0 * uiScale;
     final theme = Theme.of(context);
     final focusBorderColor = theme.colorScheme.primary;
     final nameStyle =
@@ -124,13 +136,13 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
           if (_focused == focused) return;
           setState(() => _focused = focused);
         },
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(focusRadius),
         child: AnimatedScale(
           scale: _focused ? 1.035 : 1,
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           child: SizedBox(
-            width: widget.width,
+            width: scaledWidth,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -138,36 +150,41 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.all(2),
+                  padding: EdgeInsets.all(focusBorderWidth),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(focusRadius),
                     border: Border.all(
                       color: _focused ? focusBorderColor : Colors.transparent,
-                      width: 2,
+                      width: focusBorderWidth,
                     ),
                     boxShadow: _focused
                         ? [
                             BoxShadow(
                               color: focusBorderColor.withValues(alpha: 0.18),
-                              blurRadius: 18,
-                              spreadRadius: 2,
+                              blurRadius: focusBlurRadius,
+                              spreadRadius: focusSpreadRadius,
                             ),
                           ]
                         : null,
                   ),
-                  child: _buildPoster(context),
+                  child: _buildPoster(
+                    context,
+                    width: scaledWidth,
+                    height: scaledHeight,
+                    uiScale: uiScale,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: nameRoleGap),
                 MoviMarqueeText(
                   text: widget.person.name,
                   style: nameStyle,
-                  maxWidth: widget.width,
+                  maxWidth: scaledWidth,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: roleGap),
                 MoviMarqueeText(
                   text: widget.person.role,
                   style: roleStyle,
-                  maxWidth: widget.width,
+                  maxWidth: scaledWidth,
                 ),
               ],
             ),
@@ -177,16 +194,21 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
     );
   }
 
-  Widget _buildPoster(BuildContext context) {
+  Widget _buildPoster(
+    BuildContext context, {
+    required double width,
+    required double height,
+    required double uiScale,
+  }) {
     final image = ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16 * uiScale),
       child: SizedBox(
-        width: widget.width,
-        height: widget.height,
+        width: width,
+        height: height,
         child: _buildPersonImage(
           widget.person.poster,
-          widget.width,
-          widget.height,
+          width,
+          height,
           placeholderType: PlaceholderType.person,
         ),
       ),

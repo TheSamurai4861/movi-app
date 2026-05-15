@@ -660,6 +660,127 @@
   },
   "settingsTermsOfUseTitle": "利用規約",
   "settingsCloudSyncPremiumRequiredMessage": "クラウド同期にはMovi Premiumが必要です。",
-  "authForgotPasswordTitle": "パスワードをお忘れですか",   "authForgotPasswordSubtitle": "パスワード再設定リンクを受け取るためにメールアドレスを入力してください。",   "authForgotPasswordInfoNeutral": "アカウントが存在する場合、このアドレスにパスワード再設定メールが送信されます。",   "authForgotPasswordPrimarySubmit": "リンクを送信",   "authForgotPasswordBackToSignIn": "サインインに戻る"
+  "authForgotPasswordTitle": "パスワードをお忘れですか",   "authForgotPasswordSubtitle": "パスワード再設定リンクを受け取るためにメールアドレスを入力してください。",   "authForgotPasswordInfoNeutral": "アカウントが存在する場合、このアドレスにパスワード再設定メールが送信されます。",   "authForgotPasswordPrimarySubmit": "リンクを送信",   "authForgotPasswordBackToSignIn": "サインインに戻る",
+  "bootLoadingPreparingLaunch": "起動の準備中…",
+  "bootLoadingDefault": "読み込み中…",
+  "bootLoadingCheckingSession": "セッションを確認中…",
+  "bootLoadingProfile": "プロフィールを読み込み中…",
+  "bootLoadingCheckingProfile": "プロフィールを確認中…",
+  "bootLoadingCheckingSource": "ソースを確認中…",
+  "bootLoadingPreparingCatalog": "カタログを準備中…",
+  "bootActionAuthTitle": "サインインが必要です",
+  "bootActionAuthMessage": "続行するにはサインインしてください。",
+  "bootActionProfileTitle": "プロフィールが必要です",
+  "bootActionProfileMessage": "続行するにはプロフィールを作成または選択してください。",
+  "bootActionSourceRequiredTitle": "ソースが必要です",
+  "bootActionSourceRequiredMessage": "続行するにはソースを追加または再接続してください。",
+  "bootActionSourceSelectionTitle": "ソースの選択",
+  "bootActionSourceSelectionMessage": "使用するソースを選択してください。",
+  "bootRecoverySourceTimeoutTitle": "ソースが応答しません",
+  "bootRecoverySourceTimeoutMessage": "同期を再試行するかソースを変更してください。",
+  "bootRecoverySourceProviderTitle": "ソースを読み込めません",
+  "bootRecoverySourceProviderMessage": "再読み込みを試みるかソースを変更してください。",
+  "bootRecoverySourceCredentialsTitle": "ソースに接続できません",
+  "bootRecoverySourceCredentialsMessage": "続行するにはソースを再接続してください。",
+  "bootRecoverySourceEmptyTitle": "コンテンツが見つかりません",
+  "bootRecoverySourceEmptyMessage": "ソースを再同期するか別のソースを選択してください。",
+  "bootFailureTitle": "起動が中断されました",
+  "bootFailureMessage": "エラーが起動を妨げています。",
+  "bootActionExportLogs": "ログをエクスポート",
+  "bootActionLogin": "サインイン",
+  "bootActionChooseProfile": "プロフィールを選択",
+  "bootActionAddSource": "ソースを追加",
+  "bootActionChooseSource": "ソースを変更",
+  "bootActionReconnectSource": "ソースを再接続",
+  "bootActionResyncSource": "再同期",
+  "bootActionOpenHome": "ホームを開く",
+  "bootSemanticsSplashLogo": "MOVIスプラッシュロゴ",
+  "bootSemanticsLoadingInProgress": "読み込み中",
+  "bootSemanticsPreparingCatalog": "カタログを準備中",
+  "welcomeSourceSavedSourcesTitle": "保存済みのソース",
+  "welcomeSourceRefreshTooltip": "更新",
+  "welcomeSourceNoRemoteSourcesMessage": "Supabaseにソースが見つかりませんでした。以下でソースを追加または有効にしてください。",
+  "welcomeSourceActivateSectionTitle": "ソースを有効化",
+  "welcomeSourceNameLabel": "ソース名",
+  "welcomeSourceNameHint": "マイIPTV",
+  "welcomeSourceServerUrlLabel": "サーバーURL",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "ユーザー名",
+  "welcomeSourcePasswordLabel": "パスワード",
+  "welcomeSourceActivateAction": "有効化",
+  "welcomeSourceAddModeTitle": "ソースを追加",
+  "welcomeSourceFirstSourceSubtitle": "最初のIPTVソースを追加してください。",
+  "welcomeSourceAddPrompt": "ソースを追加しますか？",
+  "welcomeSourceAddNewAction": "新しいソースを追加",
+  "welcomeSourceRequiredFields": "すべてのフィールドは必須です。",
+  "welcomeSourceErrorTimeout": "サーバーの応答に時間がかかりすぎています。接続を確認してもう一度お試しください。",
+  "welcomeSourceErrorInvalidCredentials": "認証情報が無効です。ユーザー名とパスワードを確認してください。",
+  "welcomeSourceErrorNetwork": "サーバーに接続できません。URLとネットワークを確認してください。",
+  "welcomeSourceErrorGeneric": "現在ソースを読み込めません。もう一度お試しください。",
+  "welcomeSourceExpiresOn": "有効期限: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "有効期限なし",
+  "welcomeUserProfileLockedTitle": "プロフィールがロックされています",
+  "welcomeUserProfileLockedReason": "PINを入力してプロフィールを切り替えてください。",
+  "welcomeUserProfilesLoadFailed": "プロフィールを読み込めませんでした。",
+  "welcomeUserCreateTitle": "プロフィールを作成",
+  "welcomeUserChooseTitle": "プロフィールを選択",
+  "welcomeUserCreateSubtitle": "Movi用の最初のプロフィールを作成してください。",
+  "welcomeUserChooseSubtitle": "プロフィールのひとつを選択してください。",
+  "welcomeUserProfileNameLabel": "プロフィール名",
+  "welcomeUserProfileNameHint": "プロフィール名",
+  "welcomeUserCreateProfileAction": "プロフィールを作成",
+  "childPreloadTitle": "コンテンツ安全設定",
+  "childPreloadSubtitle": "年齢レーティングを確認中...",
+  "childPreloadSkip": "スキップ",
+  "childPreloadPhaseResolvingIds": "IDを解決中...",
+  "childPreloadPhaseFetchingRatings": "レーティングを取得中...",
+  "childPreloadPhaseCompleted": "完了",
+  "childPreloadEtaSeconds": "残り約{seconds}秒",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "残り約{minutes}分",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "残り約{minutes}分{seconds}秒",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "代わりにパスワードを使用",
+  "authPasswordTitle": "サインイン",
+  "authPasswordSubtitle": "メールアドレスとパスワードを入力して続行してください。",
+  "authPasswordEmailLabel": "メールアドレス",
+  "authPasswordEmailHint": "name@example.com",
+  "authPasswordEmailHelp": "アカウントに紐付けられたメールアドレスを使用してください。",
+  "authPasswordPasswordLabel": "パスワード",
+  "authPasswordPasswordHint": "パスワードを入力",
+  "authPasswordPasswordHelp": "パスワードは大文字と小文字を区別します。",
+  "authPasswordPrimarySubmit": "サインイン",
+  "authPasswordForgotPassword": "パスワードをお忘れですか？",
+  "authPasswordResetSent": "パスワードリセットメールを送信しました。",
+  "authPasswordUseOtp": "代わりにメールコードを使用"
 }
 

@@ -9,10 +9,11 @@ import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
-import 'package:movi/src/core/profile/presentation/ui/dialogs/profile_dialog_focus_border.dart';
+import 'package:movi/src/core/profile/presentation/ui/dialogs/profile_dialog_widgets.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/modal_content_width.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
 /// Dialog pour gÃƒÆ’Ã‚Â©rer un profil (rename / delete).
 ///
@@ -269,39 +270,22 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
+                      child: MoviPrimaryButton(
+                        expand: true,
+                        label: l10n.actionCancel,
+                        buttonStyle: profileDialogPrimaryButtonStyle(
+                          Theme.of(ctx).colorScheme.primary,
+                        ),
                         onPressed: () => Navigator.of(ctx).pop(false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(ctx).colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(
-                          l10n.actionCancel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: OutlinedButton(
+                      child: MoviPrimaryButton(
+                        expand: true,
+                        label: l10n.delete,
+                        buttonStyle: profileDialogDestructiveButtonStyle(),
                         onPressed: () => Navigator.of(ctx).pop(true),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.red),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(
-                          l10n.delete,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                     ),
                   ],
@@ -610,40 +594,23 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                     : _pinPrimaryFocusNode,
                               )
                             : KeyEventResult.ignored,
-                        child: ListenableBuilder(
-                          listenable: _kidSwitchFocusNode,
-                          builder: (context, _) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: _kidSwitchFocusNode.hasFocus
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
-                              ),
-                              child: Switch(
-                                focusNode: _kidSwitchFocusNode,
-                                value: _isKid,
-                                onChanged: _busy
-                                    ? null
-                                    : (v) {
-                                        setState(() {
-                                          _isKid = v;
-                                          if (!v) {
-                                            _pegiLimit = null;
-                                          } else {
-                                            _pegiLimit ??= 12;
-                                          }
-                                          _error = null;
-                                        });
-                                      },
-                              ),
-                            );
-                          },
+                        child: ProfileDialogFocusedSwitch(
+                          focusNode: _kidSwitchFocusNode,
+                          accentColor: accentColor,
+                          value: _isKid,
+                          onChanged: _busy
+                              ? null
+                              : (v) {
+                                  setState(() {
+                                    _isKid = v;
+                                    if (!v) {
+                                      _pegiLimit = null;
+                                    } else {
+                                      _pegiLimit ??= 12;
+                                    }
+                                    _error = null;
+                                  });
+                                },
                         ),
                       ),
                     ],
@@ -677,25 +644,20 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                             final index = entry.key;
                             final v = entry.value;
                             final selected = _pegiLimit == v;
-                            final chip = ChoiceChip(
-                              focusNode: _pegiFocusNodes[index],
-                              label: Text('PEGI $v'),
+                            final badge = ProfileDialogPegiBadge(
+                              label: 'PEGI $v',
                               selected: selected,
-                              onSelected: _busy
-                                  ? null
-                                  : (_) => setState(() {
-                                      _pegiLimit = v;
-                                      _error = null;
-                                    }),
-                              selectedColor: accentColor,
-                              labelStyle: TextStyle(
-                                color: selected ? Colors.white : Colors.white70,
-                              ),
-                              backgroundColor: const Color(0xFF2C2C2E),
+                              accentColor: accentColor,
+                              focusNode: _pegiFocusNodes[index],
+                              enabled: !_busy,
+                              onPressed: () => setState(() {
+                                _pegiLimit = v;
+                                _error = null;
+                              }),
                             );
 
                             if (!useDesktopTvLayout) {
-                              return chip;
+                              return badge;
                             }
 
                             return Focus(
@@ -713,7 +675,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                 blockLeft: index == 0,
                                 blockRight: index == _pegiFocusNodes.length - 1,
                               ),
-                              child: chip,
+                              child: badge,
                             );
                           })
                           .toList(growable: false),
@@ -751,24 +713,14 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                 down: _saveFocusNode,
                               )
                             : KeyEventResult.ignored,
-                        child: ProfileDialogFocusBorder(
+                        child: MoviPrimaryButton(
                           focusNode: _pinPrimaryFocusNode,
-                          child: ElevatedButton(
-                            focusNode: _pinPrimaryFocusNode,
-                            onPressed: _busy ? null : _setOrChangePin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              'Définir code PIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          expand: true,
+                          label: 'Définir code PIN',
+                          buttonStyle: profileDialogPrimaryButtonStyle(
+                            accentColor,
                           ),
+                          onPressed: _busy ? null : _setOrChangePin,
                         ),
                       ),
                     ),
@@ -789,26 +741,14 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                     down: _saveFocusNode,
                                   )
                                 : KeyEventResult.ignored,
-                            child: ProfileDialogFocusBorder(
+                            child: MoviPrimaryButton(
                               focusNode: _pinPrimaryFocusNode,
-                              child: ElevatedButton(
-                                focusNode: _pinPrimaryFocusNode,
-                                onPressed: _busy ? null : _setOrChangePin,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: accentColor,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Changer le code PIN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                              expand: true,
+                              label: 'Changer le code PIN',
+                              buttonStyle: profileDialogPrimaryButtonStyle(
+                                accentColor,
                               ),
+                              onPressed: _busy ? null : _setOrChangePin,
                             ),
                           ),
                         ),
@@ -828,30 +768,15 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                     blockRight: true,
                                   )
                                 : KeyEventResult.ignored,
-                            child: ProfileDialogFocusBorder(
+                            child: MoviPrimaryButton(
                               focusNode: _pinSecondaryFocusNode,
-                              child: OutlinedButton(
-                                focusNode: _pinSecondaryFocusNode,
-                                onPressed:
-                                    (_busy || !_hasPin || !_canRemovePinSafely)
-                                    ? null
-                                    : _removePin,
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.red),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Supprimer le code PIN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
+                              expand: true,
+                              label: 'Supprimer le code PIN',
+                              buttonStyle: profileDialogDestructiveButtonStyle(),
+                              onPressed:
+                                  (_busy || !_hasPin || !_canRemovePinSafely)
+                                  ? null
+                                  : _removePin,
                             ),
                           ),
                         ),
@@ -911,25 +836,12 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                               blockDown: true,
                             )
                           : KeyEventResult.ignored,
-                      child: ProfileDialogFocusBorder(
+                      child: MoviPrimaryButton(
                         focusNode: _deleteFocusNode,
-                        child: OutlinedButton(
-                          focusNode: _deleteFocusNode,
-                          onPressed: _busy ? null : _delete,
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.red),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Text(
-                            l10n.delete,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                        expand: true,
+                        label: l10n.delete,
+                        buttonStyle: profileDialogDestructiveButtonStyle(),
+                        onPressed: _busy ? null : _delete,
                       ),
                     ),
                   ),
@@ -946,33 +858,15 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                               blockDown: true,
                             )
                           : KeyEventResult.ignored,
-                      child: ProfileDialogFocusBorder(
+                      child: MoviPrimaryButton(
                         focusNode: _saveFocusNode,
-                        child: ElevatedButton(
-                          focusNode: _saveFocusNode,
-                          onPressed: canSave ? _save : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentColor,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: _busy
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  l10n.actionConfirm,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
+                        expand: true,
+                        label: l10n.actionConfirm,
+                        loading: _busy,
+                        buttonStyle: profileDialogPrimaryButtonStyle(
+                          accentColor,
                         ),
+                        onPressed: canSave ? _save : null,
                       ),
                     ),
                   ),
@@ -1082,75 +976,26 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: widget.isDeleteAction
-                        ? ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(null),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              'Annuler',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          )
-                        : OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(null),
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: accentColor),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              'Annuler',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+                    child: MoviPrimaryButton(
+                      expand: true,
+                      label: 'Annuler',
+                      buttonStyle: widget.isDeleteAction
+                          ? profileDialogPrimaryButtonStyle(accentColor)
+                          : profileDialogDestructiveButtonStyle(),
+                      onPressed: () => Navigator.of(context).pop(null),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: widget.isDeleteAction
-                        ? OutlinedButton(
-                            onPressed: () =>
-                                Navigator.of(context).pop(controller.text),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.red),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: Text(
-                              widget.confirmLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: () =>
-                                Navigator.of(context).pop(controller.text),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: Text(
-                              widget.confirmLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+                    child: MoviPrimaryButton(
+                      expand: true,
+                      label: widget.confirmLabel,
+                      buttonStyle: widget.isDeleteAction
+                          ? profileDialogDestructiveButtonStyle()
+                          : profileDialogPrimaryButtonStyle(accentColor),
+                      onPressed: () =>
+                          Navigator.of(context).pop(controller.text),
+                    ),
                   ),
                 ],
               ),
@@ -1224,41 +1069,21 @@ class _RemovePinDialogState extends State<_RemovePinDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                    child: MoviPrimaryButton(
+                      expand: true,
+                      label: 'Annuler',
+                      buttonStyle: profileDialogPrimaryButtonStyle(accentColor),
                       onPressed: () => Navigator.of(context).pop(null),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: accentColor),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        'Annuler',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton(
+                    child: MoviPrimaryButton(
+                      expand: true,
+                      label: 'Supprimer',
+                      buttonStyle: profileDialogDestructiveButtonStyle(),
                       onPressed: () =>
                           Navigator.of(context).pop(controller.text),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: const Text(
-                        'Supprimer',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                   ),
                 ],

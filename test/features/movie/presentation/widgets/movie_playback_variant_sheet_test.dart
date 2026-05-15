@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/state/device_capabilities_provider.dart';
+import 'package:movi/src/core/widgets/movi_tv_action_menu.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_playback_variant_sheet.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
@@ -185,14 +187,17 @@ void main() {
     expect(find.text('Full HD'), findsNothing);
   });
 
-  testWidgets('escape closes sheet and restores trigger focus', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1280, 720));
+  testWidgets('escape closes desktop modal and restores trigger focus', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final triggerFocusNode = FocusNode(debugLabel: 'trigger');
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [isTelevisionDeviceProvider.overrideWith((ref) => true)],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -242,12 +247,65 @@ void main() {
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
+    expect(find.byType(MoviTvActionMenuDialog), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(find.byType(MoviePlaybackVariantSheet), findsNothing);
+    expect(find.byType(MoviTvActionMenuDialog), findsNothing);
     expect(FocusManager.instance.primaryFocus, equals(triggerFocusNode));
 
     triggerFocusNode.dispose();
+  });
+
+  testWidgets('show keeps Cupertino sheet on mobile layout', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    unawaited(
+                      MoviePlaybackVariantSheet.show(
+                        context,
+                        movieTitle: 'The Matrix',
+                        variants: <PlaybackVariant>[
+                          PlaybackVariant(
+                            id: 'source-a:1',
+                            sourceId: 'source-a',
+                            sourceLabel: 'A',
+                            videoSource: const VideoSource(
+                              url: 'https://video.example/1.mp4',
+                              title: 'The Matrix',
+                              contentId: '603',
+                              contentType: ContentType.movie,
+                            ),
+                            contentType: ContentType.movie,
+                            rawTitle: 'v1',
+                            normalizedTitle: 'The Matrix',
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('Open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
+    expect(find.byType(MoviTvActionMenuDialog), findsNothing);
   });
 }

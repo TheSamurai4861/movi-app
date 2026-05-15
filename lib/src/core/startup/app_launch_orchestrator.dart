@@ -38,6 +38,7 @@ import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/core/startup/boot_event_contract_logger.dart';
 import 'package:movi/src/core/startup/entry_journey_shadow_bridge.dart';
 import 'package:movi/src/core/startup/entry_journey_telemetry.dart';
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
@@ -341,6 +342,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   late final SupabaseIptvSourcesRepository? _iptvSourcesRepository;
   late final SelectedProfilePreferences _selectedProfilePreferences;
   late final SelectedIptvSourcePreferences _selectedIptvSourcePreferences;
+  late final EntryBootStateRepository _entryBootStateRepository;
   late final IptvLocalRepository _iptvLocalRepository;
   late final RefreshXtreamCatalog _refreshXtreamCatalog;
   late final RefreshStalkerCatalog _refreshStalkerCatalog;
@@ -389,6 +391,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         : null;
     _selectedProfilePreferences = sl<SelectedProfilePreferences>();
     _selectedIptvSourcePreferences = sl<SelectedIptvSourcePreferences>();
+    _entryBootStateRepository = sl<EntryBootStateRepository>();
     _iptvLocalRepository = sl<IptvLocalRepository>();
     _refreshXtreamCatalog = sl<RefreshXtreamCatalog>();
     _refreshStalkerCatalog = sl<RefreshStalkerCatalog>();
@@ -673,6 +676,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     var step = 'init';
     var destination = BootstrapDestination.auth;
     var meta = const AppLaunchMeta();
+    var entryBootState = EntryBootStateSnapshot.empty;
 
     void updateCriteria() {
       _updateState(
@@ -686,6 +690,12 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
             hasLibraryReady: meta.libraryReady,
           ),
         ),
+      );
+    }
+
+    Future<void> refreshEntryBootState() async {
+      entryBootState = await _entryBootStateRepository.read(
+        accountId: meta.accountId,
       );
     }
 
@@ -1097,6 +1107,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         );
       }
 
+      await refreshEntryBootState();
       step = 'profiles_fetch';
       _setPhase(AppLaunchPhase.profiles, stepName: step);
       final profiles = await _profileRepository.getProfiles(
@@ -1170,9 +1181,53 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         await logStep('selected profile repaired');
       } else if (!validSelected) {
         await _selectedProfilePreferences.clear();
+        await _entryBootStateRepository.clearProfileSelection(
+          accountId: meta.accountId,
+        );
         updateCriteria();
         await logStep(
           'multiple profiles without valid selection -> welcomeUser',
+        );
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: false,
+          session: sessionSnapshot(
+            isAuthenticated: meta.accountId != null,
+            userId: meta.accountId,
+            reasonCode: meta.accountId == null
+                ? 'local_mode'
+                : 'session_authenticated',
+          ),
+          profiles: profilesSnapshot(
+            count: profiles.length,
+            hasValidSelection: false,
+            reasonCode: EntryDecisionReasonCodes.profileSelectionRequired,
+          ),
+          sources: readyEntrySource,
+          resolvedProfileId: null,
+          resolvedSourceId: '__entry_source_ready__',
+        );
+        return completeEntryDecision(entryDecision);
+      }
+      if (profiles.length > 1 && !entryBootState.profileSelectedLocally) {
+        await _selectedProfilePreferences.clear();
+        await _entryBootStateRepository.clearProfileSelection(
+          accountId: meta.accountId,
+        );
+        selectedProfileId = null;
+        meta = AppLaunchMeta(
+          accountId: meta.accountId,
+          profilesCount: meta.profilesCount,
+          sourcesCount: meta.sourcesCount,
+          localAccountsCount: meta.localAccountsCount,
+          selectedProfileId: null,
+          selectedSourceId: meta.selectedSourceId,
+          iptvCatalogReady: meta.iptvCatalogReady,
+          homePreloaded: meta.homePreloaded,
+          libraryReady: meta.libraryReady,
+        );
+        updateCriteria();
+        await logStep(
+          'multiple profiles require local confirmation -> welcomeUser',
         );
         final entryDecision = resolveEntry(
           requiresAuthenticatedSession: false,
@@ -1333,42 +1388,13 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       final accountIdForCloud = meta.accountId?.trim();
       final supabaseClient = ref.read(supabaseClientProvider);
 
-      if (accountIdForCloud != null &&
-          accountIdForCloud.isNotEmpty &&
-          validIds.length > 1 &&
-          supabaseClient != null) {
-        try {
-          await logStep(
-            'bootstrap pull user prefs (local_wins accent enabled)',
-          );
-          await ref
-              .read(comprehensiveCloudSyncServiceProvider)
-              .pullUserPreferences(
-                client: supabaseClient,
-                shouldCancel: () => false,
-                knownIptvAccountIds: validIds,
-                preferLocalAccent: true,
-                context: 'bootstrap_source_selection',
-              );
-          await logStep('user prefs pulled from cloud (iptv selection)');
-        } catch (e, st) {
-          if (kDebugMode) {
-            _logStartupDebug(
-              'step=iptv_source_selection result=pull_user_preferences_failed '
-              'attempt=initial error=$e\n$st',
-            );
-          }
-          await logStep('pullUserPreferences failed (ignored)');
-        }
-      }
-
       await _selectedIptvSourcePreferences.rereadFromStorage();
       String? preferred = _selectedIptvSourcePreferences.selectedSourceId;
 
       if (validIds.length > 1 &&
-          (preferred == null ||
-              preferred.trim().isEmpty ||
-              !validIds.contains(preferred.trim())) &&
+          preferred != null &&
+          preferred.trim().isNotEmpty &&
+          !validIds.contains(preferred.trim()) &&
           supabaseClient != null &&
           accountIdForCloud != null &&
           accountIdForCloud.isNotEmpty) {
@@ -1384,6 +1410,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
                 shouldCancel: () => false,
                 knownIptvAccountIds: validIds,
                 preferLocalAccent: true,
+                allowSelectionRestore:
+                    entryBootState.profileSelectedLocally &&
+                    entryBootState.sourceSelectedLocally,
                 context: 'bootstrap_source_selection_retry',
               );
           await logStep('user prefs pulled from cloud (iptv selection retry)');
@@ -1420,6 +1449,52 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           '[Startup][debug] preferred_source_present=${preferredFinal != null} '
           'validIds=${validIds.length}',
         );
+      }
+
+      if (validIds.length > 1 && !entryBootState.sourceSelectedLocally) {
+        await _selectedIptvSourcePreferences.clear();
+        await _entryBootStateRepository.clearSourceSelection(
+          accountId: meta.accountId,
+        );
+        _entryJourneyTelemetry.event(
+          name: 'source_selection_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'manual_selection_required',
+          phase: AppLaunchPhase.sourceSelection.name,
+          step: step,
+          reasonCode: 'source_selection_required',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'sourcesCount': validIds.length},
+        );
+        await logStep(
+          'multiple sources require local confirmation -> chooseSource',
+        );
+        final entryDecision = resolveEntry(
+          requiresAuthenticatedSession: false,
+          session: sessionSnapshot(
+            isAuthenticated: meta.accountId != null,
+            userId: meta.accountId,
+            reasonCode: meta.accountId == null
+                ? 'local_mode'
+                : 'session_authenticated',
+          ),
+          profiles: profilesSnapshot(
+            count: profiles.length,
+            hasValidSelection: true,
+            selectedProfileId: selectedProfileId,
+            reasonCode: 'profiles_ready',
+          ),
+          sources: sourcesSnapshot(
+            localCount: validIds.length,
+            hasValidSelection: false,
+            requiresManualSelection: true,
+            selectedSourceId: preferredTrimmed,
+            reasonCode: 'source_selection_required',
+          ),
+          resolvedProfileId: selectedProfileId,
+          resolvedSourceId: null,
+        );
+        return completeEntryDecision(entryDecision);
       }
 
       if (validIds.length == 1) {
@@ -1465,6 +1540,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         final stale = preferredTrimmed;
         if (stale != null && stale.isNotEmpty && !validIds.contains(stale)) {
           await _selectedIptvSourcePreferences.clear();
+          await _entryBootStateRepository.clearSourceSelection(
+            accountId: meta.accountId,
+          );
         }
         _entryJourneyTelemetry.event(
           name: 'source_selection_resolved',
@@ -1628,7 +1706,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
             recoveryPlan: StartupRecoveryPlan(
               reasonCode: catalogReadiness.reasonCode,
               actions: catalogRecoveryActions,
-              message: 'Catalog recovery required.',
+              message: catalogReadiness.reasonCode,
             ),
           ),
         );
@@ -1743,6 +1821,11 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
       destination = destinationForEntryDecision(entryDecision);
       await logStep('complete preload done -> ${destination.name}');
+      if (destination == BootstrapDestination.home) {
+        await _entryBootStateRepository.markFirstLaunchCompleted(
+          accountId: meta.accountId,
+        );
+      }
       final result = completeSuccess(destination);
 
       _startIptvBackgroundSync(meta);
@@ -2865,6 +2948,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       await cloudSync.pullUserPreferences(
         client: client,
         shouldCancel: () => false,
+        allowSelectionRestore: true,
         context: 'bootstrap_auto_resync',
       );
       _appEventBus.emit(const AppEvent(AppEventType.librarySynced));

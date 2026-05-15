@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/features/shell/presentation/widgets/navigation/sidebar_nav_item.dart';
 
@@ -102,7 +103,9 @@ class _SidebarNavState extends State<SidebarNav> {
     if (_itemFocusNodes.isEmpty) return false;
     final boundedIndex = index.clamp(0, _itemFocusNodes.length - 1);
     widget.onFocusedIndexChanged?.call(boundedIndex);
-    return FocusDirectionalNavigation.requestFocus(_itemFocusNodes[boundedIndex]);
+    return FocusDirectionalNavigation.requestFocus(
+      _itemFocusNodes[boundedIndex],
+    );
   }
 
   void _focusSelectedItem() {
@@ -128,12 +131,18 @@ class _SidebarNavState extends State<SidebarNav> {
     return FocusDirectionalNavigation.handleDirectionalTransition(
       event,
       onUp: () {
-        final targetIndex = (currentIndex - 1).clamp(0, _itemFocusNodes.length - 1);
+        final targetIndex = (currentIndex - 1).clamp(
+          0,
+          _itemFocusNodes.length - 1,
+        );
         if (targetIndex == currentIndex) return true;
         return _focusSidebarIndex(targetIndex);
       },
       onDown: () {
-        final targetIndex = (currentIndex + 1).clamp(0, _itemFocusNodes.length - 1);
+        final targetIndex = (currentIndex + 1).clamp(
+          0,
+          _itemFocusNodes.length - 1,
+        );
         if (targetIndex == currentIndex) return true;
         return _focusSidebarIndex(targetIndex);
       },
@@ -170,13 +179,14 @@ class _SidebarNavState extends State<SidebarNav> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final dividerColor =
         widget.dividerColor ??
         Theme.of(context).dividerTheme.color ??
         Theme.of(context).colorScheme.outlineVariant;
 
     final sidebar = Container(
-      width: widget.width,
+      width: widget.width * uiScale,
       color: widget.backgroundColor,
       child: SafeArea(
         top: true,
@@ -197,11 +207,11 @@ class _SidebarNavState extends State<SidebarNav> {
             child: Column(
               children: [
                 if (widget.logo != null) ...[
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16 * uiScale),
                   Center(child: widget.logo),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16 * uiScale),
                 ] else ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8 * uiScale),
                 ],
                 Expanded(
                   child: Center(
@@ -228,13 +238,13 @@ class _SidebarNavState extends State<SidebarNav> {
                             ),
                           ),
                           if (i != widget.destinations.length - 1)
-                            SizedBox(height: widget.itemGap),
+                            SizedBox(height: widget.itemGap * uiScale),
                         ],
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8 * uiScale),
               ],
             ),
           ),

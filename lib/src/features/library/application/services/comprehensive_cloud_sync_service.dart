@@ -321,6 +321,7 @@ class ComprehensiveCloudSyncService {
     bool Function()? shouldCancel,
     Set<String>? knownIptvAccountIds,
     bool preferLocalAccent = false,
+    bool allowSelectionRestore = true,
     String context = 'default',
   }) async {
     final uid = client.auth.currentSession?.user.id.trim();
@@ -393,7 +394,8 @@ class ComprehensiveCloudSyncService {
       // Selected profile (on ne force pas, juste si pas déjà sélectionné)
       if (_sl.isRegistered<SelectedProfilePreferences>()) {
         final selectedProfilePrefs = _sl<SelectedProfilePreferences>();
-        if (selectedProfilePrefs.selectedProfileId == null) {
+        if (allowSelectionRestore &&
+            selectedProfilePrefs.selectedProfileId == null) {
           final selectedProfileId = _selectedProfileIdSanitizer.sanitize(
             prefs['selected_profile_id']?.toString(),
           );
@@ -410,7 +412,7 @@ class ComprehensiveCloudSyncService {
         final cloudId = cloudRaw?.trim();
         final current = selectedIptvPrefs.selectedSourceId?.trim();
 
-        if (cloudId != null && cloudId.isNotEmpty) {
+        if (allowSelectionRestore && cloudId != null && cloudId.isNotEmpty) {
           if (knownIptvAccountIds == null) {
             if (current == null || current.isEmpty) {
               await selectedIptvPrefs.setSelectedSourceId(cloudId);

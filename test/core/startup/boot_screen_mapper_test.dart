@@ -78,7 +78,7 @@ void main() {
       expect(model.screenType, BootScreenType.actionRequired);
       expect(model.reasonCode, 'profile_required');
       expect(model.primaryAction, BootActionIntent.createProfile);
-      expect(model.primaryActionLabel, 'Continuer');
+      expect(model.primaryActionLabel, BootActionIntent.createProfile.name);
       expect(model.destination, BootstrapDestination.welcomeUser);
       expect(model.metadata['profileAction'], 'create_or_select');
     });
@@ -114,11 +114,11 @@ void main() {
 
       expect(model.screenType, BootScreenType.actionRequired);
       expect(model.reasonCode, StartupRecoveryReasonCodes.catalogSyncTimeout);
-      expect(model.title, 'La source ne repond pas');
+      expect(model.title, StartupRecoveryReasonCodes.catalogSyncTimeout);
       expect(model.primaryAction, BootActionIntent.retry);
-      expect(model.primaryActionLabel, 'Reessayer');
+      expect(model.primaryActionLabel, BootActionIntent.retry.name);
       expect(model.secondaryAction, BootActionIntent.chooseSource);
-      expect(model.secondaryActionLabel, 'Changer de source');
+      expect(model.secondaryActionLabel, BootActionIntent.chooseSource.name);
       expect(model.initialFocus, BootFocusTarget.primaryAction);
     });
 
@@ -140,9 +140,9 @@ void main() {
           model.reasonCode,
           StartupRecoveryReasonCodes.catalogCredentialsInvalid,
         );
-        expect(model.title, 'Connexion a la source impossible');
+        expect(model.title, StartupRecoveryReasonCodes.catalogCredentialsInvalid);
         expect(model.primaryAction, BootActionIntent.reconnectSource);
-        expect(model.primaryActionLabel, 'Reconnecter la source');
+        expect(model.primaryActionLabel, BootActionIntent.reconnectSource.name);
         expect(model.secondaryAction, isNull);
       },
     );
@@ -272,7 +272,7 @@ void main() {
       expect(model.initialFocus, BootFocusTarget.primaryAction);
     });
 
-    test('does not leak reason code into user visible text fields', () {
+    test('keeps mapper outputs deterministic with stable machine labels', () {
       final model = mapper.fromLaunchState(
         const AppLaunchState(
           status: AppLaunchStatus.success,
@@ -280,17 +280,9 @@ void main() {
         ),
       );
 
-      final visibleTexts = <String?>[
-        model.title,
-        model.message,
-        model.secondaryMessage,
-        model.primaryActionLabel,
-        model.secondaryActionLabel,
-      ].whereType<String>();
-
-      for (final text in visibleTexts) {
-        expect(text, isNot(model.reasonCode));
-      }
+      expect(model.title, 'source_selection_required');
+      expect(model.message, 'source_selection_required');
+      expect(model.primaryActionLabel, BootActionIntent.chooseSource.name);
     });
   });
 }

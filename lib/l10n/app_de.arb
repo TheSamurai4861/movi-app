@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "Nutzungsbedingungen",
   "settingsCloudSyncPremiumRequiredMessage": "Für die Cloud-Synchronisierung ist Movi Premium erforderlich.",
-  "authForgotPasswordTitle": "Passwort vergessen",   "authForgotPasswordSubtitle": "Gib deine E-Mail-Adresse ein, um einen Link zum Zurücksetzen des Passworts zu erhalten.",   "authForgotPasswordInfoNeutral": "Eine E-Mail zum Zurücksetzen des Passworts wird an diese Adresse gesendet, falls ein Konto existiert.",   "authForgotPasswordPrimarySubmit": "Link senden",   "authForgotPasswordBackToSignIn": "Zurück zur Anmeldung"
+  "authForgotPasswordTitle": "Passwort vergessen",   "authForgotPasswordSubtitle": "Gib deine E-Mail-Adresse ein, um einen Link zum Zurücksetzen des Passworts zu erhalten.",   "authForgotPasswordInfoNeutral": "Eine E-Mail zum Zurücksetzen des Passworts wird an diese Adresse gesendet, falls ein Konto existiert.",   "authForgotPasswordPrimarySubmit": "Link senden",   "authForgotPasswordBackToSignIn": "Zurück zur Anmeldung",
+  "bootLoadingPreparingLaunch": "Start wird vorbereitet…",
+  "bootLoadingDefault": "Wird geladen…",
+  "bootLoadingCheckingSession": "Sitzung wird geprüft…",
+  "bootLoadingProfile": "Profil wird geladen…",
+  "bootLoadingCheckingProfile": "Profil wird geprüft…",
+  "bootLoadingCheckingSource": "Quelle wird geprüft…",
+  "bootLoadingPreparingCatalog": "Katalog wird vorbereitet…",
+  "bootActionAuthTitle": "Anmeldung erforderlich",
+  "bootActionAuthMessage": "Melde dich an, um fortzufahren.",
+  "bootActionProfileTitle": "Profil erforderlich",
+  "bootActionProfileMessage": "Erstelle oder wähle ein Profil, um fortzufahren.",
+  "bootActionSourceRequiredTitle": "Quelle erforderlich",
+  "bootActionSourceRequiredMessage": "Füge eine Quelle hinzu oder stelle sie wieder her, um fortzufahren.",
+  "bootActionSourceSelectionTitle": "Quellauswahl",
+  "bootActionSourceSelectionMessage": "Wähle die zu verwendende Quelle.",
+  "bootRecoverySourceTimeoutTitle": "Quelle antwortet nicht",
+  "bootRecoverySourceTimeoutMessage": "Synchronisierung erneut versuchen oder Quelle wechseln.",
+  "bootRecoverySourceProviderTitle": "Quelle kann nicht geladen werden",
+  "bootRecoverySourceProviderMessage": "Erneut laden oder Quelle wechseln.",
+  "bootRecoverySourceCredentialsTitle": "Verbindung zur Quelle nicht möglich",
+  "bootRecoverySourceCredentialsMessage": "Quelle erneut verbinden, um fortzufahren.",
+  "bootRecoverySourceEmptyTitle": "Kein Inhalt gefunden",
+  "bootRecoverySourceEmptyMessage": "Quelle neu synchronisieren oder eine andere wählen.",
+  "bootFailureTitle": "Start unterbrochen",
+  "bootFailureMessage": "Ein Fehler verhindert den Start.",
+  "bootActionExportLogs": "Protokolle exportieren",
+  "bootActionLogin": "Anmelden",
+  "bootActionChooseProfile": "Profil auswählen",
+  "bootActionAddSource": "Quelle hinzufügen",
+  "bootActionChooseSource": "Quelle wechseln",
+  "bootActionReconnectSource": "Quelle erneut verbinden",
+  "bootActionResyncSource": "Neu synchronisieren",
+  "bootActionOpenHome": "Startseite öffnen",
+  "bootSemanticsSplashLogo": "MOVI Startbildschirm-Logo",
+  "bootSemanticsLoadingInProgress": "Laden läuft",
+  "bootSemanticsPreparingCatalog": "Katalog wird vorbereitet",
+  "welcomeSourceSavedSourcesTitle": "Gespeicherte Quellen",
+  "welcomeSourceRefreshTooltip": "Aktualisieren",
+  "welcomeSourceNoRemoteSourcesMessage": "Keine Quelle auf Supabase gefunden. Füge eine hinzu oder aktiviere sie unten.",
+  "welcomeSourceActivateSectionTitle": "Eine Quelle aktivieren",
+  "welcomeSourceNameLabel": "Quellname",
+  "welcomeSourceNameHint": "Mein IPTV",
+  "welcomeSourceServerUrlLabel": "Server-URL",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "Benutzername",
+  "welcomeSourcePasswordLabel": "Passwort",
+  "welcomeSourceActivateAction": "Aktivieren",
+  "welcomeSourceAddModeTitle": "Eine Quelle hinzufügen",
+  "welcomeSourceFirstSourceSubtitle": "Füge deine erste IPTV-Quelle hinzu.",
+  "welcomeSourceAddPrompt": "Möchtest du eine Quelle hinzufügen?",
+  "welcomeSourceAddNewAction": "Neue Quelle hinzufügen",
+  "welcomeSourceRequiredFields": "Alle Felder sind erforderlich.",
+  "welcomeSourceErrorTimeout": "Der Server braucht zu lange zum Antworten. Überprüfe deine Verbindung und versuche es erneut.",
+  "welcomeSourceErrorInvalidCredentials": "Ungültige Anmeldedaten. Überprüfe Benutzername und Passwort.",
+  "welcomeSourceErrorNetwork": "Verbindung zum Server nicht möglich. Überprüfe die URL und dein Netzwerk.",
+  "welcomeSourceErrorGeneric": "Die Quelle kann momentan nicht geladen werden. Bitte versuche es erneut.",
+  "welcomeSourceExpiresOn": "Läuft ab am: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "Kein Ablaufdatum",
+  "welcomeUserProfileLockedTitle": "Profil gesperrt",
+  "welcomeUserProfileLockedReason": "Gib die PIN ein, um das Profil zu wechseln.",
+  "welcomeUserProfilesLoadFailed": "Profile konnten nicht geladen werden.",
+  "welcomeUserCreateTitle": "Profil erstellen",
+  "welcomeUserChooseTitle": "Profil auswählen",
+  "welcomeUserCreateSubtitle": "Erstelle dein erstes Profil für Movi.",
+  "welcomeUserChooseSubtitle": "Wähle eines deiner Profile.",
+  "welcomeUserProfileNameLabel": "Profilname",
+  "welcomeUserProfileNameHint": "Profilname",
+  "welcomeUserCreateProfileAction": "Profil erstellen",
+  "childPreloadTitle": "Inhaltsschutz einrichten",
+  "childPreloadSubtitle": "Alterseinstufungen werden überprüft...",
+  "childPreloadSkip": "Überspringen",
+  "childPreloadPhaseResolvingIds": "IDs werden aufgelöst...",
+  "childPreloadPhaseFetchingRatings": "Bewertungen werden abgerufen...",
+  "childPreloadPhaseCompleted": "Fertig",
+  "childPreloadEtaSeconds": "Noch ca. {seconds} s",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "Noch ca. {minutes} Min.",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "Noch ca. {minutes} Min. {seconds} s",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "Stattdessen Passwort verwenden",
+  "authPasswordTitle": "Anmelden",
+  "authPasswordSubtitle": "Gib deine E-Mail-Adresse und dein Passwort ein, um fortzufahren.",
+  "authPasswordEmailLabel": "E-Mail",
+  "authPasswordEmailHint": "name@example.com",
+  "authPasswordEmailHelp": "Verwende die E-Mail-Adresse, die mit deinem Konto verknüpft ist.",
+  "authPasswordPasswordLabel": "Passwort",
+  "authPasswordPasswordHint": "Dein Passwort",
+  "authPasswordPasswordHelp": "Dein Passwort unterscheidet zwischen Groß- und Kleinschreibung.",
+  "authPasswordPrimarySubmit": "Anmelden",
+  "authPasswordForgotPassword": "Passwort vergessen?",
+  "authPasswordResetSent": "E-Mail zum Zurücksetzen des Passworts wurde gesendet.",
+  "authPasswordUseOtp": "Stattdessen E-Mail-Code verwenden"
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
@@ -52,9 +53,34 @@ class MoviFavoriteButton extends StatefulWidget {
 class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
   bool _focused = false;
 
+  EdgeInsetsGeometry _scaleInsets(EdgeInsetsGeometry insets, double scale) {
+    if (insets is EdgeInsets) {
+      return EdgeInsets.fromLTRB(
+        insets.left * scale,
+        insets.top * scale,
+        insets.right * scale,
+        insets.bottom * scale,
+      );
+    }
+    if (insets is EdgeInsetsDirectional) {
+      return EdgeInsetsDirectional.fromSTEB(
+        insets.start * scale,
+        insets.top * scale,
+        insets.end * scale,
+        insets.bottom * scale,
+      );
+    }
+    return insets;
+  }
+
   @override
   Widget build(BuildContext context) {
     const duration = Duration(milliseconds: 300);
+    final uiScale = context.tvUiScale;
+    final scaledSize = widget.size * uiScale;
+    final scaledIconSize = widget.iconSize * uiScale;
+    final scaledPadding = _scaleInsets(widget.focusPadding, uiScale);
+    final scaledBorderWidth = widget.borderWidth * uiScale;
     final focusedBg = widget.focusedBackgroundColor ?? const Color(0x80000000);
     final effectiveFocusedBorder =
         widget.focusedBorderColor ?? Colors.transparent;
@@ -67,8 +93,8 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
       toggled: widget.isFavorite,
       label: widget.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
       child: SizedBox(
-        width: widget.size,
-        height: widget.size,
+        width: scaledSize,
+        height: scaledSize,
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
@@ -78,7 +104,7 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
               if (_focused == focused) return;
               setState(() => _focused = focused);
             },
-            borderRadius: BorderRadius.circular(widget.size / 2),
+            borderRadius: BorderRadius.circular(scaledSize / 2),
             child: AnimatedScale(
               scale: _focused ? 1.05 : 1,
               duration: const Duration(milliseconds: 180),
@@ -86,15 +112,15 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
-                padding: widget.focusPadding,
+                padding: scaledPadding,
                 decoration: BoxDecoration(
                   color: backgroundColor,
-                  borderRadius: BorderRadius.circular(widget.size / 2),
+                  borderRadius: BorderRadius.circular(scaledSize / 2),
                   border: Border.all(
                     color: _focused
                         ? effectiveFocusedBorder
                         : effectiveUnfocusedBorder,
-                    width: widget.borderWidth,
+                    width: scaledBorderWidth,
                   ),
                 ),
                 child: Stack(
@@ -106,8 +132,8 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
                       opacity: widget.isFavorite ? 0.0 : 1.0,
                       child: MoviAssetIcon(
                         widget.unfilledAsset,
-                        width: widget.iconSize,
-                        height: widget.iconSize,
+                        width: scaledIconSize,
+                        height: scaledIconSize,
                         color: widget.unfilledColor,
                       ),
                     ),
@@ -117,8 +143,8 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
                       opacity: widget.isFavorite ? 1.0 : 0.0,
                       child: MoviAssetIcon(
                         widget.filledAsset,
-                        width: widget.iconSize,
-                        height: widget.iconSize,
+                        width: scaledIconSize,
+                        height: scaledIconSize,
                         color: widget.filledColor,
                       ),
                     ),

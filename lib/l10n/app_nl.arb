@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "Gebruiksvoorwaarden",
   "settingsCloudSyncPremiumRequiredMessage": "Movi Premium is vereist voor cloudsynchronisatie.",
-  "authForgotPasswordTitle": "Wachtwoord vergeten",   "authForgotPasswordSubtitle": "Voer je e-mailadres in om een link voor het opnieuw instellen van je wachtwoord te ontvangen.",   "authForgotPasswordInfoNeutral": "Er wordt een e-mail voor het opnieuw instellen van het wachtwoord naar dit adres gestuurd als er een account bestaat.",   "authForgotPasswordPrimarySubmit": "Link verzenden",   "authForgotPasswordBackToSignIn": "Terug naar aanmelden"
+  "authForgotPasswordTitle": "Wachtwoord vergeten",   "authForgotPasswordSubtitle": "Voer je e-mailadres in om een link voor het opnieuw instellen van je wachtwoord te ontvangen.",   "authForgotPasswordInfoNeutral": "Er wordt een e-mail voor het opnieuw instellen van het wachtwoord naar dit adres gestuurd als er een account bestaat.",   "authForgotPasswordPrimarySubmit": "Link verzenden",   "authForgotPasswordBackToSignIn": "Terug naar aanmelden",
+  "bootLoadingPreparingLaunch": "Start voorbereiden…",
+  "bootLoadingDefault": "Laden…",
+  "bootLoadingCheckingSession": "Sessie controleren…",
+  "bootLoadingProfile": "Profiel laden…",
+  "bootLoadingCheckingProfile": "Profiel controleren…",
+  "bootLoadingCheckingSource": "Bron controleren…",
+  "bootLoadingPreparingCatalog": "Catalogus voorbereiden…",
+  "bootActionAuthTitle": "Aanmelden vereist",
+  "bootActionAuthMessage": "Meld je aan om door te gaan.",
+  "bootActionProfileTitle": "Profiel vereist",
+  "bootActionProfileMessage": "Maak een profiel aan of kies er een om door te gaan.",
+  "bootActionSourceRequiredTitle": "Bron vereist",
+  "bootActionSourceRequiredMessage": "Voeg een bron toe of herstel de verbinding om door te gaan.",
+  "bootActionSourceSelectionTitle": "Bronkeuze",
+  "bootActionSourceSelectionMessage": "Kies de te gebruiken bron.",
+  "bootRecoverySourceTimeoutTitle": "Bron reageert niet",
+  "bootRecoverySourceTimeoutMessage": "Probeer opnieuw te synchroniseren of verander van bron.",
+  "bootRecoverySourceProviderTitle": "Bron kan niet worden geladen",
+  "bootRecoverySourceProviderMessage": "Probeer opnieuw te laden of verander van bron.",
+  "bootRecoverySourceCredentialsTitle": "Kan geen verbinding maken met de bron",
+  "bootRecoverySourceCredentialsMessage": "Maak opnieuw verbinding met de bron om door te gaan.",
+  "bootRecoverySourceEmptyTitle": "Geen inhoud gevonden",
+  "bootRecoverySourceEmptyMessage": "Synchroniseer de bron opnieuw of kies een andere.",
+  "bootFailureTitle": "Start onderbroken",
+  "bootFailureMessage": "Een fout verhindert de start.",
+  "bootActionExportLogs": "Logboeken exporteren",
+  "bootActionLogin": "Aanmelden",
+  "bootActionChooseProfile": "Profiel kiezen",
+  "bootActionAddSource": "Bron toevoegen",
+  "bootActionChooseSource": "Bron wijzigen",
+  "bootActionReconnectSource": "Bron opnieuw verbinden",
+  "bootActionResyncSource": "Opnieuw synchroniseren",
+  "bootActionOpenHome": "Home openen",
+  "bootSemanticsSplashLogo": "MOVI splash logo",
+  "bootSemanticsLoadingInProgress": "Laden bezig",
+  "bootSemanticsPreparingCatalog": "Catalogus voorbereiden",
+  "welcomeSourceSavedSourcesTitle": "Opgeslagen bronnen",
+  "welcomeSourceRefreshTooltip": "Vernieuwen",
+  "welcomeSourceNoRemoteSourcesMessage": "Geen bron gevonden op Supabase. Voeg er een toe of activeer er een hieronder.",
+  "welcomeSourceActivateSectionTitle": "Een bron activeren",
+  "welcomeSourceNameLabel": "Bronnaam",
+  "welcomeSourceNameHint": "Mijn IPTV",
+  "welcomeSourceServerUrlLabel": "Server-URL",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "Gebruikersnaam",
+  "welcomeSourcePasswordLabel": "Wachtwoord",
+  "welcomeSourceActivateAction": "Activeren",
+  "welcomeSourceAddModeTitle": "Een bron toevoegen",
+  "welcomeSourceFirstSourceSubtitle": "Voeg je eerste IPTV-bron toe.",
+  "welcomeSourceAddPrompt": "Wil je een bron toevoegen?",
+  "welcomeSourceAddNewAction": "Nieuwe bron toevoegen",
+  "welcomeSourceRequiredFields": "Alle velden zijn verplicht.",
+  "welcomeSourceErrorTimeout": "De server reageert te traag. Controleer je verbinding en probeer het opnieuw.",
+  "welcomeSourceErrorInvalidCredentials": "Ongeldige inloggegevens. Controleer gebruikersnaam en wachtwoord.",
+  "welcomeSourceErrorNetwork": "Kan geen verbinding maken met de server. Controleer de URL en je netwerk.",
+  "welcomeSourceErrorGeneric": "De bron kan momenteel niet worden geladen. Probeer het opnieuw.",
+  "welcomeSourceExpiresOn": "Verloopt op: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "Geen vervaldatum",
+  "welcomeUserProfileLockedTitle": "Profiel vergrendeld",
+  "welcomeUserProfileLockedReason": "Voer de PIN in om van profiel te wisselen.",
+  "welcomeUserProfilesLoadFailed": "Profielen konden niet worden geladen.",
+  "welcomeUserCreateTitle": "Profiel aanmaken",
+  "welcomeUserChooseTitle": "Profiel kiezen",
+  "welcomeUserCreateSubtitle": "Maak je eerste profiel voor Movi aan.",
+  "welcomeUserChooseSubtitle": "Kies een van je profielen.",
+  "welcomeUserProfileNameLabel": "Profielnaam",
+  "welcomeUserProfileNameHint": "Profielnaam",
+  "welcomeUserCreateProfileAction": "Profiel aanmaken",
+  "childPreloadTitle": "Inhoudsbeveiliging instellen",
+  "childPreloadSubtitle": "Leeftijdsclassificaties worden gecontroleerd...",
+  "childPreloadSkip": "Overslaan",
+  "childPreloadPhaseResolvingIds": "ID's worden omgezet...",
+  "childPreloadPhaseFetchingRatings": "Beoordelingen worden opgehaald...",
+  "childPreloadPhaseCompleted": "Klaar",
+  "childPreloadEtaSeconds": "Nog ca. {seconds}s",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "Nog ca. {minutes} min",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "Nog ca. {minutes} min {seconds}s",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "Gebruik in plaats daarvan een wachtwoord",
+  "authPasswordTitle": "Aanmelden",
+  "authPasswordSubtitle": "Voer je e-mailadres en wachtwoord in om door te gaan.",
+  "authPasswordEmailLabel": "E-mailadres",
+  "authPasswordEmailHint": "naam@voorbeeld.com",
+  "authPasswordEmailHelp": "Gebruik het e-mailadres dat aan je account is gekoppeld.",
+  "authPasswordPasswordLabel": "Wachtwoord",
+  "authPasswordPasswordHint": "Je wachtwoord",
+  "authPasswordPasswordHelp": "Je wachtwoord is hoofdlettergevoelig.",
+  "authPasswordPrimarySubmit": "Aanmelden",
+  "authPasswordForgotPassword": "Wachtwoord vergeten?",
+  "authPasswordResetSent": "E-mail voor wachtwoordherstel verstuurd.",
+  "authPasswordUseOtp": "Gebruik in plaats daarvan e-mailcode"
 }
 

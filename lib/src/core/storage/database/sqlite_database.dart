@@ -14,6 +14,7 @@ import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
 /// - Version 19 (mémorisation de la variante/“version” choisie par contenu)
 /// - Version 18 (ajout des profils locaux pour boot local-first)
 /// - Version 17 (normalisation IPTV: iptv_playlists_v2 + iptv_playlist_items_v2)
+/// - Version 25 (etat local de progression du tunnel d'entree)
 /// - Version 11 (ajout colonne year à playlist_items pour stocker l'année des médias)
 /// - Version 12 (ajout colonne is_pinned à playlists pour épingler des playlists utilisateur)
 /// - Version 13 (ajout table iptv_playlist_settings pour ordre/visibilité des playlists IPTV)
@@ -41,10 +42,10 @@ class LocalDatabase {
 
     final path = await LocalDatabasePaths.resolvePath();
 
-    _logDebug('open_database start version=23');
+    _logDebug('open_database start version=25');
     _instance = await openDatabase(
       path,
-      version: 23,
+      version: 25,
       onConfigure: (db) async {
         _logDebug('open_database onConfigure');
         await LocalDatabaseMaintenance.onConfigure(db);

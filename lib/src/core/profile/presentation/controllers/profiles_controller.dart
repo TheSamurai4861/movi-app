@@ -64,6 +64,10 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
 
     if (hasValidSelection) return;
 
+    if (selectedId == null && profiles.length > 1) {
+      return;
+    }
+
     final fallbackSelection = cloudProfiles.isNotEmpty
         ? cloudProfiles.first.id
         : profiles.first.id;

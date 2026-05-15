@@ -4,6 +4,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
@@ -67,12 +68,15 @@ class BootSimpleLoadingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final theme = Theme.of(context);
     final accentColor = _resolveAccentColor(ref, theme);
     final bottom = 30.0 + MediaQuery.of(context).padding.bottom;
     final duration = fadeInDuration ?? const Duration(milliseconds: 300);
 
-    final baseText = message.trim().isEmpty ? 'Chargement…' : message.trim();
+    final baseText = message.trim().isEmpty
+        ? (l10n?.bootLoadingDefault ?? 'Loading…')
+        : message.trim();
     final secondary = secondaryMessage?.trim();
 
     return TweenAnimationBuilder<double>(
@@ -87,14 +91,14 @@ class BootSimpleLoadingScreen extends ConsumerWidget {
             if (showLogo)
               Center(
                 child: Semantics(
-                  label: 'MOVI splash logo',
+                  label: l10n?.bootSemanticsSplashLogo ?? 'MOVI splash logo',
                   child: MoviAssetIcon(
                     AppAssets.iconAppLogoSvg,
                     width: _logoSize,
                     height: _logoSize,
                     color: accentColor,
                     excludeFromSemantics: false,
-                    semanticLabel: 'MOVI splash logo',
+                    semanticLabel: l10n?.bootSemanticsSplashLogo ?? 'MOVI splash logo',
                   ),
                 ),
               ),
@@ -110,7 +114,9 @@ class BootSimpleLoadingScreen extends ConsumerWidget {
                     children: [
                       if (showProgress) ...[
                         Semantics(
-                          label: 'Chargement en cours',
+                          label:
+                              l10n?.bootSemanticsLoadingInProgress ??
+                              'Loading in progress',
                           child: SizedBox(
                             width: 24,
                             height: 24,
@@ -207,6 +213,7 @@ class _BootLoadingElapsedLabelState extends State<BootLoadingElapsedLabel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     final theme = Theme.of(context);
     final defaultStyle =
         theme.textTheme.bodySmall?.copyWith(
@@ -219,8 +226,9 @@ class _BootLoadingElapsedLabelState extends State<BootLoadingElapsedLabel> {
       stream: Stream<int>.periodic(const Duration(seconds: 1), (i) => i),
       builder: (_, __) {
         final s = _sw.elapsed.inSeconds;
-        final prefix =
-            widget.baseText.isEmpty ? 'Chargement…' : widget.baseText;
+        final prefix = widget.baseText.isEmpty
+            ? (l10n?.bootLoadingDefault ?? 'Loading…')
+            : widget.baseText;
         final text = '$prefix · ${s}s';
         return Text(
           text,

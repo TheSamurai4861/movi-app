@@ -10,13 +10,16 @@ import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -44,7 +47,36 @@ class WelcomeUserPage extends ConsumerStatefulWidget {
   ConsumerState<WelcomeUserPage> createState() => _WelcomeUserPageState();
 }
 
+class _WelcomeProfilePickerLayout {
+  const _WelcomeProfilePickerLayout({
+    required this.crossAxisCount,
+    required this.pickerMaxWidth,
+    required this.chipWidth,
+    required this.avatarSize,
+    required this.gridSpacing,
+    required this.nameGap,
+    required this.nameFontSize,
+    required this.chipVerticalPadding,
+    required this.mainAxisExtent,
+  });
+
+  final int crossAxisCount;
+  final double pickerMaxWidth;
+  final double chipWidth;
+  final double avatarSize;
+  final double gridSpacing;
+  final double nameGap;
+  final double nameFontSize;
+  final double chipVerticalPadding;
+  final double mainAxisExtent;
+}
+
 class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
+  static const int _profileGridColumnCount = 3;
+  static const double _profilePickerMaxWidthBase = 480;
+  static const double _profileChipWidthBase = 112;
+  static const double _profileAvatarSizeBase = 75;
+
   final _nameCtrl = TextEditingController();
   final _retryFocusNode = FocusNode(debugLabel: 'WelcomeUserRetry');
   final _nameFocusNode = FocusNode(debugLabel: 'WelcomeUserName');
@@ -136,14 +168,54 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     return KeyEventResult.ignored;
   }
 
+  _WelcomeProfilePickerLayout _profilePickerLayout(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    const crossAxisCount = _profileGridColumnCount;
+    final gridSpacing = AppSpacing.lg * uiScale;
+    final minPickerWidth =
+        _profileChipWidthBase * crossAxisCount +
+        gridSpacing * (crossAxisCount - 1);
+    final horizontalInsets = AppSpacing.lg * 2;
+    final availableWidth = screenWidth - horizontalInsets;
+    final pickerMaxWidth =
+        (_profilePickerMaxWidthBase * uiScale).clamp(
+          minPickerWidth,
+          availableWidth > 0 ? availableWidth : _profilePickerMaxWidthBase * uiScale,
+        );
+    final chipWidth =
+        (pickerMaxWidth - gridSpacing * (crossAxisCount - 1)) / crossAxisCount;
+    final avatarSize = _profileAvatarSizeBase * uiScale;
+    final nameGap = 12 * uiScale;
+    final nameFontSize = 16 * uiScale;
+    final chipVerticalPadding = 6 * uiScale;
+    final estimatedChipHeight =
+        chipVerticalPadding * 2 + avatarSize + nameGap + nameFontSize * 2.5 + 8;
+
+    return _WelcomeProfilePickerLayout(
+      crossAxisCount: crossAxisCount,
+      pickerMaxWidth: pickerMaxWidth,
+      chipWidth: chipWidth,
+      avatarSize: avatarSize,
+      gridSpacing: gridSpacing,
+      nameGap: nameGap,
+      nameFontSize: nameFontSize,
+      chipVerticalPadding: chipVerticalPadding,
+      mainAxisExtent: estimatedChipHeight,
+    );
+  }
+
   Widget _buildWelcomeProfileChip({
     required Profile profile,
     required bool isSelected,
     required FocusNode focusNode,
     required VoidCallback onTap,
+    required _WelcomeProfilePickerLayout layout,
   }) {
     final trimmed = profile.name.trim();
-    final initial = trimmed.isEmpty ? '?' : trimmed.substring(0, 1).toUpperCase();
+    final initial = trimmed.isEmpty
+        ? '?'
+        : trimmed.substring(0, 1).toUpperCase();
     return MoviEnsureVisibleOnFocus(
       verticalAlignment: 0.22,
       child: MoviFocusableAction(
@@ -155,49 +227,44 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
           final isActive = isSelected || state.focused;
           return MoviFocusFrame(
             scale: state.focused ? 1.04 : 1,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              width: 120,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: isActive
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.outlineVariant,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 75,
-                    height: 75,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.primary,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      initial,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: theme.colorScheme.onPrimary,
-                        fontWeight: FontWeight.w700,
+            child: SizedBox(
+              width: layout.chipWidth,
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: layout.chipVerticalPadding),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: layout.avatarSize,
+                      height: layout.avatarSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(profile.color),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        initial,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: layout.avatarSize * 0.42,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    profile.name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    SizedBox(height: layout.nameGap),
+                    Text(
+                      profile.name,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: isActive ? theme.colorScheme.primary : null,
+                        fontSize: layout.nameFontSize,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -214,6 +281,12 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
         .read(profilesControllerProvider.notifier)
         .createProfile(name: profileName, color: profileColor);
     if (created == null) return;
+    final locator = ref.read(slProvider);
+    if (locator.isRegistered<EntryBootStateRepository>()) {
+      await locator<EntryBootStateRepository>().confirmProfileSelected(
+        profileId: created.id,
+      );
+    }
   }
 
   bool _isRestrictedProfile(Profile profile) {
@@ -297,6 +370,15 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     if (!selected || !context.mounted) {
       return;
     }
+    final locator = ref.read(slProvider);
+    if (locator.isRegistered<EntryBootStateRepository>()) {
+      await locator<EntryBootStateRepository>().confirmProfileSelected(
+        profileId: profile.id,
+      );
+    }
+    if (!context.mounted) {
+      return;
+    }
     await _runBootAction(context, BootActionIntent.retry, 'profile_selected');
   }
 
@@ -331,8 +413,15 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     final state = ref.watch(userSettingsControllerProvider);
     final profilesAsync = ref.watch(profilesControllerProvider);
     final selectedProfileId = ref.watch(selectedProfileControllerProvider);
+    final hasProfiles = profilesAsync.maybeWhen(
+      data: (profiles) => profiles.isNotEmpty,
+      orElse: () => false,
+    );
+    final profilePickerLayout = hasProfiles ? _profilePickerLayout(context) : null;
     if (profilesAsync.isLoading) {
-      return const Scaffold(body: OverlaySplash(message: 'Chargement du profil...'));
+      return Scaffold(
+        body: OverlaySplash(message: l10n.bootLoadingProfile),
+      );
     }
     final initialFocusNode = profilesAsync.maybeWhen(
       data: (profiles) {
@@ -378,8 +467,10 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: BootFormTokens.textFieldMaxWidth,
+                  constraints: BoxConstraints(
+                    maxWidth: hasProfiles
+                        ? profilePickerLayout!.pickerMaxWidth
+                        : BootFormTokens.textFieldMaxWidth,
                   ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
@@ -392,14 +483,14 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         WelcomeHeader(
                           title: profilesAsync.maybeWhen(
                             data: (profiles) => profiles.isEmpty
-                                ? 'Création du profil'
-                                : 'Choisir un profil',
+                                ? l10n.welcomeUserCreateTitle
+                                : l10n.welcomeUserChooseTitle,
                             orElse: () => l10n.welcomeTitle,
                           ),
                           subtitle: profilesAsync.maybeWhen(
                             data: (profiles) => profiles.isEmpty
-                                ? 'Créez votre premier profil pour l’app Movi.'
-                                : 'Choisissez l’un de vos profils.',
+                                ? l10n.welcomeUserCreateSubtitle
+                                : l10n.welcomeUserChooseSubtitle,
                             orElse: () => l10n.welcomeSubtitle,
                           ),
                         ),
@@ -498,6 +589,9 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                             },
                             data: (profiles) {
                               _syncProfileFocusNodes(profiles.length);
+                              final layout = profiles.isNotEmpty
+                                  ? _profilePickerLayout(context)
+                                  : null;
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -507,75 +601,95 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: AppSpacing.lg,
                                       ),
-                                      child: Wrap(
-                                        alignment: WrapAlignment.center,
-                                        spacing: AppSpacing.lg,
-                                        runSpacing: AppSpacing.lg,
-                                        children: [
-                                            for (
-                                              var index = 0;
-                                              index < profiles.length;
-                                              index++
-                                            ) ...[
-                                              Focus(
-                                                canRequestFocus: false,
-                                                onKeyEvent: (_, event) =>
-                                                    FocusDirectionalNavigation.handleDirectionalKey(
-                                                      event,
-                                                      left: index > 0
-                                                          ? _profileFocusNodes[index -
-                                                                1]
-                                                          : null,
-                                                      right:
-                                                          index + 1 <
+                                      child: GridView.builder(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemCount: profiles.length,
+                                        gridDelegate:
+                                            SliverGridDelegateWithFixedCrossAxisCount(
+                                              crossAxisCount: layout!.crossAxisCount,
+                                              crossAxisSpacing: layout.gridSpacing,
+                                              mainAxisSpacing: layout.gridSpacing,
+                                              mainAxisExtent: layout.mainAxisExtent,
+                                            ),
+                                        itemBuilder: (context, index) {
+                                          final leftIndex = index - 1;
+                                          final rightIndex = index + 1;
+                                          final upIndex =
+                                              index - _profileGridColumnCount;
+                                          final downIndex =
+                                              index + _profileGridColumnCount;
+                                          final isFirstColumn =
+                                              index % _profileGridColumnCount ==
+                                              0;
+                                          final isLastColumn =
+                                              index % _profileGridColumnCount ==
+                                              _profileGridColumnCount - 1;
+
+                                          return Focus(
+                                            canRequestFocus: false,
+                                            onKeyEvent: (_, event) =>
+                                                FocusDirectionalNavigation.handleDirectionalKey(
+                                                  event,
+                                                  left:
+                                                      !isFirstColumn &&
+                                                          leftIndex >= 0
+                                                      ? _profileFocusNodes[leftIndex]
+                                                      : null,
+                                                  right:
+                                                      !isLastColumn &&
+                                                          rightIndex <
                                                               profiles.length
-                                                          ? _profileFocusNodes[index +
-                                                                1]
-                                                          : null,
-                                                      down:
-                                                          index + 1 <
-                                                              profiles.length
-                                                          ? _profileFocusNodes[index +
-                                                                1]
-                                                          : null,
-                                                      up:
-                                                          launchRecovery
-                                                                  ?.isRetryable ??
-                                                              false
-                                                          ? _retryFocusNode
-                                                          : null,
-                                                      blockLeft: index == 0,
-                                                      blockRight:
-                                                          index ==
-                                                          profiles.length - 1,
+                                                      ? _profileFocusNodes[rightIndex]
+                                                      : null,
+                                                  down:
+                                                      downIndex <
+                                                          profiles.length
+                                                      ? _profileFocusNodes[downIndex]
+                                                      : null,
+                                                  up: upIndex >= 0
+                                                      ? _profileFocusNodes[upIndex]
+                                                      : (launchRecovery
+                                                                ?.isRetryable ??
+                                                            false)
+                                                      ? _retryFocusNode
+                                                      : null,
+                                                  blockLeft: isFirstColumn,
+                                                  blockRight:
+                                                      isLastColumn ||
+                                                      rightIndex >=
+                                                          profiles.length,
+                                                ),
+                                            child: Center(
+                                              child: _buildWelcomeProfileChip(
+                                                profile: profiles[index],
+                                                isSelected:
+                                                    profiles[index].id ==
+                                                    selectedProfileId,
+                                                layout: layout,
+                                                focusNode:
+                                                    _profileFocusNodes[index],
+                                                onTap: () {
+                                                  unawaited(
+                                                    _onProfileSelected(
+                                                      context,
+                                                      profiles,
+                                                      selectedProfileId,
+                                                      profiles[index],
                                                     ),
-                                                child: _buildWelcomeProfileChip(
-                                                    profile: profiles[index],
-                                                    isSelected:
-                                                        profiles[index].id ==
-                                                        selectedProfileId,
-                                                    focusNode:
-                                                        _profileFocusNodes[index],
-                                                    onTap: () {
-                                                      unawaited(
-                                                        _onProfileSelected(
-                                                          context,
-                                                          profiles,
-                                                          selectedProfileId,
-                                                          profiles[index],
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
+                                                  );
+                                                },
                                               ),
-                                            ],
-                                        ],
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ] else ...[
                                     // Aucun profil: on affiche l'input (création du premier profil)
                                     LabeledField(
-                                      label: 'Nom du profil',
+                                      label: l10n.welcomeUserProfileNameLabel,
                                       child: MoviEnsureVisibleOnFocus(
                                         verticalAlignment: 0.22,
                                         child: Focus(
@@ -623,7 +737,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                     BootFormTokens.bootTextFieldDecoration(
                                                       Theme.of(context),
                                                     ).copyWith(
-                                                      hintText: 'Nom du profil',
+                                                      hintText: l10n
+                                                          .welcomeUserProfileNameHint,
                                                     ),
                                               ),
                                             ),
@@ -652,11 +767,10 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                               ),
                                           child: BootFormTokens.constrainPrimaryAction(
                                             MoviPrimaryButton(
-                                              label: 'Créer le profil',
+                                              label: l10n
+                                                  .welcomeUserCreateProfileAction,
                                               focusNode: _submitFocusNode,
                                               loading: state.isSaving,
-                                              height: BootFormTokens
-                                                  .primaryActionHeight,
                                               buttonStyle:
                                                   BootFormTokens.bootPrimaryButtonStyle(
                                                     Theme.of(context),
@@ -761,12 +875,13 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         ),
                       ],
                     ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
-    ));
+    );
   }
 }

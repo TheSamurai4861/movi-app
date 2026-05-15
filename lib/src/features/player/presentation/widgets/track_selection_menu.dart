@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -17,6 +18,7 @@ class _TrackSelectionSheetLayout {
   static _TrackSelectionSheetLayout fromContext(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final size = mediaQuery.size;
+    final uiScale = context.tvUiScale;
     final isMobile = size.shortestSide < 600;
     final safeTop = mediaQuery.padding.top;
     final safeBottom = mediaQuery.padding.bottom;
@@ -24,7 +26,7 @@ class _TrackSelectionSheetLayout {
 
     final maxSheetHeight = isMobile
         ? availableHeight * 0.75
-        : (availableHeight * 0.7).clamp(420.0, 760.0);
+        : (availableHeight * 0.7).clamp(420.0 * uiScale, 760.0 * uiScale);
 
     return _TrackSelectionSheetLayout(maxSheetHeight: maxSheetHeight);
   }
@@ -70,6 +72,7 @@ class _TrackSelectionSheetScaffoldState
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final layout = _TrackSelectionSheetLayout.fromContext(context);
 
     return MoviOverlayFocusScope(
@@ -82,9 +85,11 @@ class _TrackSelectionSheetScaffoldState
       debugLabel: 'TrackSelectionSheet',
       child: Container(
         constraints: BoxConstraints(maxHeight: layout.maxSheetHeight),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: Color(0xFF1F1F1F),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20 * uiScale),
+          ),
         ),
         child: SafeArea(
           top: false,
@@ -92,7 +97,12 @@ class _TrackSelectionSheetScaffoldState
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                padding: EdgeInsets.fromLTRB(
+                  20 * uiScale,
+                  18 * uiScale,
+                  20 * uiScale,
+                  12 * uiScale,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -107,7 +117,7 @@ class _TrackSelectionSheetScaffoldState
                     ),
                     if (widget.headerAction != null) ...[
                       widget.headerAction!,
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8 * uiScale),
                     ],
                     IconButton(
                       focusNode: _closeFocusNode,
@@ -122,7 +132,7 @@ class _TrackSelectionSheetScaffoldState
               Flexible(
                 child: ListView(
                   shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(vertical: 8 * uiScale),
                   children: widget.children,
                 ),
               ),
@@ -372,9 +382,13 @@ class _TrackOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final borderRadius = BorderRadius.circular(10);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: EdgeInsets.symmetric(
+        horizontal: 8 * uiScale,
+        vertical: 2 * uiScale,
+      ),
       child: Focus(
         onKeyEvent: (_, event) => _handleKeyEvent(event),
         child: MoviFocusableAction(
@@ -392,15 +406,15 @@ class _TrackOptionTile extends StatelessWidget {
                     : null,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 12 * uiScale,
+                  vertical: 10 * uiScale,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 2),
+                      padding: EdgeInsets.only(top: 2 * uiScale),
                       child: Icon(
                         selected
                             ? Icons.radio_button_checked
@@ -408,7 +422,7 @@ class _TrackOptionTile extends StatelessWidget {
                         color: selected ? Colors.white : Colors.white70,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12 * uiScale),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,7 +438,7 @@ class _TrackOptionTile extends StatelessWidget {
                           ),
                           if (subtitle != null &&
                               subtitle!.trim().isNotEmpty) ...[
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2 * uiScale),
                             Text(
                               subtitle!,
                               style: const TextStyle(

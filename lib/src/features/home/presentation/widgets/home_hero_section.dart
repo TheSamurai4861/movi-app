@@ -4,6 +4,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -28,6 +29,7 @@ class HomeHeroSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(currentLanguageCodeProvider);
     final mediaSize = MediaQuery.of(context).size;
+    final uiScale = context.tvUiScale;
     final screenType = context.resolveScreenType(
       mediaSize.width,
       mediaSize.height,
@@ -36,11 +38,11 @@ class HomeHeroSection extends ConsumerWidget {
     final shouldBleedHero =
         screenType == ScreenType.desktop || screenType == ScreenType.tv;
     final visualBleed = shouldBleedHero
-        ? HomeLayoutConstants.heroDesktopVisualBleed
+        ? HomeLayoutConstants.heroDesktopVisualBleedForScale(uiScale)
         : 0.0;
     final heroLayoutHeight = isMobileHero
         ? mediaSize.height * 0.75
-        : HomeLayoutConstants.heroTotalHeight;
+        : HomeLayoutConstants.heroTotalHeightForScale(uiScale);
 
     if (heroItems.isEmpty) {
       return const SliverToBoxAdapter(child: _HeroEmptyBanner());

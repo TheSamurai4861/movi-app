@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 
 /// Item de navigation pour la sidebar (Desktop / TV).
@@ -77,6 +78,11 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final boxSize = _boxSize * uiScale;
+    final iconSize = _iconSize * uiScale;
+    final radius = _radius * uiScale;
+    final focusOutlineWidth = widget.focusOutlineWidth * uiScale;
     final theme = Theme.of(context);
 
     final accent = widget.accentColor ?? theme.colorScheme.primary;
@@ -109,7 +115,7 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
     final bgColor = _pressed ? pressedOverlay : baseBg;
 
     final border = _focused
-        ? Border.all(color: accent, width: widget.focusOutlineWidth)
+        ? Border.all(color: accent, width: focusOutlineWidth)
         : null;
 
     Widget core = GestureDetector(
@@ -119,21 +125,21 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
       onTapCancel: () => setState(() => _pressed = false),
       onTapUp: (_) => setState(() => _pressed = false),
       child: SizedBox(
-        width: _boxSize,
-        height: _boxSize,
+        width: boxSize,
+        height: boxSize,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(_radius),
+            borderRadius: BorderRadius.circular(radius),
             border: border,
           ),
           alignment: Alignment.center,
           child: SvgPicture.asset(
             widget.assetPath,
-            width: _iconSize,
-            height: _iconSize,
+            width: iconSize,
+            height: iconSize,
             colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
           ),
         ),

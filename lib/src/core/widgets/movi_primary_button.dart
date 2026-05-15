@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
 /// Primary action button aligned with the app theme.
-/// - Fills the maximum horizontal space allowed by its parent.
+/// - Fills the maximum horizontal space allowed by its parent when [expand] is true.
+/// - Height hugs label/icons with [padding] (16 px vertical by default).
 /// - Uses FilledButton to inherit `filledButtonTheme` from AppTheme.
-/// - Pure widget: navigation logic must be provided via [onPressed].
 class MoviPrimaryButton extends StatefulWidget {
   const MoviPrimaryButton({
     super.key,
@@ -16,9 +19,9 @@ class MoviPrimaryButton extends StatefulWidget {
     this.autofocus = false,
     this.assetIcon,
     this.leading,
-    this.iconSize = 20,
-    this.height = 48,
-    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    this.iconSize = 28,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    this.iconGap = 16,
     this.buttonStyle,
     this.expand = true,
   });
@@ -32,8 +35,8 @@ class MoviPrimaryButton extends StatefulWidget {
   final String? assetIcon;
   final Widget? leading;
   final double iconSize;
-  final double height;
   final EdgeInsetsGeometry padding;
+  final double iconGap;
   final ButtonStyle? buttonStyle;
   final bool expand;
 
@@ -42,83 +45,127 @@ class MoviPrimaryButton extends StatefulWidget {
 }
 
 class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
+  static const double _tvPaddingReductionFactor = 0.76;
+
   bool _focused = false;
+
+  double _resolvePaddingScale(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final isTv =
+        context.resolveScreenType(size.width, size.height) == ScreenType.tv;
+    if (!isTv) return context.tvUiScale;
+    return context.tvUiScale * _tvPaddingReductionFactor;
+  }
+
+  EdgeInsetsGeometry _scaleInsets(EdgeInsetsGeometry insets, double scale) {
+    if (insets is EdgeInsets) {
+      return EdgeInsets.fromLTRB(
+        insets.left * scale,
+        insets.top * scale,
+        insets.right * scale,
+        insets.bottom * scale,
+      );
+    }
+    if (insets is EdgeInsetsDirectional) {
+      return EdgeInsetsDirectional.fromSTEB(
+        insets.start * scale,
+        insets.top * scale,
+        insets.end * scale,
+        insets.bottom * scale,
+      );
+    }
+    return insets;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final paddingScale = _resolvePaddingScale(context);
+    final scaledIconSize = widget.iconSize * paddingScale;
+    final scaledPadding = _scaleInsets(widget.padding, paddingScale);
+    final loaderSize = 18.0 * paddingScale;
+    final contentGap = 12.0 * paddingScale;
+    final iconGap = 8.0 * paddingScale;
+    final focusBorderWidth = 2.0 * context.tvUiScale;
+    final focusBlurRadius = 18.0 * context.tvUiScale;
+    final focusSpreadRadius = 1.0 * context.tvUiScale;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
     final effectiveOnPressed = widget.loading ? null : widget.onPressed;
-
-    Widget buildIcon() => MoviAssetIcon(
-      widget.assetIcon!,
-      size: widget.iconSize,
+    final labelStyle = theme.textTheme.labelLarge?.copyWith(
       color: scheme.onPrimary,
     );
 
-    Widget content;
+    Widget buildIcon() => MoviAssetIcon(
+      widget.assetIcon!,
+      size: scaledIconSize,
+      color: scheme.onPrimary,
+    );
+
+    Widget buildLabel() => Text(
+      widget.label,
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      style: labelStyle,
+    );
+
+    final Widget content;
     if (widget.loading) {
       content = Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: 18,
-            height: 18,
+            width: loaderSize,
+            height: loaderSize,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
               backgroundColor: scheme.onPrimary.withValues(alpha: 0.2),
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            widget.label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: scheme.onPrimary,
-            ),
-          ),
+          SizedBox(width: contentGap),
+          Flexible(child: buildLabel()),
         ],
       );
-    } else {
+    } else if (widget.assetIcon != null || widget.leading != null) {
       final children = <Widget>[];
       if (widget.assetIcon != null) {
         children.add(buildIcon());
-        children.add(const SizedBox(width: 8));
-      } else if (widget.leading != null) {
+      } else {
         children.add(
           IconTheme.merge(
-            data: IconThemeData(color: scheme.onPrimary, size: widget.iconSize),
+            data: IconThemeData(color: scheme.onPrimary, size: scaledIconSize),
             child: widget.leading!,
           ),
         );
-        children.add(const SizedBox(width: 8));
       }
-      children.add(
-        Flexible(
-          child: Text(
-            widget.label,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: scheme.onPrimary,
-            ),
-          ),
-        ),
-      );
+      children
+        ..add(SizedBox(width: iconGap))
+        ..add(Flexible(child: buildLabel()));
       content = Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
+        spacing: iconGap,
         children: children,
       );
+    } else {
+      content = buildLabel();
     }
 
     final button = FilledButton(
-      style: widget.buttonStyle,
+      style: ButtonStyle(
+        padding: WidgetStateProperty.all(scaledPadding),
+        minimumSize: WidgetStateProperty.all(Size.zero),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        alignment: Alignment.center,
+      ).merge(widget.buttonStyle ?? theme.filledButtonTheme.style),
       onPressed: effectiveOnPressed,
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
-      child: Padding(padding: widget.padding, child: content),
+      child: content,
     );
 
     final child = Focus(
@@ -137,19 +184,18 @@ class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            // Keep a constant border width so focus does not change layout footprint.
             border: Border.all(
               color: _focused && effectiveOnPressed != null
                   ? scheme.primary.withValues(alpha: 0.95)
                   : Colors.transparent,
-              width: 2,
+              width: focusBorderWidth,
             ),
             boxShadow: _focused && effectiveOnPressed != null
                 ? [
                     BoxShadow(
                       color: scheme.primary.withValues(alpha: 0.18),
-                      blurRadius: 18,
-                      spreadRadius: 1,
+                      blurRadius: focusBlurRadius,
+                      spreadRadius: focusSpreadRadius,
                     ),
                   ]
                 : null,
@@ -163,12 +209,9 @@ class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
       button: true,
       enabled: effectiveOnPressed != null,
       label: widget.label,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: widget.height),
-        child: widget.expand
-            ? SizedBox(width: double.infinity, child: child)
-            : child,
-      ),
+      child: widget.expand
+          ? SizedBox(width: double.infinity, child: child)
+          : child,
     );
   }
 }

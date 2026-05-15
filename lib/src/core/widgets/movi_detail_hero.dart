@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_hero_gradients.dart';
@@ -45,11 +46,12 @@ class MoviDetailHeroScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final heroHeight = heightFor(
       isWideLayout: isWideLayout,
-      mobileHeight: mobileHeight,
-      wideHeight: wideHeight,
+      mobileHeight: mobileHeight * uiScale,
+      wideHeight: wideHeight * uiScale,
       screenHeight: screenHeight,
     );
 
@@ -82,10 +84,11 @@ class MoviDetailHeroTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     return Positioned(
-      top: isWideLayout ? 12 : 8,
-      left: horizontalPadding,
-      right: horizontalPadding,
+      top: (isWideLayout ? 12 : 8) * uiScale,
+      left: horizontalPadding * uiScale,
+      right: horizontalPadding * uiScale,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -109,18 +112,19 @@ class MoviDetailHeroDesktopOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     return Positioned.fill(
       child: Padding(
-        padding: const EdgeInsetsDirectional.only(
-          start: 50,
-          end: 50,
-          top: 48,
-          bottom: 32,
+        padding: EdgeInsetsDirectional.only(
+          start: 50 * uiScale,
+          end: 50 * uiScale,
+          top: 48 * uiScale,
+          bottom: 32 * uiScale,
         ),
         child: Align(
           alignment: alignment,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
+            constraints: BoxConstraints(maxWidth: maxWidth * uiScale),
             child: child,
           ),
         ),
@@ -153,9 +157,13 @@ class MoviDetailHeroActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final hitPadding =
         padding ??
-        EdgeInsets.symmetric(horizontal: isWideLayout ? 12 : 0, vertical: 8);
+        EdgeInsets.symmetric(
+          horizontal: (isWideLayout ? 12 : 0) * uiScale,
+          vertical: 8 * uiScale,
+        );
 
     return MoviFocusableAction(
       focusNode: focusNode,
@@ -170,8 +178,8 @@ class MoviDetailHeroActionButton extends StatelessWidget {
               ? Colors.white.withValues(alpha: 0.14)
               : Colors.transparent,
           child: SizedBox(
-            width: iconWidth,
-            height: iconHeight,
+            width: iconWidth * uiScale,
+            height: iconHeight * uiScale,
             child: MoviAssetIcon(iconAsset, color: Colors.white),
           ),
         );

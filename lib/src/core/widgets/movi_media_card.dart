@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
 import 'package:movi/src/core/widgets/movi_network_image.dart';
@@ -90,6 +91,14 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final scaledWidth = widget.width * uiScale;
+    final scaledHeight = widget.height * uiScale;
+    final focusRadius = 18.0 * uiScale;
+    final cardTitleGap = 12.0 * uiScale;
+    final focusBorderWidth = 2.0 * uiScale;
+    final focusShadowBlur = 18.0 * uiScale;
+    final focusShadowSpread = 2.0 * uiScale;
     final theme = Theme.of(context);
     final focusBorderColor = theme.colorScheme.primary;
     final textStyle =
@@ -117,13 +126,13 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
           if (_focused == focused) return;
           setState(() => _focused = focused);
         },
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(focusRadius),
         child: AnimatedScale(
           scale: _focused ? 1.035 : 1,
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           child: SizedBox(
-            width: widget.width,
+            width: scaledWidth,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -131,36 +140,36 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.all(2),
+                  padding: EdgeInsets.all(focusBorderWidth),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(focusRadius),
                     border: Border.all(
                       color: _focused ? focusBorderColor : Colors.transparent,
-                      width: 2,
+                      width: focusBorderWidth,
                     ),
                     boxShadow: _focused
                         ? [
                             BoxShadow(
                               color: focusBorderColor.withValues(alpha: 0.18),
-                              blurRadius: 18,
-                              spreadRadius: 2,
+                              blurRadius: focusShadowBlur,
+                              spreadRadius: focusShadowSpread,
                             ),
                           ]
                         : null,
                   ),
                   child: _PosterWithOverlay(
                     media: widget.media,
-                    width: widget.width,
-                    height: widget.height,
+                    width: scaledWidth,
+                    height: scaledHeight,
                     heroTag: widget.heroTag,
                     highlightBorder: widget.highlightBorder,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: cardTitleGap),
                 MoviMarqueeText(
                   text: widget.media.title,
                   style: textStyle,
-                  maxWidth: widget.width,
+                  maxWidth: scaledWidth,
                 ),
               ],
             ),
@@ -188,6 +197,9 @@ class _PosterWithOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final borderWidth = 2.0 * uiScale;
+    final borderInset = borderWidth * 2;
     final image = Stack(
       fit: StackFit.expand,
       children: [
@@ -213,23 +225,25 @@ class _PosterWithOverlay extends StatelessWidget {
             width: width,
             height: height,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16 * context.tvUiScale),
               border: Border.all(
                 color: Theme.of(context).colorScheme.primary,
-                width: 2,
+                width: borderWidth,
               ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14), // 16 - 2 pour la bordure
+              borderRadius: BorderRadius.circular(
+                14 * context.tvUiScale,
+              ), // 16 - 2 pour la bordure
               child: SizedBox(
-                width: width - 4, // Compenser la bordure (2px de chaque côté)
-                height: height - 4, // Compenser la bordure (2px de chaque côté)
+                width: width - borderInset,
+                height: height - borderInset,
                 child: image,
               ),
             ),
           )
         : ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16 * context.tvUiScale),
             child: SizedBox(width: width, height: height, child: image),
           );
 

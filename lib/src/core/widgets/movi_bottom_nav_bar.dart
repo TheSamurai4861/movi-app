@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
@@ -56,6 +57,7 @@ class MoviBottomNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final uiScale = context.tvUiScale;
     final items = _customItems ?? _localizedItems(context);
     assert(
       selectedIndex < (items.length),
@@ -71,9 +73,9 @@ class MoviBottomNavBar extends ConsumerWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          height: _kNavHeight,
+          height: _kNavHeight * uiScale,
           width: double.infinity,
-          padding: const EdgeInsets.all(_kContainerPadding),
+          padding: EdgeInsets.all(_kContainerPadding * uiScale),
           decoration: BoxDecoration(
             color: _kBarBackground,
             borderRadius: BorderRadius.circular(999),
@@ -92,6 +94,7 @@ class MoviBottomNavBar extends ConsumerWidget {
                     selectedTextColor: accentColor,
                     unselectedTextColor: unselectedTextColor,
                     textStyle: theme.textTheme.labelSmall,
+                    uiScale: uiScale,
                   ),
                 ),
             ],
@@ -122,6 +125,7 @@ class _MoviBottomNavItemWidget extends StatefulWidget {
     required this.selectedTextColor,
     required this.unselectedTextColor,
     required this.textStyle,
+    required this.uiScale,
   });
 
   final MoviBottomNavItem item;
@@ -132,6 +136,7 @@ class _MoviBottomNavItemWidget extends StatefulWidget {
   final Color selectedTextColor;
   final Color unselectedTextColor;
   final TextStyle? textStyle;
+  final double uiScale;
 
   @override
   State<_MoviBottomNavItemWidget> createState() =>
@@ -141,7 +146,7 @@ class _MoviBottomNavItemWidget extends StatefulWidget {
 class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _translateAnimation;
+  late Animation<double> _translateAnimation;
 
   @override
   void initState() {
@@ -156,13 +161,19 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
 
     _translateAnimation = Tween<double>(
       begin: 0.0,
-      end: -4.0,
+      end: -4.0 * widget.uiScale,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
   void didUpdateWidget(_MoviBottomNavItemWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.uiScale != widget.uiScale) {
+      _translateAnimation = Tween<double>(
+        begin: 0.0,
+        end: -4.0 * widget.uiScale,
+      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    }
     if (widget.isSelected != oldWidget.isSelected) {
       if (widget.isSelected) {
         _controller.forward();
@@ -182,7 +193,7 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
   Widget build(BuildContext context) {
     final effectiveStyle = (widget.textStyle ?? const TextStyle(fontSize: 12))
         .copyWith(
-          fontSize: 12,
+          fontSize: 12 * widget.uiScale,
           fontWeight: FontWeight.w400,
           color: widget.isSelected
               ? widget.selectedTextColor
@@ -207,7 +218,10 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(999),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: 12 * widget.uiScale,
+            vertical: 8 * widget.uiScale,
+          ),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -218,15 +232,16 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                     return Transform.translate(
                       offset: Offset(
                         0,
-                        _kIconBaseOffsetY + _translateAnimation.value,
+                        (_kIconBaseOffsetY * widget.uiScale) +
+                            _translateAnimation.value,
                       ),
                       child: SvgPicture.asset(
                         widget.item.icon,
                         key: ValueKey(
                           '${widget.item.icon}-${widget.isSelected}',
                         ),
-                        width: 24,
-                        height: 24,
+                        width: 24 * widget.uiScale,
+                        height: 24 * widget.uiScale,
                         colorFilter: ColorFilter.mode(
                           iconColor,
                           BlendMode.srcIn,
@@ -239,7 +254,7 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: _kLabelBottomInset,
+                bottom: _kLabelBottomInset * widget.uiScale,
                 child: AnimatedSwitcher(
                   duration: _kAnimationDuration,
                   switchInCurve: Curves.easeOutCubic,
@@ -292,12 +307,16 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
   }
 }
 
-double moviNavBarHeight() => _kNavHeight;
+double moviNavBarHeight([BuildContext? context]) {
+  final scale = context?.tvUiScale ?? 1.0;
+  return _kNavHeight * scale;
+}
 
 double moviNavBarBottomOffset(BuildContext context) {
   final bottomInset = MediaQuery.of(context).padding.bottom;
+  final uiScale = context.tvUiScale;
   if (defaultTargetPlatform == TargetPlatform.android) {
-    return bottomInset + _kAndroidBottomSpacing;
+    return bottomInset + (_kAndroidBottomSpacing * uiScale);
   }
   return bottomInset;
 }

@@ -249,7 +249,6 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
                 focusNode: _focusSubmit,
                 onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
                 loading: isLoading,
-                height: BootFormTokens.primaryActionHeight,
                 buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
                   Theme.of(context),
                 ),

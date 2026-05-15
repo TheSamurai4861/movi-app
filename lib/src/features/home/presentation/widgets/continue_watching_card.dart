@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -101,10 +102,20 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
 
   @override
   Widget build(BuildContext context) {
-    const double width = 300;
-    const double height = 165;
-    const double focusBorderWidth = 2;
-    const double radiusValue = 16;
+    final uiScale = context.tvUiScale;
+    final width = 300.0 * uiScale;
+    final height = 165.0 * uiScale;
+    final focusBorderWidth = 2.0 * uiScale;
+    final radiusValue = 16.0 * uiScale;
+    final focusShadowBlur = 18.0 * uiScale;
+    final focusShadowSpread = 1.0 * uiScale;
+    final progressBarHeight = 5.0 * uiScale;
+    final gradientHeight = 150.0 * uiScale;
+    final contentInset = 10.0 * uiScale;
+    final pillsBottom = 16.0 * uiScale;
+    final titleBottom = 52.0 * uiScale;
+    final seriesTitleBottom = 76.0 * uiScale;
+    final horizontalGap = 8.0 * uiScale;
     final borderRadius = BorderRadius.circular(radiusValue);
     final innerBorderRadius = BorderRadius.circular(
       radiusValue - focusBorderWidth,
@@ -130,7 +141,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.all(focusBorderWidth),
+            padding: EdgeInsets.all(focusBorderWidth),
             decoration: BoxDecoration(
               borderRadius: borderRadius,
               border: Border.all(
@@ -141,8 +152,8 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                   ? [
                       BoxShadow(
                         color: accent.withValues(alpha: 0.18),
-                        blurRadius: 18,
-                        spreadRadius: 1,
+                        blurRadius: focusShadowBlur,
+                        spreadRadius: focusShadowSpread,
                       ),
                     ]
                   : null,
@@ -169,7 +180,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                       right: 0,
                       bottom: 0,
                       child: Container(
-                        height: 150,
+                        height: gradientHeight,
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
@@ -184,10 +195,12 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                       right: 0,
                       bottom: 0,
                       child: SizedBox(
-                        height: 5,
+                        height: progressBarHeight,
                         child: Stack(
                           children: [
-                            Container(color: const Color.fromARGB(255, 97, 97, 97)),
+                            Container(
+                              color: const Color.fromARGB(255, 97, 97, 97),
+                            ),
                             FractionallySizedBox(
                               widthFactor: widget.progress.clamp(0.0, 1.0),
                               alignment: Alignment.centerLeft,
@@ -198,9 +211,24 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                       ),
                     ),
                     if (widget.isEpisode)
-                      _buildEpisodeContent(width)
+                      _buildEpisodeContent(
+                        width,
+                        contentInset: contentInset,
+                        pillsBottom: pillsBottom,
+                        titleBottom: titleBottom,
+                        seriesTitleBottom: seriesTitleBottom,
+                        horizontalGap: horizontalGap,
+                        uiScale: uiScale,
+                      )
                     else
-                      _buildMovieContent(width),
+                      _buildMovieContent(
+                        width,
+                        contentInset: contentInset,
+                        pillsBottom: pillsBottom,
+                        titleBottom: titleBottom,
+                        horizontalGap: horizontalGap,
+                        uiScale: uiScale,
+                      ),
                   ],
                 ),
               ),
@@ -211,29 +239,36 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     );
   }
 
-  Widget _buildMovieContent(double width) {
+  Widget _buildMovieContent(
+    double width, {
+    required double contentInset,
+    required double pillsBottom,
+    required double titleBottom,
+    required double horizontalGap,
+    required double uiScale,
+  }) {
     return Stack(
       children: [
         Positioned(
-          left: 10,
-          bottom: 16,
+          left: contentInset,
+          bottom: pillsBottom,
           child: Row(
             children: [
               if (widget.year != null) MoviPill(widget.year.toString()),
               if (widget.year != null &&
                   (widget.duration != null || widget.rating != null))
-                const SizedBox(width: 8),
+                SizedBox(width: horizontalGap),
               if (widget.duration != null) ...[
                 MoviPill(_formatDuration(widget.duration)),
-                if (widget.rating != null) const SizedBox(width: 8),
+                if (widget.rating != null) SizedBox(width: horizontalGap),
               ],
               if (widget.rating != null)
                 MoviPill(
                   _formatRating(widget.rating),
-                  trailingIcon: const MoviAssetIcon(
+                  trailingIcon: MoviAssetIcon(
                     AppAssets.iconStarFilled,
-                    width: 14,
-                    height: 14,
+                    width: 14 * uiScale,
+                    height: 14 * uiScale,
                     color: AppColors.ratingAccent,
                   ),
                 ),
@@ -241,10 +276,10 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           ),
         ),
         Positioned(
-          left: 10,
-          bottom: 52,
+          left: contentInset,
+          bottom: titleBottom,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: width - 20),
+            constraints: BoxConstraints(maxWidth: width - (contentInset * 2)),
             child: Text(
               widget.title,
               maxLines: 1,
@@ -261,12 +296,20 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     );
   }
 
-  Widget _buildEpisodeContent(double width) {
+  Widget _buildEpisodeContent(
+    double width, {
+    required double contentInset,
+    required double pillsBottom,
+    required double titleBottom,
+    required double seriesTitleBottom,
+    required double horizontalGap,
+    required double uiScale,
+  }) {
     return Stack(
       children: [
         Positioned(
-          left: 10,
-          bottom: 16,
+          left: contentInset,
+          bottom: pillsBottom,
           child: Row(
             children: [
               if (widget.seasonEpisode != null &&
@@ -275,17 +318,17 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
               if (widget.seasonEpisode != null &&
                   widget.seasonEpisode!.isNotEmpty &&
                   widget.duration != null)
-                const SizedBox(width: 8),
+                SizedBox(width: horizontalGap),
               if (widget.duration != null)
                 MoviPill(_formatDuration(widget.duration)),
             ],
           ),
         ),
         Positioned(
-          left: 10,
-          bottom: 52,
+          left: contentInset,
+          bottom: titleBottom,
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: width - 20),
+            constraints: BoxConstraints(maxWidth: width - (contentInset * 2)),
             child: Text(
               widget.title,
               maxLines: 1,
@@ -300,10 +343,10 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
         ),
         if (widget.seriesTitle != null)
           Positioned(
-            left: 10,
-            bottom: 76,
+            left: contentInset,
+            bottom: seriesTitleBottom,
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: width - 20),
+              constraints: BoxConstraints(maxWidth: width - (contentInset * 2)),
               child: Text(
                 widget.seriesTitle!,
                 maxLines: 1,

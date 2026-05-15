@@ -341,63 +341,101 @@ void main() {
     },
   );
 
-  testWidgets(
-    'continue prompts for PIN before auto-selecting a restricted first profile on welcome',
-    (tester) async {
-      final fakeProfiles = _FakeProfilesController(
-        profiles: const [
-          Profile(
-            id: 'child',
-            accountId: 'a',
-            name: 'Kid',
-            color: 0xFF2160AB,
-            isKid: true,
-            pegiLimit: 12,
+  testWidgets('profiles are displayed as a three-column grid on welcome', (
+    tester,
+  ) async {
+    final fakeProfiles = _FakeProfilesController(
+      profiles: const [
+        Profile(id: 'alpha', accountId: 'a', name: 'Alpha', color: 0xFF2160AB),
+        Profile(id: 'beta', accountId: 'a', name: 'Beta', color: 0xFF1F8A70),
+        Profile(id: 'gamma', accountId: 'a', name: 'Gamma', color: 0xFF8A4FFF),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(null),
+          supabaseAuthStatusProvider.overrideWith(
+            () => _FakeSupabaseAuthStatusNotifier(
+              SupabaseAuthStatus.uninitialized,
+            ),
           ),
-          Profile(
-            id: 'adult',
-            accountId: 'a',
-            name: 'Parent',
-            color: 0xFF2160AB,
+          _neutralLaunchOverride(),
+          userSettingsControllerProvider.overrideWith(
+            _FakeUserSettingsController.new,
+          ),
+          profilesControllerProvider.overrideWith(() => fakeProfiles),
+          selectedProfileControllerProvider.overrideWith(
+            () => _FakeSelectedProfileController(),
           ),
         ],
-      );
+        child: _wrapWithRouter(const WelcomeUserPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            supabaseClientProvider.overrideWithValue(null),
-            supabaseAuthStatusProvider.overrideWith(
-              () => _FakeSupabaseAuthStatusNotifier(
-                SupabaseAuthStatus.uninitialized,
-              ),
-            ),
-            _neutralLaunchOverride(),
-            userSettingsControllerProvider.overrideWith(
-              _FakeUserSettingsController.new,
-            ),
-            profilesControllerProvider.overrideWith(() => fakeProfiles),
-            selectedProfileControllerProvider.overrideWith(
-              () => _FakeSelectedProfileController(),
-            ),
-            selectedProfileIdProvider.overrideWithValue(null),
-            parentalSessionServiceProvider.overrideWithValue(
-              ParentalSessionService(
-                _MemorySecurePayloadStore(),
-                persistToSecureStorage: false,
-              ),
-            ),
-          ],
-          child: _wrapWithRouter(const WelcomeUserPage()),
+    final alphaTopLeft = tester.getTopLeft(find.text('Alpha'));
+    final betaTopLeft = tester.getTopLeft(find.text('Beta'));
+    final gammaTopLeft = tester.getTopLeft(find.text('Gamma'));
+
+    expect((alphaTopLeft.dy - betaTopLeft.dy).abs(), lessThan(1));
+    expect((alphaTopLeft.dy - gammaTopLeft.dy).abs(), lessThan(1));
+    expect(betaTopLeft.dx, greaterThan(alphaTopLeft.dx));
+    expect(gammaTopLeft.dx, greaterThan(betaTopLeft.dx));
+  });
+
+  testWidgets('tapping a restricted first profile prompts for PIN on welcome', (
+    tester,
+  ) async {
+    final fakeProfiles = _FakeProfilesController(
+      profiles: const [
+        Profile(
+          id: 'child',
+          accountId: 'a',
+          name: 'Kid',
+          color: 0xFF2160AB,
+          isKid: true,
+          pegiLimit: 12,
         ),
-      );
-      await tester.pumpAndSettle();
+        Profile(id: 'adult', accountId: 'a', name: 'Parent', color: 0xFF2160AB),
+      ],
+    );
 
-      await tester.tap(find.text('Continue'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          supabaseClientProvider.overrideWithValue(null),
+          supabaseAuthStatusProvider.overrideWith(
+            () => _FakeSupabaseAuthStatusNotifier(
+              SupabaseAuthStatus.uninitialized,
+            ),
+          ),
+          _neutralLaunchOverride(),
+          userSettingsControllerProvider.overrideWith(
+            _FakeUserSettingsController.new,
+          ),
+          profilesControllerProvider.overrideWith(() => fakeProfiles),
+          selectedProfileControllerProvider.overrideWith(
+            () => _FakeSelectedProfileController(),
+          ),
+          selectedProfileIdProvider.overrideWithValue(null),
+          parentalSessionServiceProvider.overrideWithValue(
+            ParentalSessionService(
+              _MemorySecurePayloadStore(),
+              persistToSecureStorage: false,
+            ),
+          ),
+        ],
+        child: _wrapWithRouter(const WelcomeUserPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text('Profile locked'), findsOneWidget);
-      expect(fakeProfiles.selectedIds, isEmpty);
-    },
-  );
+    await tester.tap(find.text('Kid'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Profile locked'), findsOneWidget);
+    expect(fakeProfiles.selectedIds, isEmpty);
+  });
 }

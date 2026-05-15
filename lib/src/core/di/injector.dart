@@ -51,6 +51,7 @@ import 'package:movi/src/core/storage/services/storage_module.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/supabase/supabase_module.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
 import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 
 import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
@@ -508,6 +509,18 @@ void _registerSharedServices() {
     sl.registerLazySingleton<TmdbCacheStore>(() => sl<TmdbCacheDataSource>());
   }
 
+  if (!sl.isRegistered<AppCacheClearService>() &&
+      sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
+    sl.registerLazySingleton<AppCacheClearService>(
+      () => AppCacheClearService(
+        contentCache: sl<content_cache_repo.ContentCacheRepository>(),
+        tmdbCache: sl.isRegistered<TmdbCacheDataSource>()
+            ? sl<TmdbCacheDataSource>()
+            : null,
+      ),
+    );
+  }
+
   if (!sl.isRegistered<TmdbDiscoveryCacheDataSource>() &&
       sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
     sl.registerLazySingleton<TmdbDiscoveryCacheDataSource>(
@@ -756,6 +769,9 @@ void _assertCriticalRegistrations() {
   }
   if (!sl.isRegistered<IptvLocalRepository>()) {
     missing.add('IptvLocalRepository');
+  }
+  if (!sl.isRegistered<EntryBootStateRepository>()) {
+    missing.add('EntryBootStateRepository');
   }
   if (!sl.isRegistered<TunnelStateRegistry>()) {
     missing.add('TunnelStateRegistry');

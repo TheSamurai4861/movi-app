@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "使用条款",
   "settingsCloudSyncPremiumRequiredMessage": "云同步需要 Movi Premium。",
-  "authForgotPasswordTitle": "忘记密码",   "authForgotPasswordSubtitle": "输入你的邮箱以接收密码重置链接。",   "authForgotPasswordInfoNeutral": "如果该账号存在，密码重置邮件将发送到此地址。",   "authForgotPasswordPrimarySubmit": "发送链接",   "authForgotPasswordBackToSignIn": "返回登录"
+  "authForgotPasswordTitle": "忘记密码",   "authForgotPasswordSubtitle": "输入你的邮箱以接收密码重置链接。",   "authForgotPasswordInfoNeutral": "如果该账号存在，密码重置邮件将发送到此地址。",   "authForgotPasswordPrimarySubmit": "发送链接",   "authForgotPasswordBackToSignIn": "返回登录",
+  "bootLoadingPreparingLaunch": "正在准备启动…",
+  "bootLoadingDefault": "加载中…",
+  "bootLoadingCheckingSession": "正在检查会话…",
+  "bootLoadingProfile": "正在加载档案…",
+  "bootLoadingCheckingProfile": "正在检查档案…",
+  "bootLoadingCheckingSource": "正在检查源…",
+  "bootLoadingPreparingCatalog": "正在准备目录…",
+  "bootActionAuthTitle": "需要登录",
+  "bootActionAuthMessage": "请登录以继续。",
+  "bootActionProfileTitle": "需要档案",
+  "bootActionProfileMessage": "请创建或选择档案以继续。",
+  "bootActionSourceRequiredTitle": "需要源",
+  "bootActionSourceRequiredMessage": "请添加或重新连接源以继续。",
+  "bootActionSourceSelectionTitle": "选择源",
+  "bootActionSourceSelectionMessage": "请选择要使用的源。",
+  "bootRecoverySourceTimeoutTitle": "源未响应",
+  "bootRecoverySourceTimeoutMessage": "重试同步或更换源。",
+  "bootRecoverySourceProviderTitle": "无法加载源",
+  "bootRecoverySourceProviderMessage": "重试加载或更换源。",
+  "bootRecoverySourceCredentialsTitle": "无法连接到源",
+  "bootRecoverySourceCredentialsMessage": "重新连接源以继续。",
+  "bootRecoverySourceEmptyTitle": "未找到内容",
+  "bootRecoverySourceEmptyMessage": "重新同步源或选择其他源。",
+  "bootFailureTitle": "启动中断",
+  "bootFailureMessage": "错误导致无法启动。",
+  "bootActionExportLogs": "导出日志",
+  "bootActionLogin": "登录",
+  "bootActionChooseProfile": "选择档案",
+  "bootActionAddSource": "添加源",
+  "bootActionChooseSource": "更换源",
+  "bootActionReconnectSource": "重新连接源",
+  "bootActionResyncSource": "重新同步",
+  "bootActionOpenHome": "打开主页",
+  "bootSemanticsSplashLogo": "MOVI 启动标志",
+  "bootSemanticsLoadingInProgress": "正在加载",
+  "bootSemanticsPreparingCatalog": "正在准备目录",
+  "welcomeSourceSavedSourcesTitle": "已保存的源",
+  "welcomeSourceRefreshTooltip": "刷新",
+  "welcomeSourceNoRemoteSourcesMessage": "在 Supabase 上未找到源。请在下方添加或激活一个。",
+  "welcomeSourceActivateSectionTitle": "激活源",
+  "welcomeSourceNameLabel": "源名称",
+  "welcomeSourceNameHint": "我的 IPTV",
+  "welcomeSourceServerUrlLabel": "服务器 URL",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "用户名",
+  "welcomeSourcePasswordLabel": "密码",
+  "welcomeSourceActivateAction": "激活",
+  "welcomeSourceAddModeTitle": "添加源",
+  "welcomeSourceFirstSourceSubtitle": "添加您的第一个 IPTV 源。",
+  "welcomeSourceAddPrompt": "想要添加源吗？",
+  "welcomeSourceAddNewAction": "添加新源",
+  "welcomeSourceRequiredFields": "所有字段都是必填的。",
+  "welcomeSourceErrorTimeout": "服务器响应时间过长，请检查您的连接并重试。",
+  "welcomeSourceErrorInvalidCredentials": "凭据无效，请检查用户名和密码。",
+  "welcomeSourceErrorNetwork": "无法连接到服务器，请检查 URL 和网络。",
+  "welcomeSourceErrorGeneric": "目前无法加载源，请重试。",
+  "welcomeSourceExpiresOn": "过期日期：{date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "无过期日期",
+  "welcomeUserProfileLockedTitle": "档案已锁定",
+  "welcomeUserProfileLockedReason": "请输入 PIN 以切换档案。",
+  "welcomeUserProfilesLoadFailed": "无法加载档案。",
+  "welcomeUserCreateTitle": "创建档案",
+  "welcomeUserChooseTitle": "选择档案",
+  "welcomeUserCreateSubtitle": "为 Movi 创建您的第一个档案。",
+  "welcomeUserChooseSubtitle": "选择您的一个档案。",
+  "welcomeUserProfileNameLabel": "档案名称",
+  "welcomeUserProfileNameHint": "档案名称",
+  "welcomeUserCreateProfileAction": "创建档案",
+  "childPreloadTitle": "内容安全设置",
+  "childPreloadSubtitle": "正在检查年龄分级...",
+  "childPreloadSkip": "跳过",
+  "childPreloadPhaseResolvingIds": "正在解析标识符...",
+  "childPreloadPhaseFetchingRatings": "正在获取评级...",
+  "childPreloadPhaseCompleted": "完成",
+  "childPreloadEtaSeconds": "约剩 {seconds}秒",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "约剩 {minutes} 分钟",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "约剩 {minutes} 分 {seconds}秒",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "改用密码",
+  "authPasswordTitle": "登录",
+  "authPasswordSubtitle": "请输入邮箱和密码以继续。",
+  "authPasswordEmailLabel": "电子邮件",
+  "authPasswordEmailHint": "name@example.com",
+  "authPasswordEmailHelp": "请使用与您账户关联的邮箱。",
+  "authPasswordPasswordLabel": "密码",
+  "authPasswordPasswordHint": "请输入密码",
+  "authPasswordPasswordHelp": "密码区分大小写。",
+  "authPasswordPrimarySubmit": "登录",
+  "authPasswordForgotPassword": "忘记密码？",
+  "authPasswordResetSent": "密码重置邮件已发送。",
+  "authPasswordUseOtp": "改用邮件验证码"
 }
 

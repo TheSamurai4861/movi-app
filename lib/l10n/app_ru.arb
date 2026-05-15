@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "Условия использования",
   "settingsCloudSyncPremiumRequiredMessage": "Для облачной синхронизации нужен Movi Premium.",
-  "authForgotPasswordTitle": "Забыли пароль",   "authForgotPasswordSubtitle": "Введите свой e-mail, чтобы получить ссылку для сброса пароля.",   "authForgotPasswordInfoNeutral": "Письмо для сброса пароля будет отправлено на этот адрес, если аккаунт существует.",   "authForgotPasswordPrimarySubmit": "Отправить ссылку",   "authForgotPasswordBackToSignIn": "Вернуться ко входу"
+  "authForgotPasswordTitle": "Забыли пароль",   "authForgotPasswordSubtitle": "Введите свой e-mail, чтобы получить ссылку для сброса пароля.",   "authForgotPasswordInfoNeutral": "Письмо для сброса пароля будет отправлено на этот адрес, если аккаунт существует.",   "authForgotPasswordPrimarySubmit": "Отправить ссылку",   "authForgotPasswordBackToSignIn": "Вернуться ко входу",
+  "bootLoadingPreparingLaunch": "Подготовка к запуску…",
+  "bootLoadingDefault": "Загрузка…",
+  "bootLoadingCheckingSession": "Проверка сессии…",
+  "bootLoadingProfile": "Загрузка профиля…",
+  "bootLoadingCheckingProfile": "Проверка профиля…",
+  "bootLoadingCheckingSource": "Проверка источника…",
+  "bootLoadingPreparingCatalog": "Подготовка каталога…",
+  "bootActionAuthTitle": "Требуется вход",
+  "bootActionAuthMessage": "Войдите для продолжения.",
+  "bootActionProfileTitle": "Требуется профиль",
+  "bootActionProfileMessage": "Создайте или выберите профиль для продолжения.",
+  "bootActionSourceRequiredTitle": "Требуется источник",
+  "bootActionSourceRequiredMessage": "Добавьте или переподключите источник для продолжения.",
+  "bootActionSourceSelectionTitle": "Выбор источника",
+  "bootActionSourceSelectionMessage": "Выберите источник для использования.",
+  "bootRecoverySourceTimeoutTitle": "Источник не отвечает",
+  "bootRecoverySourceTimeoutMessage": "Повторите синхронизацию или смените источник.",
+  "bootRecoverySourceProviderTitle": "Не удалось загрузить источник",
+  "bootRecoverySourceProviderMessage": "Повторите загрузку или смените источник.",
+  "bootRecoverySourceCredentialsTitle": "Не удалось подключиться к источнику",
+  "bootRecoverySourceCredentialsMessage": "Переподключите источник для продолжения.",
+  "bootRecoverySourceEmptyTitle": "Контент не найден",
+  "bootRecoverySourceEmptyMessage": "Повторно синхронизируйте источник или выберите другой.",
+  "bootFailureTitle": "Запуск прерван",
+  "bootFailureMessage": "Ошибка препятствует запуску.",
+  "bootActionExportLogs": "Экспорт журналов",
+  "bootActionLogin": "Войти",
+  "bootActionChooseProfile": "Выбрать профиль",
+  "bootActionAddSource": "Добавить источник",
+  "bootActionChooseSource": "Сменить источник",
+  "bootActionReconnectSource": "Переподключить источник",
+  "bootActionResyncSource": "Пересинхронизировать",
+  "bootActionOpenHome": "Открыть главную",
+  "bootSemanticsSplashLogo": "Заставочный логотип MOVI",
+  "bootSemanticsLoadingInProgress": "Загрузка выполняется",
+  "bootSemanticsPreparingCatalog": "Подготовка каталога",
+  "welcomeSourceSavedSourcesTitle": "Сохранённые источники",
+  "welcomeSourceRefreshTooltip": "Обновить",
+  "welcomeSourceNoRemoteSourcesMessage": "Источник на Supabase не найден. Добавьте или активируйте один ниже.",
+  "welcomeSourceActivateSectionTitle": "Активировать источник",
+  "welcomeSourceNameLabel": "Название источника",
+  "welcomeSourceNameHint": "Мой IPTV",
+  "welcomeSourceServerUrlLabel": "URL сервера",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "Имя пользователя",
+  "welcomeSourcePasswordLabel": "Пароль",
+  "welcomeSourceActivateAction": "Активировать",
+  "welcomeSourceAddModeTitle": "Добавить источник",
+  "welcomeSourceFirstSourceSubtitle": "Добавьте свой первый источник IPTV.",
+  "welcomeSourceAddPrompt": "Хотите добавить источник?",
+  "welcomeSourceAddNewAction": "Добавить новый источник",
+  "welcomeSourceRequiredFields": "Все поля обязательны.",
+  "welcomeSourceErrorTimeout": "Сервер слишком долго не отвечает. Проверьте подключение и попробуйте снова.",
+  "welcomeSourceErrorInvalidCredentials": "Неверные учётные данные. Проверьте имя пользователя и пароль.",
+  "welcomeSourceErrorNetwork": "Не удалось подключиться к серверу. Проверьте URL и сеть.",
+  "welcomeSourceErrorGeneric": "Не удалось загрузить источник. Пожалуйста, попробуйте снова.",
+  "welcomeSourceExpiresOn": "Истекает: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "Без срока истечения",
+  "welcomeUserProfileLockedTitle": "Профиль заблокирован",
+  "welcomeUserProfileLockedReason": "Введите PIN для смены профиля.",
+  "welcomeUserProfilesLoadFailed": "Не удалось загрузить профили.",
+  "welcomeUserCreateTitle": "Создать профиль",
+  "welcomeUserChooseTitle": "Выбрать профиль",
+  "welcomeUserCreateSubtitle": "Создайте первый профиль для Movi.",
+  "welcomeUserChooseSubtitle": "Выберите один из своих профилей.",
+  "welcomeUserProfileNameLabel": "Имя профиля",
+  "welcomeUserProfileNameHint": "Имя профиля",
+  "welcomeUserCreateProfileAction": "Создать профиль",
+  "childPreloadTitle": "Настройка защиты контента",
+  "childPreloadSubtitle": "Проверка возрастных рейтингов...",
+  "childPreloadSkip": "Пропустить",
+  "childPreloadPhaseResolvingIds": "Разрешение идентификаторов...",
+  "childPreloadPhaseFetchingRatings": "Получение рейтингов...",
+  "childPreloadPhaseCompleted": "Готово",
+  "childPreloadEtaSeconds": "Осталось около {seconds} с",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "Осталось около {minutes} мин",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "Осталось около {minutes} мин {seconds} с",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "Использовать пароль вместо этого",
+  "authPasswordTitle": "Войти",
+  "authPasswordSubtitle": "Введите e-mail и пароль для продолжения.",
+  "authPasswordEmailLabel": "E-mail",
+  "authPasswordEmailHint": "name@example.com",
+  "authPasswordEmailHelp": "Используйте e-mail, привязанный к вашему аккаунту.",
+  "authPasswordPasswordLabel": "Пароль",
+  "authPasswordPasswordHint": "Ваш пароль",
+  "authPasswordPasswordHelp": "Пароль чувствителен к регистру.",
+  "authPasswordPrimarySubmit": "Войти",
+  "authPasswordForgotPassword": "Забыли пароль?",
+  "authPasswordResetSent": "Письмо для сброса пароля отправлено.",
+  "authPasswordUseOtp": "Использовать код из email вместо этого"
 }
 

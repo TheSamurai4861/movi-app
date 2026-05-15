@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -28,16 +29,24 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final headerStartPadding = (pageHorizontalPadding - _backButtonFramePadding)
-        .clamp(0.0, double.infinity);
-    final trailingHeaderSpacerWidth = _backButtonSize + _backButtonFramePadding;
+    final uiScale = context.tvUiScale;
+    final scaledPageHorizontalPadding = pageHorizontalPadding * uiScale;
+    final scaledBackButtonFramePadding = _backButtonFramePadding * uiScale;
+    final scaledBackButtonSize = _backButtonSize * uiScale;
+    final headerStartPadding =
+        (scaledPageHorizontalPadding - scaledBackButtonFramePadding).clamp(
+          0.0,
+          double.infinity,
+        );
+    final trailingHeaderSpacerWidth =
+        scaledBackButtonSize + scaledBackButtonFramePadding;
 
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(
         headerStartPadding,
-        16,
-        pageHorizontalPadding,
-        16,
+        16 * uiScale,
+        scaledPageHorizontalPadding,
+        16 * uiScale,
       ),
       child: Row(
         children: [
@@ -49,15 +58,20 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
             builder: (context, state) {
               return MoviFocusFrame(
                 scale: state.focused ? 1.04 : 1,
-                padding: const EdgeInsets.all(_backButtonFramePadding),
+                padding: EdgeInsets.all(scaledBackButtonFramePadding),
                 borderRadius: BorderRadius.circular(999),
                 backgroundColor: state.focused
                     ? Colors.white.withValues(alpha: 0.14)
                     : Colors.transparent,
-                child: const SizedBox(
-                  width: _backButtonSize,
-                  height: _backButtonSize,
-                  child: MoviAssetIcon(AppAssets.iconBack, color: Colors.white),
+                child: SizedBox(
+                  width: scaledBackButtonSize,
+                  height: scaledBackButtonSize,
+                  child: MoviAssetIcon(
+                    AppAssets.iconBack,
+                    color: Colors.white,
+                    width: 24 * uiScale,
+                    height: 24 * uiScale,
+                  ),
                 ),
               );
             },
@@ -70,7 +84,7 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
-                ),
+                ).copyWith(fontSize: 24 * uiScale),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
               ),

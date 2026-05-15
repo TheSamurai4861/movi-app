@@ -26,6 +26,7 @@ class WatchProvidersGrid extends ConsumerStatefulWidget {
     this.focusVerticalAlignment = 0.22,
     this.focusRequestId,
     this.focusRequestColumn,
+    this.onFocusRequestApplied,
   });
 
   final double horizontalPadding;
@@ -36,6 +37,7 @@ class WatchProvidersGrid extends ConsumerStatefulWidget {
   final double focusVerticalAlignment;
   final int? focusRequestId;
   final int? focusRequestColumn;
+  final VoidCallback? onFocusRequestApplied;
 
   @override
   ConsumerState<WatchProvidersGrid> createState() => _WatchProvidersGridState();
@@ -44,6 +46,8 @@ class WatchProvidersGrid extends ConsumerStatefulWidget {
 class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
   final Map<int, FocusNode> _providerFocusNodes = <int, FocusNode>{};
   int? _lastAppliedFocusRequestId;
+  List<WatchProvider> _cachedProviders = const [];
+  int _cachedColumns = 1;
 
   void _syncFocusNodes(List<WatchProvider> providers) {
     final usesExternalFirst = widget.firstItemFocusNode != null;
@@ -189,6 +193,7 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
         if (!mounted) return;
         if (node.hasFocus) {
           _lastAppliedFocusRequestId = requestId;
+          widget.onFocusRequestApplied?.call();
           return;
         }
         if (attempt >= 4) {
@@ -205,11 +210,30 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
     });
   }
 
+  void _schedulePendingFocusRequest() {
+    if (widget.focusRequestId == null || widget.focusRequestColumn == null) {
+      return;
+    }
+    if (_lastAppliedFocusRequestId == widget.focusRequestId) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyPendingFocusRequest(
+        _cachedProviders,
+        _cachedColumns,
+        widget.focusRequestId,
+        widget.focusRequestColumn,
+      );
+    });
+  }
+
   @override
   void didUpdateWidget(covariant WatchProvidersGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusRequestId != oldWidget.focusRequestId) {
       _lastAppliedFocusRequestId = null;
+      _schedulePendingFocusRequest();
     }
   }
 
@@ -255,6 +279,11 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
         }
 
         _syncFocusNodes(providers);
+        _cachedProviders = providers;
+        if (widget.focusRequestId != null &&
+            _lastAppliedFocusRequestId != widget.focusRequestId) {
+          _schedulePendingFocusRequest();
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,12 +323,7 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
                         constraints.maxWidth,
                         providers.length,
                       );
-                      _applyPendingFocusRequest(
-                        providers,
-                        columns,
-                        widget.focusRequestId,
-                        widget.focusRequestColumn,
-                      );
+                      _cachedColumns = columns;
                       final aspectRatio = switch (screenType) {
                         ScreenType.mobile => 2.0,
                         ScreenType.tablet => 2.05,

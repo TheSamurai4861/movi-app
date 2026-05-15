@@ -175,6 +175,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsExportErrorLogs => 'تصدير سجلات الأخطاء';
 
   @override
+  String get settingsClearCache => 'Clear cache';
+
+  @override
+  String get settingsClearCacheConfirmTitle => 'Clear cache?';
+
+  @override
+  String get settingsClearCacheConfirmMessage =>
+      'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.';
+
+  @override
+  String get settingsClearCacheSuccess => 'Cache cleared';
+
+  @override
   String get diagnosticsExportTitle => 'تصدير سجلات الأخطاء';
 
   @override
@@ -540,155 +553,256 @@ class AppLocalizationsAr extends AppLocalizations {
       'الكتالوج المحلي جاهز — جارٍ الإنهاء…';
 
   @override
-  String get bootLoadingPreparingLaunch => 'Preparing launch…';
+  String get bootLoadingPreparingLaunch => 'جارٍ التحضير للإطلاق…';
 
   @override
-  String get bootLoadingCheckingSession => 'Checking session…';
+  String get bootLoadingDefault => 'جارٍ التحميل…';
 
   @override
-  String get bootLoadingCheckingProfile => 'Checking profile…';
+  String get bootLoadingCheckingSession => 'جارٍ التحقق من الجلسة…';
 
   @override
-  String get bootLoadingCheckingSource => 'Checking source…';
+  String get bootLoadingProfile => 'جارٍ تحميل الملف الشخصي…';
 
   @override
-  String get bootLoadingPreparingCatalog => 'Preparing catalog…';
+  String get bootLoadingCheckingProfile => 'جارٍ التحقق من الملف الشخصي…';
 
   @override
-  String get bootActionAuthTitle => 'Sign in required';
+  String get bootLoadingCheckingSource => 'جارٍ التحقق من المصدر…';
 
   @override
-  String get bootActionAuthMessage => 'Sign in to continue.';
+  String get bootLoadingPreparingCatalog => 'جارٍ تجهيز الكتالوج…';
 
   @override
-  String get bootActionProfileTitle => 'Profile required';
+  String get bootActionAuthTitle => 'تسجيل الدخول مطلوب';
+
+  @override
+  String get bootActionAuthMessage => 'سجّل الدخول للمتابعة.';
+
+  @override
+  String get bootActionProfileTitle => 'ملف شخصي مطلوب';
 
   @override
   String get bootActionProfileMessage =>
-      'Create or choose a profile to continue.';
+      'أنشئ ملفًا شخصيًا أو اختر أحدها للمتابعة.';
 
   @override
-  String get bootActionSourceRequiredTitle => 'Source required';
+  String get bootActionSourceRequiredTitle => 'مصدر مطلوب';
 
   @override
   String get bootActionSourceRequiredMessage =>
-      'Add or reconnect a source to continue.';
+      'أضف مصدرًا أو أعد الاتصال به للمتابعة.';
 
   @override
-  String get bootActionSourceSelectionTitle => 'Source selection';
+  String get bootActionSourceSelectionTitle => 'اختيار المصدر';
 
   @override
-  String get bootActionSourceSelectionMessage => 'Choose the source to use.';
+  String get bootActionSourceSelectionMessage =>
+      'اختر المصدر الذي تريد استخدامه.';
 
   @override
-  String get bootRecoverySourceTimeoutTitle => 'Source is not responding';
+  String get bootRecoverySourceTimeoutTitle => 'المصدر لا يستجيب';
 
   @override
-  String get bootRecoverySourceTimeoutMessage => 'Retry sync or change source.';
+  String get bootRecoverySourceTimeoutMessage =>
+      'أعد محاولة المزامنة أو غيّر المصدر.';
 
   @override
-  String get bootRecoverySourceProviderTitle => 'Unable to load source';
+  String get bootRecoverySourceProviderTitle => 'تعذر تحميل المصدر';
 
   @override
   String get bootRecoverySourceProviderMessage =>
-      'Retry loading or change source.';
+      'أعد محاولة التحميل أو غيّر المصدر.';
 
   @override
-  String get bootRecoverySourceCredentialsTitle =>
-      'Unable to connect to source';
+  String get bootRecoverySourceCredentialsTitle => 'تعذر الاتصال بالمصدر';
 
   @override
   String get bootRecoverySourceCredentialsMessage =>
-      'Reconnect the source to continue.';
+      'أعد الاتصال بالمصدر للمتابعة.';
 
   @override
-  String get bootRecoverySourceEmptyTitle => 'No content found';
+  String get bootRecoverySourceEmptyTitle => 'لم يتم العثور على محتوى';
 
   @override
   String get bootRecoverySourceEmptyMessage =>
-      'Resync the source or choose another one.';
+      'أعد مزامنة المصدر أو اختر مصدرًا آخر.';
 
   @override
-  String get bootFailureTitle => 'Launch interrupted';
+  String get bootFailureTitle => 'تم مقاطعة التشغيل';
 
   @override
-  String get bootFailureMessage => 'An error prevents the launch.';
+  String get bootFailureMessage => 'يمنع خطأ ما التشغيل.';
 
   @override
-  String get bootActionExportLogs => 'Export logs';
+  String get bootActionExportLogs => 'تصدير السجلات';
 
   @override
-  String get bootActionLogin => 'Sign in';
+  String get bootActionLogin => 'تسجيل الدخول';
 
   @override
-  String get bootActionChooseProfile => 'Choose a profile';
+  String get bootActionChooseProfile => 'اختر ملفًا شخصيًا';
 
   @override
-  String get bootActionAddSource => 'Add a source';
+  String get bootActionAddSource => 'إضافة مصدر';
 
   @override
-  String get bootActionChooseSource => 'Change source';
+  String get bootActionChooseSource => 'تغيير المصدر';
 
   @override
-  String get bootActionReconnectSource => 'Reconnect source';
+  String get bootActionReconnectSource => 'إعادة الاتصال بالمصدر';
 
   @override
-  String get bootActionResyncSource => 'Resync';
+  String get bootActionResyncSource => 'إعادة المزامنة';
 
   @override
-  String get bootActionOpenHome => 'Open home';
+  String get bootActionOpenHome => 'فتح الصفحة الرئيسية';
 
   @override
-  String get welcomeSourceSavedSourcesTitle => 'Saved sources';
+  String get bootSemanticsSplashLogo => 'شعار البداية MOVI';
 
   @override
-  String get welcomeSourceRefreshTooltip => 'Refresh';
+  String get bootSemanticsLoadingInProgress => 'التحميل قيد التنفيذ';
+
+  @override
+  String get bootSemanticsPreparingCatalog => 'جارٍ تجهيز الكتالوج';
+
+  @override
+  String get welcomeSourceSavedSourcesTitle => 'المصادر المحفوظة';
+
+  @override
+  String get welcomeSourceRefreshTooltip => 'تحديث';
 
   @override
   String get welcomeSourceNoRemoteSourcesMessage =>
-      'No source found on Supabase. Add or activate one below.';
+      'لم يتم العثور على أي مصدر على Supabase. أضف أحدها أو فعّله أدناه.';
 
   @override
-  String get welcomeSourceActivateSectionTitle => 'Activate a source';
+  String get welcomeSourceActivateSectionTitle => 'تفعيل مصدر';
 
   @override
-  String get welcomeSourceNameLabel => 'Source name';
+  String get welcomeSourceNameLabel => 'اسم المصدر';
 
   @override
   String get welcomeSourceNameHint => 'My IPTV';
 
   @override
-  String get welcomeSourceServerUrlLabel => 'Server URL';
+  String get welcomeSourceServerUrlLabel => 'رابط الخادم';
 
   @override
   String get welcomeSourceServerUrlHint => 'https://example.com:port';
 
   @override
-  String get welcomeSourceUsernameLabel => 'Username';
+  String get welcomeSourceUsernameLabel => 'اسم المستخدم';
 
   @override
-  String get welcomeSourcePasswordLabel => 'Password';
+  String get welcomeSourcePasswordLabel => 'كلمة المرور';
 
   @override
-  String get welcomeSourceActivateAction => 'Activate';
+  String get welcomeSourceActivateAction => 'تفعيل';
+
+  @override
+  String get welcomeSourceAddModeTitle => 'إضافة مصدر';
+
+  @override
+  String get welcomeSourceFirstSourceSubtitle => 'أضف أول مصدر IPTV لك.';
+
+  @override
+  String get welcomeSourceAddPrompt => 'هل تريد إضافة مصدر؟';
+
+  @override
+  String get welcomeSourceAddNewAction => 'إضافة مصدر جديد';
+
+  @override
+  String get welcomeSourceRequiredFields => 'جميع الحقول مطلوبة.';
+
+  @override
+  String get welcomeSourceErrorTimeout =>
+      'يستغرق الخادم وقتًا طويلًا للاستجابة. تحقق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get welcomeSourceErrorInvalidCredentials =>
+      'بيانات الاعتماد غير صحيحة. تحقق من اسم المستخدم وكلمة المرور.';
+
+  @override
+  String get welcomeSourceErrorNetwork =>
+      'تعذر الاتصال بالخادم. تحقق من الرابط وشبكتك.';
+
+  @override
+  String get welcomeSourceErrorGeneric =>
+      'تعذر تحميل المصدر الآن. يرجى المحاولة مرة أخرى.';
 
   @override
   String welcomeSourceExpiresOn(String date) {
-    return 'Expires: $date';
+    return 'تنتهي في: $date';
   }
 
   @override
-  String get welcomeSourceNoExpiration => 'No expiration date';
+  String get welcomeSourceNoExpiration => 'لا يوجد تاريخ انتهاء';
 
   @override
-  String get welcomeUserProfileLockedTitle => 'Profile locked';
+  String get welcomeUserProfileLockedTitle => 'الملف الشخصي مقفل';
 
   @override
   String get welcomeUserProfileLockedReason =>
-      'Enter the PIN to switch profile.';
+      'أدخل رمز PIN لتغيير الملف الشخصي.';
 
   @override
-  String get welcomeUserProfilesLoadFailed => 'Unable to load profiles.';
+  String get welcomeUserProfilesLoadFailed => 'تعذر تحميل الملفات الشخصية.';
+
+  @override
+  String get welcomeUserCreateTitle => 'إنشاء ملف شخصي';
+
+  @override
+  String get welcomeUserChooseTitle => 'اختر ملفًا شخصيًا';
+
+  @override
+  String get welcomeUserCreateSubtitle => 'أنشئ ملفك الشخصي الأول في Movi.';
+
+  @override
+  String get welcomeUserChooseSubtitle => 'اختر أحد ملفاتك الشخصية.';
+
+  @override
+  String get welcomeUserProfileNameLabel => 'اسم الملف الشخصي';
+
+  @override
+  String get welcomeUserProfileNameHint => 'اسم الملف الشخصي';
+
+  @override
+  String get welcomeUserCreateProfileAction => 'إنشاء ملف شخصي';
+
+  @override
+  String get childPreloadTitle => 'إعداد حماية المحتوى';
+
+  @override
+  String get childPreloadSubtitle => 'جارٍ التحقق من تصنيفات الأعمار...';
+
+  @override
+  String get childPreloadSkip => 'تخطي';
+
+  @override
+  String get childPreloadPhaseResolvingIds => 'جارٍ حل المعرّفات...';
+
+  @override
+  String get childPreloadPhaseFetchingRatings => 'جارٍ جلب التصنيفات...';
+
+  @override
+  String get childPreloadPhaseCompleted => 'تم';
+
+  @override
+  String childPreloadEtaSeconds(int seconds) {
+    return 'حوالي $seconds ث متبقية';
+  }
+
+  @override
+  String childPreloadEtaMinutes(int minutes) {
+    return 'حوالي $minutes د متبقية';
+  }
+
+  @override
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds) {
+    return 'حوالي $minutes د $seconds ث متبقية';
+  }
 
   @override
   String get errorHomeLoadTimeout => 'انتهت مهلة تحميل الصفحة الرئيسية';
@@ -1149,41 +1263,42 @@ class AppLocalizationsAr extends AppLocalizations {
   String get authOtpChangeEmail => 'تغيير البريد الإلكتروني';
 
   @override
-  String get authOtpUsePassword => 'Use password instead';
+  String get authOtpUsePassword => 'استخدام كلمة المرور بدلًا من ذلك';
 
   @override
-  String get authPasswordTitle => 'Sign in';
+  String get authPasswordTitle => 'تسجيل الدخول';
 
   @override
   String get authPasswordSubtitle =>
-      'Enter your email and password to continue.';
+      'أدخل بريدك الإلكتروني وكلمة المرور للمتابعة.';
 
   @override
-  String get authPasswordEmailLabel => 'Email';
+  String get authPasswordEmailLabel => 'البريد الإلكتروني';
 
   @override
   String get authPasswordEmailHint => 'name@example.com';
 
   @override
-  String get authPasswordEmailHelp => 'Use the email linked to your account.';
+  String get authPasswordEmailHelp =>
+      'استخدم البريد الإلكتروني المرتبط بحسابك.';
 
   @override
-  String get authPasswordPasswordLabel => 'Password';
+  String get authPasswordPasswordLabel => 'كلمة المرور';
 
   @override
-  String get authPasswordPasswordHint => 'Your password';
+  String get authPasswordPasswordHint => 'كلمة مرورك';
 
   @override
-  String get authPasswordPasswordHelp => 'Your password is case-sensitive.';
+  String get authPasswordPasswordHelp => 'كلمة مرورك حساسة لحالة الأحرف.';
 
   @override
-  String get authPasswordPrimarySubmit => 'Sign in';
+  String get authPasswordPrimarySubmit => 'تسجيل الدخول';
 
   @override
-  String get authPasswordForgotPassword => 'Forgot password?';
+  String get authPasswordForgotPassword => 'نسيت كلمة المرور؟';
 
   @override
-  String get authPasswordResetSent => 'Password reset email sent.';
+  String get authPasswordResetSent => 'تم إرسال رسالة إعادة تعيين كلمة المرور.';
 
   @override
   String get authForgotPasswordTitle => 'نسيت كلمة المرور';
@@ -1203,7 +1318,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get authForgotPasswordBackToSignIn => 'العودة إلى تسجيل الدخول';
 
   @override
-  String get authPasswordUseOtp => 'Use email code instead';
+  String get authPasswordUseOtp => 'استخدام رمز البريد الإلكتروني بدلًا من ذلك';
 
   @override
   String get resumePlayback => 'متابعة التشغيل';
@@ -1401,6 +1516,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsSubtitlesBackgroundTitle => 'الخلفية';
+
+  @override
+  String get settingsSubtitlesBackgroundNone => 'No background';
 
   @override
   String get settingsSubtitlesBackgroundOpacityLabel => 'شفافية الخلفية';

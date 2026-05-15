@@ -176,7 +176,6 @@ class BootRecoveryPanel extends StatelessWidget {
                           onPressed: onPrimary,
                           focusNode: primaryFocusNode,
                           autofocus: primaryAutofocus,
-                          height: BootFormTokens.primaryActionHeight,
                           buttonStyle:
                               BootFormTokens.bootPrimaryButtonStyle(theme),
                         ),

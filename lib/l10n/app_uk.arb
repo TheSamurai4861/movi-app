@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "Умови використання",
   "settingsCloudSyncPremiumRequiredMessage": "Для хмарної синхронізації потрібен Movi Premium.",
-  "authForgotPasswordTitle": "Забули пароль",   "authForgotPasswordSubtitle": "Введіть свою електронну адресу, щоб отримати посилання для скидання пароля.",   "authForgotPasswordInfoNeutral": "Лист для скидання пароля буде надіслано на цю адресу, якщо обліковий запис існує.",   "authForgotPasswordPrimarySubmit": "Надіслати посилання",   "authForgotPasswordBackToSignIn": "Повернутися до входу"
+  "authForgotPasswordTitle": "Забули пароль",   "authForgotPasswordSubtitle": "Введіть свою електронну адресу, щоб отримати посилання для скидання пароля.",   "authForgotPasswordInfoNeutral": "Лист для скидання пароля буде надіслано на цю адресу, якщо обліковий запис існує.",   "authForgotPasswordPrimarySubmit": "Надіслати посилання",   "authForgotPasswordBackToSignIn": "Повернутися до входу",
+  "bootLoadingPreparingLaunch": "Підготовка до запуску…",
+  "bootLoadingDefault": "Завантаження…",
+  "bootLoadingCheckingSession": "Перевірка сесії…",
+  "bootLoadingProfile": "Завантаження профілю…",
+  "bootLoadingCheckingProfile": "Перевірка профілю…",
+  "bootLoadingCheckingSource": "Перевірка джерела…",
+  "bootLoadingPreparingCatalog": "Підготовка каталогу…",
+  "bootActionAuthTitle": "Потрібен вхід",
+  "bootActionAuthMessage": "Увійдіть, щоб продовжити.",
+  "bootActionProfileTitle": "Потрібен профіль",
+  "bootActionProfileMessage": "Створіть або виберіть профіль, щоб продовжити.",
+  "bootActionSourceRequiredTitle": "Потрібне джерело",
+  "bootActionSourceRequiredMessage": "Додайте або перепідключіть джерело, щоб продовжити.",
+  "bootActionSourceSelectionTitle": "Вибір джерела",
+  "bootActionSourceSelectionMessage": "Виберіть джерело для використання.",
+  "bootRecoverySourceTimeoutTitle": "Джерело не відповідає",
+  "bootRecoverySourceTimeoutMessage": "Повторіть синхронізацію або змініть джерело.",
+  "bootRecoverySourceProviderTitle": "Неможливо завантажити джерело",
+  "bootRecoverySourceProviderMessage": "Повторіть завантаження або змініть джерело.",
+  "bootRecoverySourceCredentialsTitle": "Неможливо підключитися до джерела",
+  "bootRecoverySourceCredentialsMessage": "Перепідключіть джерело, щоб продовжити.",
+  "bootRecoverySourceEmptyTitle": "Вміст не знайдено",
+  "bootRecoverySourceEmptyMessage": "Повторно синхронізуйте джерело або виберіть інше.",
+  "bootFailureTitle": "Запуск перервано",
+  "bootFailureMessage": "Помилка перешкоджає запуску.",
+  "bootActionExportLogs": "Експортувати журнали",
+  "bootActionLogin": "Увійти",
+  "bootActionChooseProfile": "Вибрати профіль",
+  "bootActionAddSource": "Додати джерело",
+  "bootActionChooseSource": "Змінити джерело",
+  "bootActionReconnectSource": "Перепідключити джерело",
+  "bootActionResyncSource": "Повторна синхронізація",
+  "bootActionOpenHome": "Відкрити головну",
+  "bootSemanticsSplashLogo": "Заставочний логотип MOVI",
+  "bootSemanticsLoadingInProgress": "Завантаження виконується",
+  "bootSemanticsPreparingCatalog": "Підготовка каталогу",
+  "welcomeSourceSavedSourcesTitle": "Збережені джерела",
+  "welcomeSourceRefreshTooltip": "Оновити",
+  "welcomeSourceNoRemoteSourcesMessage": "Джерело на Supabase не знайдено. Додайте або активуйте його нижче.",
+  "welcomeSourceActivateSectionTitle": "Активувати джерело",
+  "welcomeSourceNameLabel": "Назва джерела",
+  "welcomeSourceNameHint": "Мій IPTV",
+  "welcomeSourceServerUrlLabel": "URL сервера",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "Ім'я користувача",
+  "welcomeSourcePasswordLabel": "Пароль",
+  "welcomeSourceActivateAction": "Активувати",
+  "welcomeSourceAddModeTitle": "Додати джерело",
+  "welcomeSourceFirstSourceSubtitle": "Додайте своє перше джерело IPTV.",
+  "welcomeSourceAddPrompt": "Хочете додати джерело?",
+  "welcomeSourceAddNewAction": "Додати нове джерело",
+  "welcomeSourceRequiredFields": "Усі поля обов'язкові.",
+  "welcomeSourceErrorTimeout": "Сервер надто довго не відповідає. Перевірте з'єднання та спробуйте ще раз.",
+  "welcomeSourceErrorInvalidCredentials": "Недійсні облікові дані. Перевірте ім'я користувача та пароль.",
+  "welcomeSourceErrorNetwork": "Неможливо підключитися до сервера. Перевірте URL та мережу.",
+  "welcomeSourceErrorGeneric": "Не вдалося завантажити джерело. Будь ласка, спробуйте ще раз.",
+  "welcomeSourceExpiresOn": "Закінчується: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "Без дати закінчення",
+  "welcomeUserProfileLockedTitle": "Профіль заблоковано",
+  "welcomeUserProfileLockedReason": "Введіть PIN для зміни профілю.",
+  "welcomeUserProfilesLoadFailed": "Не вдалося завантажити профілі.",
+  "welcomeUserCreateTitle": "Створити профіль",
+  "welcomeUserChooseTitle": "Вибрати профіль",
+  "welcomeUserCreateSubtitle": "Створіть свій перший профіль для Movi.",
+  "welcomeUserChooseSubtitle": "Виберіть один із своїх профілів.",
+  "welcomeUserProfileNameLabel": "Ім'я профілю",
+  "welcomeUserProfileNameHint": "Ім'я профілю",
+  "welcomeUserCreateProfileAction": "Створити профіль",
+  "childPreloadTitle": "Налаштування захисту вмісту",
+  "childPreloadSubtitle": "Перевірка вікових рейтингів...",
+  "childPreloadSkip": "Пропустити",
+  "childPreloadPhaseResolvingIds": "Вирішення ідентифікаторів...",
+  "childPreloadPhaseFetchingRatings": "Отримання рейтингів...",
+  "childPreloadPhaseCompleted": "Готово",
+  "childPreloadEtaSeconds": "Залишилось близько {seconds} с",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "Залишилось близько {minutes} хв",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "Залишилось близько {minutes} хв {seconds} с",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "Натомість використати пароль",
+  "authPasswordTitle": "Увійти",
+  "authPasswordSubtitle": "Введіть e-mail та пароль, щоб продовжити.",
+  "authPasswordEmailLabel": "E-mail",
+  "authPasswordEmailHint": "name@example.com",
+  "authPasswordEmailHelp": "Використовуйте e-mail, пов'язаний з вашим обліковим записом.",
+  "authPasswordPasswordLabel": "Пароль",
+  "authPasswordPasswordHint": "Ваш пароль",
+  "authPasswordPasswordHelp": "Пароль чутливий до регістру.",
+  "authPasswordPrimarySubmit": "Увійти",
+  "authPasswordForgotPassword": "Забули пароль?",
+  "authPasswordResetSent": "Лист для скидання пароля надіслано.",
+  "authPasswordUseOtp": "Натомість використати код з e-mail"
 }
 

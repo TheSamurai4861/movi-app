@@ -40,10 +40,12 @@ class BootScreenRenderer extends StatelessWidget {
   final EdgeInsetsGeometry recoveryPadding;
 
   bool get _showRecovery => forceRecovery || model.isInteractive;
-  static const _fallbackRetryLabel = 'Reessayer';
+  static const _fallbackRetryLabel = 'Retry';
+  static const _fadeDuration = Duration(milliseconds: 220);
 
   @override
   Widget build(BuildContext context) {
+    final Widget surface;
     if (_showRecovery) {
       final recovery = model.isInteractive
           ? BootRecoveryPanel.fromBootModel(
@@ -62,32 +64,65 @@ class BootScreenRenderer extends StatelessWidget {
               primaryFocusNode: primaryActionFocusNode,
               primaryAutofocus: true,
             );
-      return SingleChildScrollView(
+      surface = SingleChildScrollView(
+        key: const ValueKey<String>('boot-surface-recovery'),
         padding: recoveryPadding,
         child: recovery,
       );
+    } else {
+      final message = loadingMessageOverride ?? model.message;
+      final loadingChild = switch (model.screenType) {
+        BootScreenType.catalogLoading => BootCatalogLoadingScreen(
+          message: message,
+          secondaryMessage: catalogSecondaryMessage,
+          showLogo: model.showLogo,
+          showProgress: model.showProgress,
+        ),
+        BootScreenType.simpleLoading || BootScreenType.openingHome =>
+          BootSimpleLoadingScreen.forBootModel(model, messageOverride: message),
+        _ => BootSimpleLoadingScreen(
+          message: message,
+          showLogo: model.showLogo,
+          showProgress: model.showProgress,
+        ),
+      };
+
+      surface = KeyedSubtree(
+        key: const ValueKey<String>('boot-surface-loading'),
+        child: Focus(
+          focusNode: loadingFocusNode,
+          child: AnimatedSwitcher(
+            duration: _fadeDuration,
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: _fadeTransition,
+            child: KeyedSubtree(
+              key: ValueKey<String>(_loadingTransitionKey),
+              child: loadingChild,
+            ),
+          ),
+        ),
+      );
     }
 
-    final message = loadingMessageOverride ?? model.message;
-    final child = switch (model.screenType) {
-      BootScreenType.catalogLoading => BootCatalogLoadingScreen(
-        message: message,
-        secondaryMessage: catalogSecondaryMessage,
-        showLogo: model.showLogo,
-        showProgress: model.showProgress,
-      ),
-      BootScreenType.simpleLoading || BootScreenType.openingHome =>
-        BootSimpleLoadingScreen.forBootModel(
-          model,
-          messageOverride: message,
-        ),
-      _ => BootSimpleLoadingScreen(
-        message: message,
-        showLogo: model.showLogo,
-        showProgress: model.showProgress,
-      ),
-    };
+    return AnimatedSwitcher(
+      duration: _fadeDuration,
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: _fadeTransition,
+      child: surface,
+    );
+  }
 
-    return Focus(focusNode: loadingFocusNode, child: child);
+  String get _loadingTransitionKey {
+    return switch (model.screenType) {
+      BootScreenType.catalogLoading => 'boot-loading-catalog',
+      BootScreenType.openingHome => 'boot-loading-opening-home',
+      _ => 'boot-loading-simple',
+    };
+  }
+
+  static Widget _fadeTransition(Widget child, Animation<double> animation) {
+    return FadeTransition(opacity: animation, child: child);
   }
 }

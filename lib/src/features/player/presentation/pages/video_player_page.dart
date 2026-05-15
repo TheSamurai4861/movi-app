@@ -48,6 +48,7 @@ import 'package:movi/src/core/profile/presentation/providers/current_profile_pro
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/state/device_capabilities_provider.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/player/application/usecases/auto_enter_picture_in_picture.dart';
 import 'dart:io';
@@ -1672,6 +1673,21 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     }
   }
 
+  Future<void> _restoreAppOrientationsAfterPlayer() async {
+    if (ref.read(isTelevisionDeviceProvider)) {
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      return;
+    }
+
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
   Future<void> _onBack(BuildContext context) async {
     // Sauvegarder l'historique et synchroniser en parallèle sans bloquer la navigation
     // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
@@ -1684,6 +1700,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     if (handled) {
       _skipDisposePersist = true;
     }
+
+    // Restaurer l'orientation avant la navigation pour que le shell se reconstruise
+    // avec le bon format (évite le passage en layout mobile sur TV).
+    await _restoreAppOrientationsAfterPlayer();
 
     // Robustesse: le bouton retour DOIT toujours ramener à l'écran précédent.
     if (context.mounted) {
@@ -1755,11 +1775,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _historyRepositorySub.close();
     _currentUserIdSub.close();
 
-    // Restaurer uniquement le mode vertical pour le reste de l'app
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    unawaited(_restoreAppOrientationsAfterPlayer());
 
     // Libérer le contrôle de la luminosité pour permettre les modifications système
     try {
@@ -1864,7 +1880,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
               }
 
               if (isNavigationKey && !_showControls) {
-                setState(() => _showControls = true);
+                _showControlsWithAnimation();
                 return KeyEventResult.handled;
               }
 

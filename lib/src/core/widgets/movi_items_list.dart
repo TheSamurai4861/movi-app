@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 
 /// Liste horizontale avec titre et sous-titre optionnel.
@@ -93,8 +94,33 @@ class _MoviItemsListState extends State<MoviItemsList> {
 
   // ---- Utilities
 
+  double get _uiScale => context.tvUiScale;
+
+  double get _scaledItemSpacing => widget.itemSpacing * _uiScale;
+
+  double get _scaledTitlePadding => widget.titlePadding * _uiScale;
+
+  double get _scaledVerticalPreloadMargin =>
+      widget.verticalPreloadMargin * _uiScale;
+
+  double? get _scaledEstimatedItemWidth {
+    final value = widget.estimatedItemWidth;
+    if (value == null) return null;
+    return value * _uiScale;
+  }
+
+  double get _scaledEstimatedItemHeight =>
+      (widget.estimatedItemHeight ?? 240) * _uiScale;
+
   EdgeInsets _resolvedHorizontalPadding(BuildContext context) {
-    return widget.horizontalPadding.resolve(Directionality.of(context));
+    final raw = widget.horizontalPadding.resolve(Directionality.of(context));
+    final scale = context.tvUiScale;
+    return EdgeInsets.fromLTRB(
+      raw.left * scale,
+      raw.top * scale,
+      raw.right * scale,
+      raw.bottom * scale,
+    );
   }
 
   double _effectiveViewportWidth(BoxConstraints constraints) {
@@ -107,7 +133,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
   }
 
   void _scheduleNotify() {
-    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) {
+    if (widget.onViewportChanged == null || _scaledEstimatedItemWidth == null) {
       return;
     }
     _debounce?.cancel();
@@ -141,7 +167,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
     final size = ro.size;
     final topLeft = ro.localToGlobal(Offset.zero);
     final screenH = MediaQuery.of(context).size.height;
-    final margin = widget.verticalPreloadMargin;
+    final margin = _scaledVerticalPreloadMargin;
     final top = topLeft.dy;
     final bottom = top + size.height;
     return bottom > -margin && top < screenH + margin;
@@ -150,7 +176,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
   void _notifyNow() {
     if (!mounted) return;
     final cb = widget.onViewportChanged;
-    final cardW = widget.estimatedItemWidth;
+    final cardW = _scaledEstimatedItemWidth;
     if (cb == null || cardW == null) return;
     if (!_isRoughlyVerticallyVisible()) return;
     if (!_hCtrl.hasClients) return;
@@ -160,7 +186,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
     final viewportWidth = _lastViewportWidth ?? (context.size?.width ?? 0);
     if (viewportWidth <= 0) return;
 
-    final unit = cardW + widget.itemSpacing;
+    final unit = cardW + _scaledItemSpacing;
     if (unit <= 0) return;
 
     final pads = _resolvedHorizontalPadding(context);
@@ -210,7 +236,9 @@ class _MoviItemsListState extends State<MoviItemsList> {
     if (oldWidget.items.length != widget.items.length ||
         oldWidget.estimatedItemWidth != widget.estimatedItemWidth ||
         oldWidget.itemSpacing != widget.itemSpacing ||
-        oldWidget.horizontalPadding != widget.horizontalPadding) {
+        oldWidget.horizontalPadding != widget.horizontalPadding ||
+        oldWidget.verticalPreloadMargin != widget.verticalPreloadMargin ||
+        oldWidget.titlePadding != widget.titlePadding) {
       _scheduleNotifyIfNeeded();
     }
   }
@@ -239,8 +267,8 @@ class _MoviItemsListState extends State<MoviItemsList> {
         if (!widget.hideHeader) ...[
           Padding(
             padding: EdgeInsetsDirectional.only(
-              start: widget.titlePadding,
-              end: widget.titlePadding,
+              start: _scaledTitlePadding,
+              end: _scaledTitlePadding,
             ),
             child: Row(
               children: [
@@ -266,12 +294,12 @@ class _MoviItemsListState extends State<MoviItemsList> {
                           color: Color(0xFFA6A6A6),
                         ),
                   ),
-                if (widget.action != null) const SizedBox(width: 8),
+                if (widget.action != null) SizedBox(width: 8 * _uiScale),
                 if (widget.action != null) widget.action!,
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * _uiScale),
         ],
         LayoutBuilder(
           builder: (context, constraints) {
@@ -288,18 +316,19 @@ class _MoviItemsListState extends State<MoviItemsList> {
             }
             // Liste horizontale construite paresseusement pour éviter le chargement massif d'images.
             return SizedBox(
-              height: widget.estimatedItemHeight ?? 240,
+              height: _scaledEstimatedItemHeight,
               child: Builder(
                 builder: (listContext) {
+                  final resolvedPadding = _resolvedHorizontalPadding(context);
                   return MoviVerticalEnsureVisibleTarget(
                     targetContext: listContext,
                     child: ListView.separated(
                       controller: _hCtrl,
                       scrollDirection: Axis.horizontal,
                       clipBehavior: Clip.none,
-                      padding: widget.horizontalPadding,
+                      padding: resolvedPadding,
                       cacheExtent: widget.estimatedItemWidth != null
-                          ? (widget.estimatedItemWidth! * 2)
+                          ? (_scaledEstimatedItemWidth! * 2)
                           : null,
                       itemCount: widget.items.length,
                       itemBuilder: (context, i) {
@@ -324,7 +353,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
                         );
                       },
                       separatorBuilder: (context, _) =>
-                          SizedBox(width: widget.itemSpacing),
+                          SizedBox(width: _scaledItemSpacing),
                     ),
                   );
                 },

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
@@ -15,9 +16,11 @@ import 'package:movi/src/core/focus/presentation/focus_directional_navigation.da
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
 import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -47,6 +50,7 @@ class WelcomeSourcePage extends ConsumerStatefulWidget {
 
 class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     with TickerProviderStateMixin {
+  final _backFocusNode = FocusNode(debugLabel: 'WelcomeSourceBack');
   final _retryFocusNode = FocusNode(debugLabel: 'WelcomeSourceRetry');
   String? _selectedSourceId;
 
@@ -71,12 +75,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   bool _loadingSources = false;
   String? _sourcesError;
   String? _formErrorMessage;
-  String? _sourceFailureMessage;
   bool _sourceLoadFailed = false;
   bool _hasAttemptedInitialSourceLoad = false;
-  String? _failedSourceId;
   bool _obscurePassword = true;
   bool _isHandlingBack = false;
+  bool _forceAddMode = false;
   List<SupabaseIptvSourceEntity> _sources = const <SupabaseIptvSourceEntity>[];
 
   // Animation pour le bouton refresh
@@ -116,8 +119,15 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _forceAddMode = GoRouterState.of(context).uri.queryParameters['mode'] == 'add';
+  }
+
+  @override
   void dispose() {
     _refreshAnimationController.dispose();
+    _backFocusNode.dispose();
     _retryFocusNode.dispose();
     _refreshFocusNode.dispose();
     _sourcesErrorRetryFocusNode.dispose();
@@ -170,6 +180,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   }
 
   String? _determineFallbackRoute(BuildContext context) {
+    if (_forceAddMode) {
+      return AppRouteNames.welcomeSourceSelect;
+    }
     if (context.canPop()) {
       return null;
     }
@@ -293,7 +306,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
       if (_sources.isNotEmpty && _selectedSourceId == null) {
         _selectSource(_sources.first);
       }
-      if (_sources.isNotEmpty && !_hasAttemptedInitialSourceLoad) {
+      if (_sources.isNotEmpty &&
+          !_hasAttemptedInitialSourceLoad &&
+          !_forceAddMode) {
         _hasAttemptedInitialSourceLoad = true;
         unawaited(_activateSource(_sources.first, isInitialAttempt: true));
       }
@@ -443,7 +458,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
 
     if (serverUrl.isEmpty || username.isEmpty || password.isEmpty) {
       setState(() {
-        _formErrorMessage = 'Tous les champs sont obligatoires.';
+        _formErrorMessage = l10n.welcomeSourceRequiredFields;
       });
       return;
     }
@@ -458,11 +473,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
 
     setState(() {
       _formErrorMessage = null;
-      _sourceFailureMessage = null;
       _sourceLoadFailed = false;
-      if (!isInitialAttempt) {
-        _failedSourceId = null;
-      }
     });
 
     unawaited(
@@ -483,6 +494,22 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     if (!mounted) return;
 
     if (success) {
+      final locator = ref.read(slProvider);
+      if (locator.isRegistered<EntryBootStateRepository>() &&
+          locator.isRegistered<SelectedIptvSourcePreferences>()) {
+        final selectedId = locator<SelectedIptvSourcePreferences>()
+            .selectedSourceId
+            ?.trim();
+        final resolvedId = (selectedId == null || selectedId.isEmpty)
+            ? _selectedSourceId
+            : selectedId;
+        if (resolvedId != null && resolvedId.trim().isNotEmpty) {
+          await locator<EntryBootStateRepository>().confirmSourceSelected(
+            sourceId: resolvedId,
+          );
+        }
+      }
+      if (!mounted) return;
       await _runBootAction(
         context,
         BootActionIntent.retry,
@@ -499,9 +526,6 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
       _formErrorMessage = mapped;
       if (isInitialAttempt || isRetryFromFailure) {
         _sourceLoadFailed = true;
-        _sourceFailureMessage =
-            'La source sélectionnée n’a pas pu être chargée. Réessayez ou choisissez une autre option.';
-        _failedSourceId = _selectedSourceId;
       }
     });
   }
@@ -520,49 +544,53 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   }
 
   String _mapSourceError(String error) {
+    final l10n = AppLocalizations.of(context)!;
     final lower = error.toLowerCase();
     if (lower.contains('timeout')) {
-      return 'Le serveur met trop de temps à répondre. Vérifiez la connexion puis réessayez.';
+      return l10n.welcomeSourceErrorTimeout;
     }
     if (lower.contains('401') ||
         lower.contains('403') ||
         lower.contains('unauthorized') ||
         lower.contains('invalid')) {
-      return 'Identifiants invalides. Vérifiez le nom d’utilisateur et le mot de passe.';
+      return l10n.welcomeSourceErrorInvalidCredentials;
     }
     if (lower.contains('socket') ||
         lower.contains('network') ||
         lower.contains('connection')) {
-      return 'Connexion au serveur impossible. Vérifiez l’URL et votre réseau.';
+      return l10n.welcomeSourceErrorNetwork;
     }
-    return 'Impossible de charger la source pour le moment. Réessayez.';
+    return l10n.welcomeSourceErrorGeneric;
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final forceSelectionMode =
+        GoRouterState.of(context).uri.queryParameters['mode'] == 'select';
     final connectState = ref.watch(iptvConnectControllerProvider);
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
+    final sourceSelectionButtonStyle = BootFormTokens.bootPrimaryButtonStyle(
+      Theme.of(context),
+    ).copyWith(
+      backgroundColor: const WidgetStatePropertyAll(Color(0xFF333333)),
+    );
 
     final isBusy = _loadingSources || connectState.isLoading;
-    final hasSavedSources =
-        _shouldDisplaySavedSourcesSection && _sources.isNotEmpty;
-    final hasNoSource = _sources.isEmpty;
-    final failedSource = _sources.where((s) => s.id == _failedSourceId).isNotEmpty
-        ? _sources.where((s) => s.id == _failedSourceId).first
-        : null;
-    final alternativeSources = _sources
-        .where((s) => _failedSourceId == null || s.id != _failedSourceId)
-        .toList(growable: false);
+    final isAddFlow = _forceAddMode;
+    final showSavedSourcesSection =
+        _shouldDisplaySavedSourcesSection && !isAddFlow;
+    final hasSavedSources = showSavedSourcesSection && _sources.isNotEmpty;
+    final hasNoSource = _sources.isEmpty || isAddFlow;
 
     if ((connectState.isLoading || _loadingSources) && !_sourceLoadFailed) {
-      return const Scaffold(
-        body: OverlaySplash(message: 'Vérification de la source...'),
+      return Scaffold(
+        body: OverlaySplash(message: l10n.bootLoadingCheckingSource),
       );
     }
 
-    if (_sourceLoadFailed && _sources.isNotEmpty) {
+    if ((_sourceLoadFailed || forceSelectionMode) && _sources.isNotEmpty) {
       return Scaffold(
         body: SafeArea(
           child: Center(
@@ -579,21 +607,30 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const WelcomeHeader(
-                      title: 'Echec de chargement',
-                      subtitle:
-                          'La source sélectionnée n’a pas pu être chargée. Réessayez ou choisissez une autre option.',
+                    WelcomeHeader(
+                      title: l10n.bootActionSourceSelectionTitle,
+                      subtitle: l10n.bootActionSourceSelectionMessage,
                     ),
-                    if (_sourceFailureMessage != null &&
-                        _sourceFailureMessage!.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        _sourceFailureMessage!,
-                        textAlign: TextAlign.center,
+                    const SizedBox(height: AppSpacing.lg),
+                    for (final source in _sources) ...[
+                      BootFormTokens.constrainPrimaryAction(
+                        MoviPrimaryButton(
+                          label: source.name,
+                          onPressed: isBusy
+                              ? null
+                              : () => unawaited(
+                                  _activateSource(
+                                    source,
+                                    isRetryFromFailure: true,
+                                  ),
+                                ),
+                          buttonStyle: sourceSelectionButtonStyle,
+                        ),
                       ),
+                      const SizedBox(height: AppSpacing.s),
                     ],
                     if (_formErrorMessage != null) ...[
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         _formErrorMessage!,
                         textAlign: TextAlign.center,
@@ -602,77 +639,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                         ),
                       ),
                     ],
-                    const SizedBox(height: AppSpacing.lg),
-                    BootFormTokens.constrainPrimaryAction(
-                      MoviPrimaryButton(
-                        label: 'Réessayer la source',
-                        focusNode: _submitFocusNode,
-                        onPressed: isBusy
-                            ? null
-                            : () {
-                                final source = failedSource ?? _sources.first;
-                                unawaited(
-                                  _activateSource(
-                                    source,
-                                    isRetryFromFailure: true,
-                                  ),
-                                );
-                              },
-                        height: BootFormTokens.primaryActionHeight,
-                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
-                          Theme.of(context),
-                        ),
-                      ),
-                    ),
-                    if (alternativeSources.isNotEmpty) ...[
-                      const SizedBox(height: 32),
-                      Text(
-                        'Ou choisissez une autre source',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          for (final source in alternativeSources)
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF333333),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                              ),
-                              onPressed: isBusy
-                                  ? null
-                                  : () => unawaited(
-                                      _activateSource(
-                                        source,
-                                        isRetryFromFailure: true,
-                                      ),
-                                    ),
-                              child: Text(
-                                source.name,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.l),
                     Text(
-                      'Vous voulez ajouter une source ?',
+                      l10n.welcomeSourceAddPrompt,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         fontSize: 16,
@@ -681,17 +650,14 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                     const SizedBox(height: AppSpacing.sm),
                     BootFormTokens.constrainPrimaryAction(
                       MoviPrimaryButton(
-                        label: 'Ajouter une nouvelle source',
+                        label: l10n.welcomeSourceAddNewAction,
                         onPressed: isBusy
                             ? null
                             : () {
                                 setState(() {
                                   _sourceLoadFailed = false;
-                                  _sourceFailureMessage = null;
-                                  _failedSourceId = null;
                                 });
                               },
-                        height: BootFormTokens.primaryActionHeight,
                         buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
                           Theme.of(context),
                         ),
@@ -710,7 +676,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     } else {
       _syncSavedSourceFocusNodes(0);
     }
-    final initialFocusNode = hasSavedSources
+    final initialFocusNode = isAddFlow
+        ? _backFocusNode
+        : hasSavedSources
         ? _savedSourceFocusNodes.first
         : _nameFocusNode;
 
@@ -747,12 +715,46 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (isAddFlow)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: MoviEnsureVisibleOnFocus(
+                              verticalAlignment: 0.12,
+                              child: Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) =>
+                                    FocusDirectionalNavigation.handleDirectionalKey(
+                                      event,
+                                      down: launchRecovery?.isRetryable ?? false
+                                          ? _retryFocusNode
+                                          : _nameFocusNode,
+                                      blockLeft: true,
+                                      blockRight: true,
+                                      blockUp: true,
+                                    ),
+                                child: IconButton(
+                                  focusNode: _backFocusNode,
+                                  tooltip: l10n.actionBack,
+                                  onPressed: () => _handleBack(context),
+                                  icon: SvgPicture.asset(
+                                    'assets/icons/actions/back.svg',
+                                    width: 22,
+                                    height: 22,
+                                    colorFilter: const ColorFilter.mode(
+                                      Colors.white,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         WelcomeHeader(
                           title: hasNoSource
-                              ? 'Ajout d’une source'
+                              ? l10n.welcomeSourceAddModeTitle
                               : l10n.welcomeSourceTitle,
                           subtitle: hasNoSource
-                              ? 'Ajoutez votre première source IPTV.'
+                              ? l10n.welcomeSourceFirstSourceSubtitle
                               : l10n.welcomeSourceSubtitle,
                         ),
                         if (launchRecovery?.isRetryable ?? false) ...[
@@ -764,7 +766,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                               onKeyEvent: (_, event) =>
                                   FocusDirectionalNavigation.handleDirectionalKey(
                                     event,
-                                    down: _shouldDisplaySavedSourcesSection
+                                    down: showSavedSourcesSection
                                         ? (_sourcesError != null
                                               ? _sourcesErrorRetryFocusNode
                                               : hasSavedSources
@@ -793,7 +795,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
 
                         // ---------------- Sources Supabase ----------------
                         // Afficher seulement si Supabase est disponible
-                        if (_shouldDisplaySavedSourcesSection) ...[
+                        if (showSavedSourcesSection) ...[
                           _SectionHeader(
                             title: l10n.welcomeSourceSavedSourcesTitle,
                             forceRow: true,
@@ -936,7 +938,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                   onKeyEvent: (_, event) =>
                                       FocusDirectionalNavigation.handleDirectionalKey(
                                         event,
-                                        up: _shouldDisplaySavedSourcesSection
+                                        up: showSavedSourcesSection
                                             ? (_sourcesError != null
                                                   ? _sourcesErrorRetryFocusNode
                                                   : hasSavedSources
@@ -977,9 +979,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                               Theme.of(context),
                                             ).copyWith(
                                               labelText:
-                                                  'Nom de la source',
+                                                  l10n.welcomeSourceNameLabel,
                                               hintText:
-                                                  'Nom de la source',
+                                                  l10n.welcomeSourceNameHint,
                                             ),
                                       ),
                                     ),
@@ -1033,7 +1035,8 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                             BootFormTokens.bootTextFieldDecoration(
                                               Theme.of(context),
                                             ).copyWith(
-                                              labelText: 'Serveur',
+                                              labelText: l10n
+                                                  .welcomeSourceServerUrlLabel,
                                               hintText: l10n
                                                   .welcomeSourceServerUrlHint,
                                             ),
@@ -1089,7 +1092,8 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                             BootFormTokens.bootTextFieldDecoration(
                                               Theme.of(context),
                                             ).copyWith(
-                                              labelText: 'Nom d\'utilisateur',
+                                              labelText: l10n
+                                                  .welcomeSourceUsernameLabel,
                                             ),
                                       ),
                                     ),
@@ -1240,13 +1244,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                   child: BootFormTokens.constrainPrimaryAction(
                                     MoviPrimaryButton(
                                       label: hasNoSource
-                                          ? 'Ajouter la source'
+                                          ? l10n.welcomeSourceAdd
                                           : l10n.welcomeSourceActivateAction,
                                       focusNode: _submitFocusNode,
                                       onPressed: isBusy ? null : _activate,
                                       loading: connectState.isLoading,
-                                      height:
-                                          BootFormTokens.primaryActionHeight,
                                       buttonStyle:
                                           BootFormTokens.bootPrimaryButtonStyle(
                                             Theme.of(context),

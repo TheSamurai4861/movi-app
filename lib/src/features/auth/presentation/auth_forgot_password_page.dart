@@ -78,7 +78,6 @@ class _AuthForgotPasswordPageState
                       label: 'Se connecter',
                       loading: false,
                       onPressed: _isBusy ? null : _onBackToSignIn,
-                      height: BootFormTokens.primaryActionHeight,
                       buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
                         Theme.of(context),
                       ),
@@ -151,7 +150,6 @@ class _AuthForgotPasswordPageState
             label: 'Envoyer la demande',
             loading: _isBusy,
             onPressed: _isBusy ? null : _onSendRequest,
-            height: BootFormTokens.primaryActionHeight,
             buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
               Theme.of(context),
             ),
@@ -189,7 +187,6 @@ class _AuthForgotPasswordPageState
             label: 'Renvoyer la demande',
             loading: _isBusy,
             onPressed: _isBusy ? null : _onSendRequest,
-            height: BootFormTokens.primaryActionHeight,
             buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
               Theme.of(context),
             ),

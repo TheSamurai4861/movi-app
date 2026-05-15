@@ -7,6 +7,7 @@ import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/domain/boot_contracts.dart';
 import 'package:movi/src/core/startup/domain/startup_recovery_mapper.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/presentation/boot_screen_localizer.dart';
 import 'package:movi/src/core/startup/presentation/boot_screen_mapper.dart';
 import 'package:movi/src/core/startup/presentation/boot_screen_model.dart';
 import 'package:movi/src/core/startup/presentation/widgets/boot_catalog_loading_screen.dart';
@@ -26,31 +27,36 @@ Widget buildBootSurfaceForModel(
   FocusNode? secondaryFocus,
   void Function(BootActionIntent intent)? onAction,
 }) {
-  switch (model.screenType) {
+  final localized = localizeBootScreenModel(
+    model: model,
+    l10n: lookupAppLocalizations(const Locale('fr')),
+  );
+
+  switch (localized.screenType) {
     case BootScreenType.catalogLoading:
       return BootCatalogLoadingScreen(
-        message: model.message,
-        secondaryMessage: model.secondaryMessage,
-        showLogo: model.showLogo,
-        showProgress: model.showProgress,
+        message: localized.message,
+        secondaryMessage: localized.secondaryMessage,
+        showLogo: localized.showLogo,
+        showProgress: localized.showProgress,
       );
     case BootScreenType.simpleLoading:
     case BootScreenType.openingHome:
-      return BootSimpleLoadingScreen.forBootModel(model);
+      return BootSimpleLoadingScreen.forBootModel(localized);
     case BootScreenType.actionRequired:
     case BootScreenType.technicalFailure:
     case BootScreenType.recovery:
       return BootRecoveryPanel.fromBootModel(
-        model: model,
+        model: localized,
         onAction: onAction ?? (_) {},
         primaryFocusNode: primaryFocus,
         secondaryFocusNode: secondaryFocus,
       );
     case BootScreenType.homePartialNotice:
       return BootSimpleLoadingScreen(
-        message: model.message,
-        showLogo: model.showLogo,
-        showProgress: model.showProgress,
+        message: localized.message,
+        showLogo: localized.showLogo,
+        showProgress: localized.showProgress,
       );
   }
 }
@@ -171,7 +177,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(FilledButton, 'Reessayer'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Réessayer'), findsOneWidget);
       expect(
         find.widgetWithText(TextButton, 'Changer de source'),
         findsOneWidget,
@@ -320,7 +326,7 @@ void main() {
       _expectNoReasonCodeLeak(model, tester);
     });
 
-    testWidgets('selection source -> Choisir une source', (tester) async {
+    testWidgets('selection source -> Changer de source', (tester) async {
       final primary = FocusNode();
       addTearDown(primary.dispose);
 
@@ -337,7 +343,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(FilledButton, 'Choisir une source'),
+        find.widgetWithText(FilledButton, 'Changer de source'),
         findsOneWidget,
       );
       _expectNoReasonCodeLeak(model, tester);
@@ -345,7 +351,7 @@ void main() {
   });
 
   group('technical failure', () {
-    testWidgets('echec technique : Reessayer + Exporter, focus primaire', (
+    testWidgets('echec technique : Réessayer + Exporter, focus primaire', (
       tester,
     ) async {
       final primary = FocusNode();
@@ -368,7 +374,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(FilledButton, 'Reessayer'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Réessayer'), findsOneWidget);
       expect(
         find.widgetWithText(TextButton, 'Exporter les logs'),
         findsOneWidget,

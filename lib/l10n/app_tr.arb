@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "Kullanım koşulları",
   "settingsCloudSyncPremiumRequiredMessage": "Bulut senkronizasyonu için Movi Premium gerekir.",
-  "authForgotPasswordTitle": "Şifremi unuttum",   "authForgotPasswordSubtitle": "Şifre sıfırlama bağlantısı almak için e-posta adresinizi girin.",   "authForgotPasswordInfoNeutral": "Hesap mevcutsa bu adrese şifre sıfırlama e-postası gönderilir.",   "authForgotPasswordPrimarySubmit": "Bağlantıyı gönder",   "authForgotPasswordBackToSignIn": "Girişe dön"
+  "authForgotPasswordTitle": "Şifremi unuttum",   "authForgotPasswordSubtitle": "Şifre sıfırlama bağlantısı almak için e-posta adresinizi girin.",   "authForgotPasswordInfoNeutral": "Hesap mevcutsa bu adrese şifre sıfırlama e-postası gönderilir.",   "authForgotPasswordPrimarySubmit": "Bağlantıyı gönder",   "authForgotPasswordBackToSignIn": "Girişe dön",
+  "bootLoadingPreparingLaunch": "Başlatma hazırlanıyor…",
+  "bootLoadingDefault": "Yükleniyor…",
+  "bootLoadingCheckingSession": "Oturum kontrol ediliyor…",
+  "bootLoadingProfile": "Profil yükleniyor…",
+  "bootLoadingCheckingProfile": "Profil kontrol ediliyor…",
+  "bootLoadingCheckingSource": "Kaynak kontrol ediliyor…",
+  "bootLoadingPreparingCatalog": "Katalog hazırlanıyor…",
+  "bootActionAuthTitle": "Giriş gerekli",
+  "bootActionAuthMessage": "Devam etmek için giriş yapın.",
+  "bootActionProfileTitle": "Profil gerekli",
+  "bootActionProfileMessage": "Devam etmek için bir profil oluşturun veya seçin.",
+  "bootActionSourceRequiredTitle": "Kaynak gerekli",
+  "bootActionSourceRequiredMessage": "Devam etmek için bir kaynak ekleyin veya yeniden bağlayın.",
+  "bootActionSourceSelectionTitle": "Kaynak seçimi",
+  "bootActionSourceSelectionMessage": "Kullanılacak kaynağı seçin.",
+  "bootRecoverySourceTimeoutTitle": "Kaynak yanıt vermiyor",
+  "bootRecoverySourceTimeoutMessage": "Senkronizasyonu yeniden deneyin veya kaynağı değiştirin.",
+  "bootRecoverySourceProviderTitle": "Kaynak yüklenemiyor",
+  "bootRecoverySourceProviderMessage": "Yeniden yüklemeyi deneyin veya kaynağı değiştirin.",
+  "bootRecoverySourceCredentialsTitle": "Kaynağa bağlanılamıyor",
+  "bootRecoverySourceCredentialsMessage": "Devam etmek için kaynağı yeniden bağlayın.",
+  "bootRecoverySourceEmptyTitle": "İçerik bulunamadı",
+  "bootRecoverySourceEmptyMessage": "Kaynağı yeniden senkronize edin veya başka bir tane seçin.",
+  "bootFailureTitle": "Başlatma kesintiye uğradı",
+  "bootFailureMessage": "Bir hata başlatmayı engelliyor.",
+  "bootActionExportLogs": "Günlükleri dışa aktar",
+  "bootActionLogin": "Giriş yap",
+  "bootActionChooseProfile": "Profil seç",
+  "bootActionAddSource": "Kaynak ekle",
+  "bootActionChooseSource": "Kaynağı değiştir",
+  "bootActionReconnectSource": "Kaynağı yeniden bağla",
+  "bootActionResyncSource": "Yeniden senkronize et",
+  "bootActionOpenHome": "Ana sayfayı aç",
+  "bootSemanticsSplashLogo": "MOVI açılış logosu",
+  "bootSemanticsLoadingInProgress": "Yükleme devam ediyor",
+  "bootSemanticsPreparingCatalog": "Katalog hazırlanıyor",
+  "welcomeSourceSavedSourcesTitle": "Kaydedilen kaynaklar",
+  "welcomeSourceRefreshTooltip": "Yenile",
+  "welcomeSourceNoRemoteSourcesMessage": "Supabase'de kaynak bulunamadı. Aşağıdan bir tane ekleyin veya etkinleştirin.",
+  "welcomeSourceActivateSectionTitle": "Bir kaynak etkinleştir",
+  "welcomeSourceNameLabel": "Kaynak adı",
+  "welcomeSourceNameHint": "IPTV'm",
+  "welcomeSourceServerUrlLabel": "Sunucu URL'si",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "Kullanıcı adı",
+  "welcomeSourcePasswordLabel": "Şifre",
+  "welcomeSourceActivateAction": "Etkinleştir",
+  "welcomeSourceAddModeTitle": "Bir kaynak ekle",
+  "welcomeSourceFirstSourceSubtitle": "İlk IPTV kaynağınızı ekleyin.",
+  "welcomeSourceAddPrompt": "Bir kaynak eklemek ister misiniz?",
+  "welcomeSourceAddNewAction": "Yeni kaynak ekle",
+  "welcomeSourceRequiredFields": "Tüm alanlar zorunludur.",
+  "welcomeSourceErrorTimeout": "Sunucu çok uzun süredir yanıt vermiyor. Bağlantınızı kontrol edin ve tekrar deneyin.",
+  "welcomeSourceErrorInvalidCredentials": "Geçersiz kimlik bilgileri. Kullanıcı adını ve şifreyi kontrol edin.",
+  "welcomeSourceErrorNetwork": "Sunucuya bağlanılamıyor. URL'yi ve ağınızı kontrol edin.",
+  "welcomeSourceErrorGeneric": "Kaynak şu anda yüklenemiyor. Lütfen tekrar deneyin.",
+  "welcomeSourceExpiresOn": "Son kullanma tarihi: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "Son kullanma tarihi yok",
+  "welcomeUserProfileLockedTitle": "Profil kilitli",
+  "welcomeUserProfileLockedReason": "Profili değiştirmek için PIN'i girin.",
+  "welcomeUserProfilesLoadFailed": "Profiller yüklenemedi.",
+  "welcomeUserCreateTitle": "Profil oluştur",
+  "welcomeUserChooseTitle": "Profil seç",
+  "welcomeUserCreateSubtitle": "Movi için ilk profilinizi oluşturun.",
+  "welcomeUserChooseSubtitle": "Profillerinizden birini seçin.",
+  "welcomeUserProfileNameLabel": "Profil adı",
+  "welcomeUserProfileNameHint": "Profil adı",
+  "welcomeUserCreateProfileAction": "Profil oluştur",
+  "childPreloadTitle": "İçerik güvenliği kurulumu",
+  "childPreloadSubtitle": "Yaş sınıflandırmaları kontrol ediliyor...",
+  "childPreloadSkip": "Atla",
+  "childPreloadPhaseResolvingIds": "Tanımlayıcılar çözümleniyor...",
+  "childPreloadPhaseFetchingRatings": "Değerlendirmeler getiriliyor...",
+  "childPreloadPhaseCompleted": "Tamamlandı",
+  "childPreloadEtaSeconds": "Yaklaşık {seconds} saniye kaldı",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "Yaklaşık {minutes} dakika kaldı",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "Yaklaşık {minutes} dakika {seconds} saniye kaldı",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "Bunun yerine şifre kullan",
+  "authPasswordTitle": "Giriş yap",
+  "authPasswordSubtitle": "Devam etmek için e-posta ve şifrenizi girin.",
+  "authPasswordEmailLabel": "E-posta",
+  "authPasswordEmailHint": "ad@ornek.com",
+  "authPasswordEmailHelp": "Hesabınıza bağlı e-postayı kullanın.",
+  "authPasswordPasswordLabel": "Şifre",
+  "authPasswordPasswordHint": "Şifreniz",
+  "authPasswordPasswordHelp": "Şifreniz büyük/küçük harf duyarlıdır.",
+  "authPasswordPrimarySubmit": "Giriş yap",
+  "authPasswordForgotPassword": "Şifrenizi mi unuttunuz?",
+  "authPasswordResetSent": "Şifre sıfırlama e-postası gönderildi.",
+  "authPasswordUseOtp": "Bunun yerine e-posta kodu kullan"
 }
 

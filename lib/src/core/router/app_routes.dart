@@ -88,7 +88,7 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
     GoRoute(
       path: AppRoutePaths.launch,
       name: AppRouteIds.launch,
-      pageBuilder: (context, state) => const MaterialPage(child: _LaunchGate()),
+      pageBuilder: (context, state) => _fadePage(child: const _LaunchGate()),
     ),
 
     // Compat: /welcome -> /welcome/user
@@ -105,7 +105,7 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       path: AppRoutePaths.welcomeUser,
       name: AppRouteIds.welcomeUser,
       pageBuilder: (context, state) =>
-          const MaterialPage(child: WelcomeUserPage()),
+          _fadePage(child: const WelcomeUserPage()),
     ),
 
     // Étape 2: ajout/connexion des sources
@@ -113,7 +113,7 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       path: AppRoutePaths.welcomeSources,
       name: AppRouteIds.welcomeSources,
       pageBuilder: (context, state) =>
-          const MaterialPage(child: WelcomeSourcePage()),
+          _fadePage(child: const WelcomeSourcePage()),
     ),
 
     // Étape 2bis: choix d'une source quand il y en a plusieurs (sans redemander le mot de passe).
@@ -121,7 +121,7 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       path: AppRoutePaths.welcomeSourceSelect,
       name: AppRouteIds.welcomeSourceSelect,
       pageBuilder: (context, state) =>
-          const MaterialPage(child: WelcomeSourceSelectPage()),
+          _fadePage(child: const WelcomeSourceSelectPage()),
     ),
 
     // Étape intermédiaire explicite: chargement du catalogue source.
@@ -129,10 +129,7 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       path: AppRoutePaths.welcomeSourceLoading,
       name: AppRouteIds.welcomeSourceLoading,
       pageBuilder: (context, state) =>
-          const CustomTransitionPage(
-            child: SplashBootstrapPage(),
-            transitionsBuilder: _fadeTransition,
-          ),
+          _fadePage(child: const SplashBootstrapPage()),
     ),
 
     GoRoute(
@@ -143,7 +140,7 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
             state.uri.queryParameters['return_to'] == 'previous';
         final useOtpFallback = state.uri.queryParameters['mode'] == 'otp';
 
-        return MaterialPage(
+        return _fadePage(
           child: useOtpFallback
               ? AuthOtpPage(
                   returnOnSuccess: returnOnSuccess,
@@ -156,14 +153,13 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
     GoRoute(
       path: AppRoutePaths.authSignUp,
       name: AppRouteIds.authSignUp,
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: AuthSignUpPage()),
+      pageBuilder: (context, state) => _fadePage(child: const AuthSignUpPage()),
     ),
     GoRoute(
       path: AppRoutePaths.authForgotPassword,
       name: AppRouteIds.authForgotPassword,
       pageBuilder: (context, state) =>
-          const MaterialPage(child: AuthForgotPasswordPage()),
+          _fadePage(child: const AuthForgotPasswordPage()),
     ),
     GoRoute(
       path: AppRoutePaths.authUpdatePasswordCallback,
@@ -176,26 +172,22 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       path: AppRoutePaths.authUpdatePassword,
       name: AppRouteIds.authUpdatePassword,
       pageBuilder: (context, state) =>
-          const MaterialPage(child: AuthUpdatePasswordPage()),
+          _fadePage(child: const AuthUpdatePasswordPage()),
     ),
 
     GoRoute(
       path: AppRoutePaths.bootstrap,
       name: AppRouteIds.bootstrap,
-      pageBuilder: (context, state) => const CustomTransitionPage(
-        child: SplashBootstrapPage(),
-        transitionsBuilder: _fadeTransition,
-      ),
+      pageBuilder: (context, state) =>
+          _fadePage(child: const SplashBootstrapPage()),
     ),
 
     // --- Home (Shell) ------------------------------------------------------
     GoRoute(
       path: AppRoutePaths.home,
       name: AppRouteIds.home,
-      pageBuilder: (context, state) => const CustomTransitionPage(
-        child: AuthGate(child: AppShellPage()),
-        transitionsBuilder: _fadeTransition,
-      ),
+      pageBuilder: (context, state) =>
+          _fadePage(child: const AuthGate(child: AppShellPage())),
     ),
 
     // --- Recherche ---------------------------------------------------------
@@ -666,6 +658,18 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
 }
 
 /// Transition simple en fondu réutilisée par plusieurs pages.
+Page<T> _fadePage<T>({
+  required Widget child,
+  Duration duration = const Duration(milliseconds: 220),
+}) {
+  return CustomTransitionPage<T>(
+    child: child,
+    transitionDuration: duration,
+    reverseTransitionDuration: duration,
+    transitionsBuilder: _fadeTransition,
+  );
+}
+
 Widget _fadeTransition(
   BuildContext context,
   Animation<double> animation,

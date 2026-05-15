@@ -14,6 +14,7 @@ import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_track_series_button.dart';
@@ -1295,7 +1296,6 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       width: buttonWidth,
                       child: MoviPrimaryButton(
                         label: l10n.actionRetry,
-                        height: 48,
                         expand: !isWideLayout,
                         onPressed: () {
                           ref.invalidate(
@@ -1679,6 +1679,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String overviewText,
     Uri? logo,
   }) {
+    final uiScale = context.tvUiScale;
     return MoviDetailHeroDesktopOverlay(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1709,14 +1710,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     imageUrl: logo.toString(),
                     semanticLabel: mediaTitle,
                     alignment: Alignment.centerLeft,
-                    maxWidth: 520,
-                    reservedHeight: 72,
-                    wideMaxHeight: 72,
-                    tallMaxHeight: 128,
-                    blockyMaxHeight: 160,
+                    maxWidth: 520 * uiScale,
+                    reservedHeight: 72 * uiScale,
+                    wideMaxHeight: 72 * uiScale,
+                    tallMaxHeight: 128 * uiScale,
+                    blockyMaxHeight: 160 * uiScale,
                     blockyRatioThreshold: 1.45,
                     overflowUpFactor: 1.0,
-                    extraUpOffset: 18,
+                    extraUpOffset: 18 * uiScale,
                     onErrorFallback: (_) => Text(
                       mediaTitle,
                       maxLines: 2,
@@ -1736,7 +1737,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     ),
                   ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10 * uiScale),
           _buildMetaPills(
             yearText: yearText,
             seasonsCountText: seasonsCountText,
@@ -1744,9 +1745,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             alignment: WrapAlignment.start,
           ),
           if (overviewText.trim().isNotEmpty) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16 * uiScale),
             SizedBox(
-              height: 72,
+              height: 72 * uiScale,
               child: Text(
                 overviewText,
                 maxLines: 3,
@@ -1764,7 +1765,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               ),
             ),
           ],
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * uiScale),
           _buildActionButtons(mediaTitle: mediaTitle, expandPrimary: false),
         ],
       ),
@@ -1778,6 +1779,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String ratingText,
     Uri? logo,
   }) {
+    final uiScale = context.tvUiScale;
     final titleStyle =
         Theme.of(context).textTheme.headlineSmall?.copyWith(
           color: Colors.white,
@@ -1792,9 +1794,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     const heroPillBackground = Color(0x80383838);
 
     return Positioned(
-      left: 20,
-      right: 20,
-      bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+      left: 20 * uiScale,
+      right: 20 * uiScale,
+      bottom: HomeLayoutConstants.heroMobileContentBottomInset * uiScale,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -1805,7 +1807,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             maxWidth: screenWidth * 0.8,
             logo: logo,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16 * uiScale),
           _buildMetaPills(
             yearText: yearText,
             seasonsCountText: seasonsCountText,
@@ -1822,16 +1824,17 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String mediaTitle,
     required String overviewText,
   }) {
+    final uiScale = context.tvUiScale;
     return AnimatedSize(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          12,
-          20,
-          HomeLayoutConstants.heroMobileContentBottomInset,
+        padding: EdgeInsets.fromLTRB(
+          20 * uiScale,
+          12 * uiScale,
+          20 * uiScale,
+          HomeLayoutConstants.heroMobileContentBottomInset * uiScale,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1839,8 +1842,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             if (overviewText.trim().isNotEmpty)
               _buildMobileOverview(overviewText)
             else
-              const SizedBox(height: 8),
-            const SizedBox(height: 16),
+              SizedBox(height: 8 * uiScale),
+            SizedBox(height: 16 * uiScale),
             _buildActionButtons(mediaTitle: mediaTitle, expandPrimary: true),
           ],
         ),
@@ -1856,33 +1859,43 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     Color? pillColor,
     List<Widget> leading = const [],
   }) {
+    final uiScale = context.tvUiScale;
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 8 * uiScale,
+      runSpacing: 8 * uiScale,
       alignment: alignment,
       children: [
         ...leading,
         MoviPill(
           yearText,
           large: true,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 4 * uiScale,
+          ),
           color: pillColor,
         ),
         MoviPill(
           seasonsCountText,
           large: true,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 4 * uiScale,
+          ),
           color: pillColor,
         ),
         MoviPill(
           ratingText,
           large: true,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: 8 * uiScale,
+            vertical: 4 * uiScale,
+          ),
           color: pillColor,
-          trailingIcon: const MoviAssetIcon(
+          trailingIcon: MoviAssetIcon(
             AppAssets.iconStarFilled,
-            width: 18,
-            height: 18,
+            width: 18 * uiScale,
+            height: 18 * uiScale,
             color: AppColors.ratingAccent,
           ),
         ),
@@ -1894,6 +1907,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String mediaTitle,
     required bool expandPrimary,
   }) {
+    final uiScale = context.tvUiScale;
     const iconActionFocusedBackground = Color(0x807A7A7A);
     final primaryButton = Consumer(
       builder: (context, ref, _) {
@@ -1981,15 +1995,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
     final playButton = expandPrimary
         ? Expanded(child: primaryButton)
-        : SizedBox(width: 320, child: primaryButton);
+        : SizedBox(width: 320 * uiScale, child: primaryButton);
 
-    return SizedBox(
-      height: expandPrimary ? 55 : 48,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: (expandPrimary ? 55 : 48) * uiScale,
+      ),
       child: Row(
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           playButton,
-          const SizedBox(width: 12),
+          SizedBox(width: 12 * uiScale),
           Consumer(
             builder: (context, ref, _) {
               return MoviEnsureVisibleOnFocus(
@@ -2016,8 +2033,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     button: true,
                     label: AppLocalizations.of(context)!.actionChangeVersion,
                     child: SizedBox(
-                      width: 44,
-                      height: 44,
+                      width: 44 * uiScale,
+                      height: 44 * uiScale,
                       child: Material(
                         type: MaterialType.transparency,
                         child: InkWell(
@@ -2025,7 +2042,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                           onTap: () async {
                             await _chooseSeriesVersion(mediaTitle);
                           },
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius: BorderRadius.circular(22 * uiScale),
                           child: AnimatedScale(
                             scale: _changeVersionFocused ? 1.05 : 1,
                             duration: const Duration(milliseconds: 180),
@@ -2033,12 +2050,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 180),
                               curve: Curves.easeOutCubic,
-                              padding: const EdgeInsets.all(5),
+                              padding: EdgeInsets.all(5 * uiScale),
                               decoration: BoxDecoration(
                                 color: _changeVersionFocused
                                     ? iconActionFocusedBackground
                                     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(22),
+                                borderRadius: BorderRadius.circular(
+                                  22 * uiScale,
+                                ),
                                 border: Border.all(
                                   color: _changeVersionFocused
                                       ? Theme.of(context).colorScheme.primary
@@ -2047,10 +2066,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                 ),
                               ),
                               alignment: Alignment.center,
-                              child: const MoviAssetIcon(
+                              child: MoviAssetIcon(
                                 AppAssets.iconChange,
-                                width: 28,
-                                height: 28,
+                                width: 28 * uiScale,
+                                height: 28 * uiScale,
                                 color: Colors.white,
                               ),
                             ),
@@ -2063,10 +2082,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               );
             },
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12 * uiScale),
           SizedBox(
-            width: 44,
-            height: 44,
+            width: 44 * uiScale,
+            height: 44 * uiScale,
             child: Consumer(
               builder: (context, ref, _) {
                 final seriesId = widget.seriesId;
@@ -2283,6 +2302,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Widget _buildDistribution(List<MoviPerson> cast) {
     if (cast.isEmpty) return const SizedBox.shrink();
     _syncCastFocusNodes(cast.length);
+    final uiScale = context.tvUiScale;
     final horizontalPadding = _sectionHorizontalPadding(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2297,9 +2317,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12 * uiScale),
         SizedBox(
-          height: MoviPersonCard.listHeight,
+          height: MoviPersonCard.listHeightForScale(uiScale),
           child: Builder(
             builder: (listContext) {
               return MoviVerticalEnsureVisibleTarget(
@@ -2307,12 +2327,12 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 child: ListView.separated(
                   clipBehavior: Clip.none,
                   padding: EdgeInsetsDirectional.only(
-                    start: horizontalPadding,
-                    end: horizontalPadding,
+                    start: horizontalPadding * uiScale,
+                    end: horizontalPadding * uiScale,
                   ),
                   scrollDirection: Axis.horizontal,
                   itemCount: cast.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 16),
+                  separatorBuilder: (_, __) => SizedBox(width: 16 * uiScale),
                   itemBuilder: (context, index) {
                     final p = cast[index];
                     return MoviEnsureVisibleOnFocus(
@@ -2598,6 +2618,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         const <String>{};
 
     if (_useDesktopDetailLayout(context)) {
+      final uiScale = context.tvUiScale;
       return Builder(
         builder: (listContext) {
           return MoviVerticalEnsureVisibleTarget(
@@ -2605,13 +2626,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             child: ListView.separated(
               clipBehavior: Clip.none,
               padding: EdgeInsetsDirectional.only(
-                start: _sectionHorizontalPadding(context),
-                end: _sectionHorizontalPadding(context),
-                top: 20,
+                start: _sectionHorizontalPadding(context) * uiScale,
+                end: _sectionHorizontalPadding(context) * uiScale,
+                top: 20 * uiScale,
               ),
               scrollDirection: Axis.horizontal,
               itemCount: sortedEpisodes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 18),
+              separatorBuilder: (_, __) => SizedBox(width: 18 * uiScale),
               itemBuilder: (context, index) {
                 final episode = sortedEpisodes[index];
                 final hideSpoilers =
@@ -2628,7 +2649,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   enableVerticalScroll: false,
                   builder: (context, state) {
                     return SizedBox(
-                      width: 320,
+                      width: 320 * uiScale,
                       child: _buildDesktopEpisodeCard(
                         episode,
                         hideSpoilers: hideSpoilers,
@@ -2644,11 +2665,16 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       );
     }
 
+    final uiScale = context.tvUiScale;
     return ListView.separated(
       clipBehavior: Clip.none,
-      padding: const EdgeInsetsDirectional.only(start: 20, end: 20, top: 20),
+      padding: EdgeInsetsDirectional.only(
+        start: 20 * uiScale,
+        end: 20 * uiScale,
+        top: 20 * uiScale,
+      ),
       itemCount: sortedEpisodes.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 24),
+      separatorBuilder: (_, __) => SizedBox(height: 24 * uiScale),
       itemBuilder: (context, index) {
         final episode = sortedEpisodes[index];
         final hideSpoilers =
@@ -2666,13 +2692,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             final accent = Theme.of(context).colorScheme.primary;
             return MoviFocusFrame(
               scale: state.focused ? 1.015 : 1,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(18 * uiScale),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(18 * uiScale),
                   border: Border.all(
                     color: state.focused ? accent : Colors.transparent,
-                    width: 2,
+                    width: 2 * uiScale,
                   ),
                 ),
                 child: _buildEpisodeCard(episode, hideSpoilers: hideSpoilers),
@@ -2688,6 +2714,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     EpisodeViewModel episode, {
     required bool hideSpoilers,
   }) {
+    final uiScale = context.tvUiScale;
     final cs = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -2695,9 +2722,15 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         // On garde un ratio 178:100 (~16:9) mais la largeur est auto-ajustÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e.
         // La hauteur est volontairement stable (comme si le titre faisait 2 lignes),
         // pour ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©viter que la vignette "saute" entre 1 et 2 lignes.
-        final thumbHeight = (constraints.maxWidth * 0.22).clamp(78.0, 92.0);
+        final thumbHeight = (constraints.maxWidth * 0.22).clamp(
+          78.0 * uiScale,
+          92.0 * uiScale,
+        );
         const thumbAspectRatio = 178 / 100;
-        final thumbWidth = (thumbHeight * thumbAspectRatio).clamp(120.0, 164.0);
+        final thumbWidth = (thumbHeight * thumbAspectRatio).clamp(
+          120.0 * uiScale,
+          164.0 * uiScale,
+        );
         final thumbCacheWidth = _decodeDimensionForSize(
           context,
           thumbWidth,
@@ -2764,21 +2797,21 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             children: [
               effectiveBase,
               Positioned(
-                right: 8,
-                bottom: 8,
+                right: 8 * uiScale,
+                bottom: 8 * uiScale,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(999 * uiScale),
                   child: BackdropFilter(
                     filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(999 * uiScale),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8 * uiScale,
+                          vertical: 4 * uiScale,
                         ),
                         child: Text(
                           _formatDuration(runtime),
@@ -2787,9 +2820,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
                               ) ??
-                              const TextStyle(
+                              TextStyle(
                                 color: Colors.white,
-                                fontSize: 11,
+                                fontSize: 11 * uiScale,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -2809,11 +2842,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               width: thumbWidth,
               height: thumbHeight,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16 * uiScale),
                 child: thumbnail(),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14 * uiScale),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2829,36 +2862,36 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                           color: cs.onSurface,
                         ) ??
                         TextStyle(
-                          fontSize: 14,
+                          fontSize: 14 * uiScale,
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8 * uiScale),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 8 * uiScale,
+                    runSpacing: 8 * uiScale,
                     children: [
                       if (episode.airDate != null)
                         MoviPill(
                           _formatDate(episode.airDate!),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8 * uiScale,
+                            vertical: 4 * uiScale,
                           ),
                           color: cs.surfaceContainerHighest,
                         ),
                     ],
                   ),
                   if (!episode.isAvailableInPlaylist) ...[
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8 * uiScale),
                     MoviPill(
                       AppLocalizations.of(context)!.notYetAvailable,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8 * uiScale,
+                        vertical: 4 * uiScale,
                       ),
                       color: Colors.red.withValues(alpha: 0.5),
                     ),
@@ -2877,8 +2910,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required bool hideSpoilers,
     required bool focused,
   }) {
+    final uiScale = context.tvUiScale;
     final cs = Theme.of(context).colorScheme;
-    const cardRadius = 20.0;
+    final cardRadius = 20.0 * uiScale;
     const imageAspectRatio = 178 / 100;
     final focusAccent = Theme.of(context).colorScheme.primary;
 
@@ -2924,14 +2958,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               borderRadius: BorderRadius.circular(cardRadius),
               border: Border.all(
                 color: focused ? focusAccent : Colors.transparent,
-                width: 2,
+                width: 2 * uiScale,
               ),
               boxShadow: focused
                   ? [
                       BoxShadow(
                         color: focusAccent.withValues(alpha: 0.2),
-                        blurRadius: 18,
-                        spreadRadius: 1,
+                        blurRadius: 18 * uiScale,
+                        spreadRadius: 1 * uiScale,
                       ),
                     ]
                   : null,
@@ -2945,7 +2979,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12 * uiScale),
         Text(
           hideSpoilers
               ? 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°pisode ${episode.episodeNumber}'
@@ -2958,32 +2992,41 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 color: cs.onSurface,
               ) ??
               TextStyle(
-                fontSize: 14,
+                fontSize: 14 * uiScale,
                 fontWeight: FontWeight.w600,
                 color: cs.onSurface,
               ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8 * uiScale),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 8 * uiScale,
+          runSpacing: 8 * uiScale,
           children: [
             if (episode.airDate != null)
               MoviPill(
                 _formatDate(episode.airDate!),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8 * uiScale,
+                  vertical: 4 * uiScale,
+                ),
                 color: cs.surfaceContainerHighest,
               ),
             if (episode.runtime != null)
               MoviPill(
                 _formatDuration(episode.runtime!),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8 * uiScale,
+                  vertical: 4 * uiScale,
+                ),
                 color: cs.surfaceContainerHighest,
               ),
             if (!episode.isAvailableInPlaylist)
               MoviPill(
                 AppLocalizations.of(context)!.notYetAvailable,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8 * uiScale,
+                  vertical: 4 * uiScale,
+                ),
                 color: Colors.red.withValues(alpha: 0.5),
               ),
           ],

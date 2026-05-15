@@ -73,6 +73,8 @@ class SubtitleAppearancePrefs {
   static const String defaultTextColorHex = '#FFFFFFFF';
   static const String defaultFontFamilyKey = 'system';
   static const String defaultBackgroundColorHex = '#FF000000';
+  static const String transparentBackgroundKey = 'none';
+  static const String transparentBackgroundColorHex = '#00000000';
   static const double defaultBackgroundOpacity = 0.66;
   static const double minFontScale = 0.85;
   static const double maxFontScale = 1.30;
@@ -186,13 +188,24 @@ class SubtitleAppearancePrefs {
     return toBaseFontSize() * clampedScale;
   }
 
+  bool get usesTransparentSubtitleBackground =>
+      backgroundColorHex == transparentBackgroundColorHex;
+
   Color toBackgroundColor() {
+    if (usesTransparentSubtitleBackground) {
+      return Colors.transparent;
+    }
     final color = _toColor(
       backgroundColorHex,
       fallback: const Color(0xFF000000),
     );
     final alpha = (backgroundOpacity.clamp(0.0, 1.0) * 255).round();
     return color.withAlpha(alpha);
+  }
+
+  Color? subtitleTextBackgroundColor() {
+    if (usesTransparentSubtitleBackground) return null;
+    return toBackgroundColor();
   }
 
   List<Shadow>? toTextShadows() {
@@ -225,7 +238,7 @@ class SubtitleAppearancePrefs {
       fontSize: toFontSize(),
       color: toTextColor(),
       fontFamily: resolveFontFamily(fontFamilyKey),
-      backgroundColor: toBackgroundColor(),
+      backgroundColor: subtitleTextBackgroundColor(),
       shadows: toTextShadows(),
     );
   }
@@ -290,6 +303,10 @@ class SubtitleAppearancePrefs {
 
   static const List<SubtitleColorChoice> subtitleBackgroundColorChoices =
       <SubtitleColorChoice>[
+        SubtitleColorChoice(
+          key: transparentBackgroundKey,
+          hex: transparentBackgroundColorHex,
+        ),
         SubtitleColorChoice(key: 'black', hex: '#FF000000'),
         SubtitleColorChoice(key: 'charcoal', hex: '#FF1E1E1E'),
         SubtitleColorChoice(key: 'navy', hex: '#FF0D1B2A'),
@@ -343,6 +360,9 @@ class SubtitleColorChoice {
 
   final String key;
   final String hex;
+
+  bool get isTransparentBackground =>
+      key == SubtitleAppearancePrefs.transparentBackgroundKey;
 }
 
 @immutable

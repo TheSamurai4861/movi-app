@@ -15,14 +15,17 @@ import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
+import 'package:movi/src/core/startup/entry_boot_state_repository.dart';
+import 'package:movi/src/core/startup/presentation/widgets/boot_form_tokens.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
-import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
-import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
 class WelcomeSourceSelectPage extends ConsumerStatefulWidget {
@@ -35,9 +38,6 @@ class WelcomeSourceSelectPage extends ConsumerStatefulWidget {
 
 class _WelcomeSourceSelectPageState
     extends ConsumerState<WelcomeSourceSelectPage> {
-  final FocusNode _backFocusNode = FocusNode(
-    debugLabel: 'WelcomeSourceSelectBack',
-  );
   final FocusNode _retryFocusNode = FocusNode(
     debugLabel: 'WelcomeSourceSelectRetry',
   );
@@ -49,7 +49,6 @@ class _WelcomeSourceSelectPageState
 
   @override
   void dispose() {
-    _backFocusNode.dispose();
     _retryFocusNode.dispose();
     _addSourceFocusNode.dispose();
     for (final node in _accountFocusNodes) {
@@ -183,8 +182,6 @@ class _WelcomeSourceSelectPageState
     final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
 
     final locator = ref.watch(slProvider);
-    final selectedPrefs = locator<SelectedIptvSourcePreferences>();
-    final selectedId = selectedPrefs.selectedSourceId;
 
     final initialFocusNode = asyncAccounts.maybeWhen(
       data: (accounts) {
@@ -194,7 +191,7 @@ class _WelcomeSourceSelectPageState
         _syncAccountFocusNodes(accounts.length);
         return _accountFocusNodes.first;
       },
-      orElse: () => _backFocusNode,
+      orElse: () => _addSourceFocusNode,
     );
 
     return PopScope(
@@ -207,7 +204,7 @@ class _WelcomeSourceSelectPageState
         regionId: AppFocusRegionId.welcomeSourceSelectPrimary,
         binding: FocusRegionBinding(
           resolvePrimaryEntryNode: () => initialFocusNode,
-          resolveFallbackEntryNode: () => _backFocusNode,
+          resolveFallbackEntryNode: () => _addSourceFocusNode,
         ),
         requestFocusOnMount: true,
         handleDirectionalExits: false,
@@ -221,34 +218,8 @@ class _WelcomeSourceSelectPageState
               child: SettingsContentWidth(
                 child: Column(
                   children: [
-                    Focus(
-                      canRequestFocus: false,
-                      onKeyEvent: (_, event) => _handleDirectionalKey(
-                        event,
-                        down: launchRecovery?.isRetryable ?? false
-                            ? _retryFocusNode
-                            : asyncAccounts.maybeWhen(
-                                data: (accounts) {
-                                  if (accounts.isEmpty) {
-                                    return _addSourceFocusNode;
-                                  }
-                                  _syncAccountFocusNodes(accounts.length);
-                                  return _accountFocusNodes.first;
-                                },
-                                orElse: () => null,
-                              ),
-                        blockLeft: true,
-                        blockRight: true,
-                        blockUp: true,
-                      ),
-                      child: MoviSubpageBackTitleHeader(
-                        title: l10n.activeSourceTitle,
-                        focusNode: _backFocusNode,
-                        onBack: () => _handleBack(context),
-                      ),
-                    ),
                     if (launchRecovery?.isRetryable ?? false) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: MoviEnsureVisibleOnFocus(
@@ -257,7 +228,6 @@ class _WelcomeSourceSelectPageState
                             canRequestFocus: false,
                             onKeyEvent: (_, event) => _handleDirectionalKey(
                               event,
-                              up: _backFocusNode,
                               down: asyncAccounts.maybeWhen(
                                 data: (accounts) {
                                   if (accounts.isEmpty) {
@@ -325,7 +295,7 @@ class _WelcomeSourceSelectPageState
                                                   launchRecovery?.isRetryable ??
                                                       false
                                                   ? _retryFocusNode
-                                                  : _backFocusNode,
+                                                  : null,
                                               blockLeft: true,
                                               blockRight: true,
                                               blockDown: true,
@@ -333,11 +303,9 @@ class _WelcomeSourceSelectPageState
                                         child: ElevatedButton(
                                           focusNode: _addSourceFocusNode,
                                           onPressed: () => context.go(
-                                            AppRouteNames.welcomeSources,
+                                            '${AppRouteNames.welcomeSources}?mode=add',
                                           ),
-                                          child: const Text(
-                                            'Ajouter une source',
-                                          ),
+                                          child: Text(l10n.welcomeSourceAdd),
                                         ),
                                       ),
                                     ),
@@ -347,56 +315,107 @@ class _WelcomeSourceSelectPageState
                             );
                           }
 
-                          return IptvSourceSelectionList(
-                            accounts: accounts,
-                            selectedId: selectedId,
-                            itemFocusNodes: _accountFocusNodes,
-                            onFirstItemUp: () => _requestFocus(
-                              launchRecovery?.isRetryable ?? false
-                                  ? _retryFocusNode
-                                  : _backFocusNode,
+                          final sourceSelectionButtonStyle =
+                              BootFormTokens.bootPrimaryButtonStyle(
+                                Theme.of(context),
+                              ).copyWith(
+                                backgroundColor: const WidgetStatePropertyAll(
+                                  Color(0xFF333333),
+                                ),
+                              );
+
+                          Future<void> selectAccount(AnyIptvAccount account) async {
+                            final prefs = locator<SelectedIptvSourcePreferences>();
+                            await prefs.setSelectedSourceId(account.id);
+
+                            final appStateController = ref.read(
+                              appStateControllerProvider,
+                            );
+                            appStateController.setActiveIptvSources({
+                              account.id,
+                            });
+                            if (locator.isRegistered<EntryBootStateRepository>()) {
+                              await locator<EntryBootStateRepository>()
+                                  .confirmSourceSelected(sourceId: account.id);
+                            }
+
+                            try {
+                              await pushUserPreferencesIfSignedIn(
+                                ref,
+                                logContext: 'WelcomeSourceSelectPage',
+                              ).timeout(const Duration(seconds: 18));
+                            } on TimeoutException {
+                              assert(() {
+                                debugPrint(
+                                  '[WelcomeSourceSelectPage] pushUserPreferences timeout',
+                                );
+                                return true;
+                              }());
+                            } catch (_) {}
+
+                            await Future.delayed(const Duration(milliseconds: 100));
+
+                            if (!context.mounted) return;
+                            await _runBootAction(
+                              context,
+                              BootActionIntent.retry,
+                              'source_selected',
+                              destinationOverride: AppRoutePaths.welcomeSourceLoading,
+                            );
+                          }
+
+                          return Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: BootFormTokens.textFieldMaxWidth,
+                              ),
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.xl,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    WelcomeHeader(
+                                      title: l10n.bootActionSourceSelectionTitle,
+                                      subtitle:
+                                          l10n.bootActionSourceSelectionMessage,
+                                    ),
+                                    const SizedBox(height: AppSpacing.lg),
+                                    for (final account in accounts) ...[
+                                      BootFormTokens.constrainPrimaryAction(
+                                        MoviPrimaryButton(
+                                          label: account.alias,
+                                          onPressed: () async {
+                                            await selectAccount(account);
+                                          },
+                                          buttonStyle: sourceSelectionButtonStyle,
+                                        ),
+                                      ),
+                                      const SizedBox(height: AppSpacing.s),
+                                    ],
+                                    const SizedBox(height: AppSpacing.md),
+                                    Text(
+                                      l10n.welcomeSourceAddPrompt,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context).textTheme.bodyMedium,
+                                    ),
+                                    const SizedBox(height: AppSpacing.sm),
+                                    BootFormTokens.constrainPrimaryAction(
+                                      MoviPrimaryButton(
+                                        label: l10n.welcomeSourceAddNewAction,
+                                        focusNode: _addSourceFocusNode,
+                                        onPressed: () => context.go(
+                                          '${AppRouteNames.welcomeSources}?mode=add',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            focusVerticalAlignment: 0.22,
-                            onSelected: (account) async {
-                              final prefs =
-                                  locator<SelectedIptvSourcePreferences>();
-
-                              await prefs.setSelectedSourceId(account.id);
-
-                              final appStateController = ref.read(
-                                appStateControllerProvider,
-                              );
-                              appStateController.setActiveIptvSources({
-                                account.id,
-                              });
-
-                              try {
-                                await pushUserPreferencesIfSignedIn(
-                                  ref,
-                                  logContext: 'WelcomeSourceSelectPage',
-                                ).timeout(const Duration(seconds: 18));
-                              } on TimeoutException {
-                                assert(() {
-                                  debugPrint(
-                                    '[WelcomeSourceSelectPage] pushUserPreferences timeout',
-                                  );
-                                  return true;
-                                }());
-                              } catch (_) {}
-
-                              await Future.delayed(
-                                const Duration(milliseconds: 100),
-                              );
-
-                              if (!context.mounted) return;
-                              await _runBootAction(
-                                context,
-                                BootActionIntent.retry,
-                                'source_selected',
-                                destinationOverride:
-                                    AppRoutePaths.welcomeSourceLoading,
-                              );
-                            },
                           );
                         },
                       ),

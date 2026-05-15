@@ -15,6 +15,7 @@ import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -606,14 +607,15 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     }
 
     final l10n = AppLocalizations.of(context)!;
+    final uiScale = context.tvUiScale;
     final providerName = widget.args!.providerName;
     final colorScheme = Theme.of(context).colorScheme;
     final previewLimit = _previewLimit(context);
     final moviesToShow = _movies.take(previewLimit).toList();
     final showsToShow = _shows.take(previewLimit).toList();
-    const headerHorizontalPadding = 20.0;
-    const backButtonFramePadding = 8.0;
-    const backButtonSize = 35.0;
+    final headerHorizontalPadding = 20.0 * uiScale;
+    final backButtonFramePadding = 8.0 * uiScale;
+    final backButtonSize = 35.0 * uiScale;
     final headerStartPadding = headerHorizontalPadding - backButtonFramePadding;
     final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
     _requestInitialContentFocusIfNeeded();
@@ -735,7 +737,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                       child: Padding(
                         padding: EdgeInsetsDirectional.fromSTEB(
                           headerStartPadding,
-                          16,
+                          16 * uiScale,
                           headerHorizontalPadding,
                           0,
                         ),
@@ -748,7 +750,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                               builder: (context, state) {
                                 return MoviFocusFrame(
                                   scale: state.focused ? 1.04 : 1,
-                                  padding: const EdgeInsets.all(
+                                  padding: EdgeInsets.all(
                                     backButtonFramePadding,
                                   ),
                                   borderRadius: BorderRadius.circular(999),
@@ -786,7 +788,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24 * uiScale),
                   Expanded(
                     child: hasBlockingError
                         ? Center(

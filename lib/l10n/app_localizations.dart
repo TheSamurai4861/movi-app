@@ -425,6 +425,30 @@ abstract class AppLocalizations {
   /// **'Export error logs'**
   String get settingsExportErrorLogs;
 
+  /// No description provided for @settingsClearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cache'**
+  String get settingsClearCache;
+
+  /// No description provided for @settingsClearCacheConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear cache?'**
+  String get settingsClearCacheConfirmTitle;
+
+  /// No description provided for @settingsClearCacheConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes cached images and catalog data. Audio and subtitle sync offsets for your profile are kept.'**
+  String get settingsClearCacheConfirmMessage;
+
+  /// No description provided for @settingsClearCacheSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache cleared'**
+  String get settingsClearCacheSuccess;
+
   /// No description provided for @diagnosticsExportTitle.
   ///
   /// In en, this message translates to:
@@ -1079,11 +1103,23 @@ abstract class AppLocalizations {
   /// **'Preparing launch…'**
   String get bootLoadingPreparingLaunch;
 
+  /// No description provided for @bootLoadingDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get bootLoadingDefault;
+
   /// No description provided for @bootLoadingCheckingSession.
   ///
   /// In en, this message translates to:
   /// **'Checking session…'**
   String get bootLoadingCheckingSession;
+
+  /// No description provided for @bootLoadingProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading profile…'**
+  String get bootLoadingProfile;
 
   /// No description provided for @bootLoadingCheckingProfile.
   ///
@@ -1259,6 +1295,24 @@ abstract class AppLocalizations {
   /// **'Open home'**
   String get bootActionOpenHome;
 
+  /// No description provided for @bootSemanticsSplashLogo.
+  ///
+  /// In en, this message translates to:
+  /// **'MOVI splash logo'**
+  String get bootSemanticsSplashLogo;
+
+  /// No description provided for @bootSemanticsLoadingInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading in progress'**
+  String get bootSemanticsLoadingInProgress;
+
+  /// No description provided for @bootSemanticsPreparingCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing catalog'**
+  String get bootSemanticsPreparingCatalog;
+
   /// No description provided for @welcomeSourceSavedSourcesTitle.
   ///
   /// In en, this message translates to:
@@ -1325,6 +1379,60 @@ abstract class AppLocalizations {
   /// **'Activate'**
   String get welcomeSourceActivateAction;
 
+  /// No description provided for @welcomeSourceAddModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a source'**
+  String get welcomeSourceAddModeTitle;
+
+  /// No description provided for @welcomeSourceFirstSourceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first IPTV source.'**
+  String get welcomeSourceFirstSourceSubtitle;
+
+  /// No description provided for @welcomeSourceAddPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Want to add a source?'**
+  String get welcomeSourceAddPrompt;
+
+  /// No description provided for @welcomeSourceAddNewAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a new source'**
+  String get welcomeSourceAddNewAction;
+
+  /// No description provided for @welcomeSourceRequiredFields.
+  ///
+  /// In en, this message translates to:
+  /// **'All fields are required.'**
+  String get welcomeSourceRequiredFields;
+
+  /// No description provided for @welcomeSourceErrorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is taking too long to respond. Check your connection and try again.'**
+  String get welcomeSourceErrorTimeout;
+
+  /// No description provided for @welcomeSourceErrorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid credentials. Check the username and password.'**
+  String get welcomeSourceErrorInvalidCredentials;
+
+  /// No description provided for @welcomeSourceErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to connect to server. Check the URL and your network.'**
+  String get welcomeSourceErrorNetwork;
+
+  /// No description provided for @welcomeSourceErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load the source right now. Please try again.'**
+  String get welcomeSourceErrorGeneric;
+
   /// No description provided for @welcomeSourceExpiresOn.
   ///
   /// In en, this message translates to:
@@ -1354,6 +1462,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to load profiles.'**
   String get welcomeUserProfilesLoadFailed;
+
+  /// No description provided for @welcomeUserCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create profile'**
+  String get welcomeUserCreateTitle;
+
+  /// No description provided for @welcomeUserChooseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose profile'**
+  String get welcomeUserChooseTitle;
+
+  /// No description provided for @welcomeUserCreateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first profile for Movi.'**
+  String get welcomeUserCreateSubtitle;
+
+  /// No description provided for @welcomeUserChooseSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one of your profiles.'**
+  String get welcomeUserChooseSubtitle;
+
+  /// No description provided for @welcomeUserProfileNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile name'**
+  String get welcomeUserProfileNameLabel;
+
+  /// No description provided for @welcomeUserProfileNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile name'**
+  String get welcomeUserProfileNameHint;
+
+  /// No description provided for @welcomeUserCreateProfileAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create profile'**
+  String get welcomeUserCreateProfileAction;
+
+  /// No description provided for @childPreloadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Content safety setup'**
+  String get childPreloadTitle;
+
+  /// No description provided for @childPreloadSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking age ratings...'**
+  String get childPreloadSubtitle;
+
+  /// No description provided for @childPreloadSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get childPreloadSkip;
+
+  /// No description provided for @childPreloadPhaseResolvingIds.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolving identifiers...'**
+  String get childPreloadPhaseResolvingIds;
+
+  /// No description provided for @childPreloadPhaseFetchingRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetching ratings...'**
+  String get childPreloadPhaseFetchingRatings;
+
+  /// No description provided for @childPreloadPhaseCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get childPreloadPhaseCompleted;
+
+  /// No description provided for @childPreloadEtaSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'About {seconds}s remaining'**
+  String childPreloadEtaSeconds(int seconds);
+
+  /// No description provided for @childPreloadEtaMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'About {minutes} min remaining'**
+  String childPreloadEtaMinutes(int minutes);
+
+  /// No description provided for @childPreloadEtaMinutesSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'About {minutes} min {seconds}s remaining'**
+  String childPreloadEtaMinutesSeconds(int minutes, int seconds);
 
   /// No description provided for @errorHomeLoadTimeout.
   ///
@@ -2668,6 +2872,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Background'**
   String get settingsSubtitlesBackgroundTitle;
+
+  /// No description provided for @settingsSubtitlesBackgroundNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No background'**
+  String get settingsSubtitlesBackgroundNone;
 
   /// No description provided for @settingsSubtitlesBackgroundOpacityLabel.
   ///

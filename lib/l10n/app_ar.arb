@@ -659,6 +659,127 @@
   },
   "settingsTermsOfUseTitle": "شروط الاستخدام",
   "settingsCloudSyncPremiumRequiredMessage": "يتطلب مزامنة السحابة Movi Premium.",
-  "authForgotPasswordTitle": "نسيت كلمة المرور",   "authForgotPasswordSubtitle": "أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.",   "authForgotPasswordInfoNeutral": "سيتم إرسال رسالة إعادة تعيين كلمة المرور إلى هذا البريد الإلكتروني إذا كان الحساب موجودًا.",   "authForgotPasswordPrimarySubmit": "إرسال الرابط",   "authForgotPasswordBackToSignIn": "العودة إلى تسجيل الدخول"
+  "authForgotPasswordTitle": "نسيت كلمة المرور",   "authForgotPasswordSubtitle": "أدخل بريدك الإلكتروني لتلقي رابط إعادة تعيين كلمة المرور.",   "authForgotPasswordInfoNeutral": "سيتم إرسال رسالة إعادة تعيين كلمة المرور إلى هذا البريد الإلكتروني إذا كان الحساب موجودًا.",   "authForgotPasswordPrimarySubmit": "إرسال الرابط",   "authForgotPasswordBackToSignIn": "العودة إلى تسجيل الدخول",
+  "bootLoadingPreparingLaunch": "جارٍ التحضير للإطلاق…",
+  "bootLoadingDefault": "جارٍ التحميل…",
+  "bootLoadingCheckingSession": "جارٍ التحقق من الجلسة…",
+  "bootLoadingProfile": "جارٍ تحميل الملف الشخصي…",
+  "bootLoadingCheckingProfile": "جارٍ التحقق من الملف الشخصي…",
+  "bootLoadingCheckingSource": "جارٍ التحقق من المصدر…",
+  "bootLoadingPreparingCatalog": "جارٍ تجهيز الكتالوج…",
+  "bootActionAuthTitle": "تسجيل الدخول مطلوب",
+  "bootActionAuthMessage": "سجّل الدخول للمتابعة.",
+  "bootActionProfileTitle": "ملف شخصي مطلوب",
+  "bootActionProfileMessage": "أنشئ ملفًا شخصيًا أو اختر أحدها للمتابعة.",
+  "bootActionSourceRequiredTitle": "مصدر مطلوب",
+  "bootActionSourceRequiredMessage": "أضف مصدرًا أو أعد الاتصال به للمتابعة.",
+  "bootActionSourceSelectionTitle": "اختيار المصدر",
+  "bootActionSourceSelectionMessage": "اختر المصدر الذي تريد استخدامه.",
+  "bootRecoverySourceTimeoutTitle": "المصدر لا يستجيب",
+  "bootRecoverySourceTimeoutMessage": "أعد محاولة المزامنة أو غيّر المصدر.",
+  "bootRecoverySourceProviderTitle": "تعذر تحميل المصدر",
+  "bootRecoverySourceProviderMessage": "أعد محاولة التحميل أو غيّر المصدر.",
+  "bootRecoverySourceCredentialsTitle": "تعذر الاتصال بالمصدر",
+  "bootRecoverySourceCredentialsMessage": "أعد الاتصال بالمصدر للمتابعة.",
+  "bootRecoverySourceEmptyTitle": "لم يتم العثور على محتوى",
+  "bootRecoverySourceEmptyMessage": "أعد مزامنة المصدر أو اختر مصدرًا آخر.",
+  "bootFailureTitle": "تم مقاطعة التشغيل",
+  "bootFailureMessage": "يمنع خطأ ما التشغيل.",
+  "bootActionExportLogs": "تصدير السجلات",
+  "bootActionLogin": "تسجيل الدخول",
+  "bootActionChooseProfile": "اختر ملفًا شخصيًا",
+  "bootActionAddSource": "إضافة مصدر",
+  "bootActionChooseSource": "تغيير المصدر",
+  "bootActionReconnectSource": "إعادة الاتصال بالمصدر",
+  "bootActionResyncSource": "إعادة المزامنة",
+  "bootActionOpenHome": "فتح الصفحة الرئيسية",
+  "bootSemanticsSplashLogo": "شعار البداية MOVI",
+  "bootSemanticsLoadingInProgress": "التحميل قيد التنفيذ",
+  "bootSemanticsPreparingCatalog": "جارٍ تجهيز الكتالوج",
+  "welcomeSourceSavedSourcesTitle": "المصادر المحفوظة",
+  "welcomeSourceRefreshTooltip": "تحديث",
+  "welcomeSourceNoRemoteSourcesMessage": "لم يتم العثور على أي مصدر على Supabase. أضف أحدها أو فعّله أدناه.",
+  "welcomeSourceActivateSectionTitle": "تفعيل مصدر",
+  "welcomeSourceNameLabel": "اسم المصدر",
+  "welcomeSourceNameHint": "My IPTV",
+  "welcomeSourceServerUrlLabel": "رابط الخادم",
+  "welcomeSourceServerUrlHint": "https://example.com:port",
+  "welcomeSourceUsernameLabel": "اسم المستخدم",
+  "welcomeSourcePasswordLabel": "كلمة المرور",
+  "welcomeSourceActivateAction": "تفعيل",
+  "welcomeSourceAddModeTitle": "إضافة مصدر",
+  "welcomeSourceFirstSourceSubtitle": "أضف أول مصدر IPTV لك.",
+  "welcomeSourceAddPrompt": "هل تريد إضافة مصدر؟",
+  "welcomeSourceAddNewAction": "إضافة مصدر جديد",
+  "welcomeSourceRequiredFields": "جميع الحقول مطلوبة.",
+  "welcomeSourceErrorTimeout": "يستغرق الخادم وقتًا طويلًا للاستجابة. تحقق من اتصالك وحاول مرة أخرى.",
+  "welcomeSourceErrorInvalidCredentials": "بيانات الاعتماد غير صحيحة. تحقق من اسم المستخدم وكلمة المرور.",
+  "welcomeSourceErrorNetwork": "تعذر الاتصال بالخادم. تحقق من الرابط وشبكتك.",
+  "welcomeSourceErrorGeneric": "تعذر تحميل المصدر الآن. يرجى المحاولة مرة أخرى.",
+  "welcomeSourceExpiresOn": "تنتهي في: {date}",
+  "@welcomeSourceExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSourceNoExpiration": "لا يوجد تاريخ انتهاء",
+  "welcomeUserProfileLockedTitle": "الملف الشخصي مقفل",
+  "welcomeUserProfileLockedReason": "أدخل رمز PIN لتغيير الملف الشخصي.",
+  "welcomeUserProfilesLoadFailed": "تعذر تحميل الملفات الشخصية.",
+  "welcomeUserCreateTitle": "إنشاء ملف شخصي",
+  "welcomeUserChooseTitle": "اختر ملفًا شخصيًا",
+  "welcomeUserCreateSubtitle": "أنشئ ملفك الشخصي الأول في Movi.",
+  "welcomeUserChooseSubtitle": "اختر أحد ملفاتك الشخصية.",
+  "welcomeUserProfileNameLabel": "اسم الملف الشخصي",
+  "welcomeUserProfileNameHint": "اسم الملف الشخصي",
+  "welcomeUserCreateProfileAction": "إنشاء ملف شخصي",
+  "childPreloadTitle": "إعداد حماية المحتوى",
+  "childPreloadSubtitle": "جارٍ التحقق من تصنيفات الأعمار...",
+  "childPreloadSkip": "تخطي",
+  "childPreloadPhaseResolvingIds": "جارٍ حل المعرّفات...",
+  "childPreloadPhaseFetchingRatings": "جارٍ جلب التصنيفات...",
+  "childPreloadPhaseCompleted": "تم",
+  "childPreloadEtaSeconds": "حوالي {seconds} ث متبقية",
+  "@childPreloadEtaSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutes": "حوالي {minutes} د متبقية",
+  "@childPreloadEtaMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "childPreloadEtaMinutesSeconds": "حوالي {minutes} د {seconds} ث متبقية",
+  "@childPreloadEtaMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpUsePassword": "استخدام كلمة المرور بدلًا من ذلك",
+  "authPasswordTitle": "تسجيل الدخول",
+  "authPasswordSubtitle": "أدخل بريدك الإلكتروني وكلمة المرور للمتابعة.",
+  "authPasswordEmailLabel": "البريد الإلكتروني",
+  "authPasswordEmailHint": "name@example.com",
+  "authPasswordEmailHelp": "استخدم البريد الإلكتروني المرتبط بحسابك.",
+  "authPasswordPasswordLabel": "كلمة المرور",
+  "authPasswordPasswordHint": "كلمة مرورك",
+  "authPasswordPasswordHelp": "كلمة مرورك حساسة لحالة الأحرف.",
+  "authPasswordPrimarySubmit": "تسجيل الدخول",
+  "authPasswordForgotPassword": "نسيت كلمة المرور؟",
+  "authPasswordResetSent": "تم إرسال رسالة إعادة تعيين كلمة المرور.",
+  "authPasswordUseOtp": "استخدام رمز البريد الإلكتروني بدلًا من ذلك"
 }
 

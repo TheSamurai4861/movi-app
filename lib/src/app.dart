@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 
 import 'package:movi/src/core/router/auth_recovery_deep_link_bridge.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -29,6 +31,33 @@ const List<LocalizationsDelegate<dynamic>> _appLocalizationsDelegates = [
   GlobalCupertinoLocalizations.delegate,
 ];
 
+/// Applies a normalized text scale for television layouts.
+///
+/// Some Android TV hosts expose a larger system text scale, which can make
+/// the whole app look artificially zoomed compared to Windows.
+class AppTvTextScaleScope extends StatelessWidget {
+  const AppTvTextScaleScope({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    if (mediaQuery == null) return child;
+
+    final screenType = context.resolveScreenType(
+      mediaQuery.size.width,
+      mediaQuery.size.height,
+    );
+    if (screenType != ScreenType.tv) return child;
+
+    return MediaQuery(
+      data: mediaQuery.copyWith(textScaler: TextScaler.linear(1.0)),
+      child: child,
+    );
+  }
+}
+
 /// Root widget of the Movi application.
 ///
 /// This widget wires:
@@ -50,8 +79,6 @@ class MyApp extends ConsumerStatefulWidget {
 
 class _MyAppState extends ConsumerState<MyApp> {
   AuthRecoveryDeepLinkBridge? _authRecoveryDeepLinkBridge;
-  bool _fullscreenEscapeHandlerRegistered = false;
-  bool _startedInWindowsFullScreen = false;
 
   @override
   void initState() {
@@ -61,20 +88,18 @@ class _MyAppState extends ConsumerState<MyApp> {
       launchArgs: widget.launchArgs,
     );
     unawaited(_authRecoveryDeepLinkBridge!.start());
-    unawaited(_setupWindowsFullScreenMode());
+    unawaited(_setupWindowsInitialWindow());
   }
 
   @override
   void dispose() {
-    if (_fullscreenEscapeHandlerRegistered) {
-      ServicesBinding.instance.keyboard.removeHandler(_handleGlobalKeyEvent);
-      _fullscreenEscapeHandlerRegistered = false;
-    }
     unawaited(_authRecoveryDeepLinkBridge?.dispose());
     super.dispose();
   }
 
-  Future<void> _setupWindowsFullScreenMode() async {
+  /// Ouvre la fenêtre Windows maximisée (barre de titre conservée), pas en
+  /// plein écran exclusif.
+  Future<void> _setupWindowsInitialWindow() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.windows) return;
 
     await windowManager.ensureInitialized();
@@ -82,31 +107,11 @@ class _MyAppState extends ConsumerState<MyApp> {
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
-      await windowManager.setFullScreen(true);
-      _startedInWindowsFullScreen = true;
+      if (await windowManager.isFullScreen()) {
+        await windowManager.setFullScreen(false);
+      }
+      await windowManager.maximize();
     });
-
-    ServicesBinding.instance.keyboard.addHandler(_handleGlobalKeyEvent);
-    _fullscreenEscapeHandlerRegistered = true;
-  }
-
-  bool _handleGlobalKeyEvent(KeyEvent event) {
-    if (!_startedInWindowsFullScreen) return false;
-    if (event is! KeyDownEvent) return false;
-    if (event.logicalKey != LogicalKeyboardKey.escape) return false;
-
-    _startedInWindowsFullScreen = false;
-    unawaited(_exitFullScreenToMaximizedWindow());
-    return true;
-  }
-
-  Future<void> _exitFullScreenToMaximizedWindow() async {
-    final isFullScreen = await windowManager.isFullScreen();
-    if (isFullScreen) {
-      await windowManager.setFullScreen(false);
-    }
-    await windowManager.maximize();
-    await windowManager.focus();
   }
 
   @override
@@ -137,12 +142,14 @@ class _MyAppState extends ConsumerState<MyApp> {
       localizationsDelegates: _appLocalizationsDelegates,
       routerConfig: router,
       builder: (context, child) {
+        final routedChild = AppTvUiScaleScope(
+          child: AppTvTextScaleScope(child: child ?? const SizedBox.shrink()),
+        );
+
         return MoviRemoteNavigation(
           child: SubscriptionBootstrapper(
             child: LibraryCloudSyncBootstrapper(
-              child: SeriesTrackingBootstrapper(
-                child: child ?? const SizedBox.shrink(),
-              ),
+              child: SeriesTrackingBootstrapper(child: routedChild),
             ),
           ),
         );

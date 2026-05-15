@@ -36,8 +36,10 @@ import 'package:movi/src/core/profile/presentation/ui/dialogs/create_profile_dia
 import 'package:movi/src/core/profile/presentation/ui/dialogs/manage_profile_dialog.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -86,9 +88,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final _languageSelectorFocusNode = FocusNode(
     debugLabel: 'SettingsLanguageSelector',
   );
+  final _syncIntervalSelectorFocusNode = FocusNode(
+    debugLabel: 'SettingsSyncIntervalSelector',
+  );
+  final _accentColorSelectorFocusNode = FocusNode(
+    debugLabel: 'SettingsAccentColorSelector',
+  );
   final _cloudSyncAutoFocusNode = FocusNode(
     debugLabel: 'SettingsCloudSyncAuto',
   );
+
+  static const double _settingsSelectorBorderRadius = 12;
+  static const double _settingsSelectorPaddingH = 10;
+  static const double _settingsSelectorPaddingV = 6;
+  static const double _settingsSelectorFocusScale = 1.02;
+  static const double _settingsSelectorFocusAlpha = 0.18;
   late List<FocusNode> _profileFocusNodes;
 
   static const Map<String, String> _languageNativeNames = {
@@ -232,6 +246,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Future<void> _onClearCache() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(l10n.settingsClearCacheConfirmTitle),
+        content: Text(l10n.settingsClearCacheConfirmMessage),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.actionCancel),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.settingsClearCache),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final locator = ref.read(slProvider);
+    if (!locator.isRegistered<AppCacheClearService>()) return;
+
+    await locator<AppCacheClearService>().clearAppCaches();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.settingsClearCacheSuccess)),
+    );
+  }
+
   static const List<Duration?> _syncIntervalOptions = [
     null,
     Duration(minutes: 60),
@@ -295,6 +344,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _addProfileFocusNode.dispose();
     _premiumTileFocusNode.dispose();
     _languageSelectorFocusNode.dispose();
+    _syncIntervalSelectorFocusNode.dispose();
+    _accentColorSelectorFocusNode.dispose();
     _cloudSyncAutoFocusNode.dispose();
     _lockSessionIfUnlocked();
     super.dispose();
@@ -929,6 +980,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       event,
       onLeft: _focusSidebarFromRegionExit,
       blockRight: true,
+      blockUp: false,
       blockDown: blockDown,
     );
   }
@@ -999,6 +1051,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return _handleSettingsHorizontalBoundary(event);
   }
 
+  Widget _buildSettingsValueSelector({
+    required String label,
+    required Color accentColor,
+    required VoidCallback? onPressed,
+    FocusNode? focusNode,
+    Widget? leading,
+    bool showChevron = true,
+    String? semanticLabel,
+  }) {
+    return MoviFocusableAction(
+      focusNode: focusNode,
+      onPressed: onPressed,
+      enabled: onPressed != null,
+      semanticLabel: semanticLabel ?? label,
+      builder: (context, state) {
+        return MoviFocusFrame(
+          scale: state.focused ? _settingsSelectorFocusScale : 1,
+          borderRadius: BorderRadius.circular(_settingsSelectorBorderRadius),
+          padding: const EdgeInsets.symmetric(
+            horizontal: _settingsSelectorPaddingH,
+            vertical: _settingsSelectorPaddingV,
+          ),
+          backgroundColor: state.focused
+              ? accentColor.withValues(alpha: _settingsSelectorFocusAlpha)
+              : Colors.transparent,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (leading != null) ...[leading, const SizedBox(width: 8)],
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (showChevron) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: accentColor,
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSettingItem({
     required String title,
     String? value,
@@ -1007,10 +1115,71 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     Widget? trailing,
     bool showChevronDown = false,
     bool blockArrowDown = false,
+    /// Focus et action sur la valeur à droite uniquement (pas de focus sur la ligne).
+    bool valueSelectorOnly = false,
+    FocusNode? valueSelectorFocusNode,
+    VoidCallback? onValueSelectorTap,
+    Widget? valueSelectorLeading,
+    String? valueSelectorSemanticLabel,
   }) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final maxValueWidth = screenWidth < 420 ? 112.0 : 168.0;
+
+    final rowPadding = const EdgeInsets.symmetric(horizontal: 6, vertical: 6);
+    final titleWidget = Expanded(
+      child: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        softWrap: false,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+      ),
+    );
+
+    if (valueSelectorOnly) {
+      final Widget? valueWidget = trailing ??
+          (value != null
+              ? _buildSettingsValueSelector(
+                  label: value,
+                  accentColor: valueColor ?? accentColor,
+                  focusNode: valueSelectorFocusNode,
+                  leading: valueSelectorLeading,
+                  showChevron: showChevronDown,
+                  semanticLabel: valueSelectorSemanticLabel ?? title,
+                  onPressed: onValueSelectorTap == null
+                      ? null
+                      : () => _guard(onValueSelectorTap),
+                )
+              : null);
+
+      return MoviEnsureVisibleOnFocus(
+        verticalAlignment: _settingsFocusVerticalAlignment,
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleSettingsHorizontalBoundary(
+            event,
+            blockDown: blockArrowDown,
+          ),
+          child: Padding(
+            padding: rowPadding,
+            child: Row(
+              children: [
+                titleWidget,
+                if (valueWidget != null) ...[
+                  const SizedBox(width: 12),
+                  valueWidget,
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return MoviEnsureVisibleOnFocus(
       verticalAlignment: _settingsFocusVerticalAlignment,
@@ -1026,22 +1195,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           child: ClipRect(
             clipBehavior: Clip.none,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: rowPadding,
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      softWrap: false,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  titleWidget,
                   if (value != null) ...[
                     const SizedBox(width: 12),
                     ConstrainedBox(
@@ -1647,8 +1804,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         color: Colors.transparent,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth > 800
-                ? 800.0
+            final uiScale = context.tvUiScale;
+            final maxWidth = 800.0 * uiScale;
+            final width = constraints.maxWidth > maxWidth
+                ? maxWidth
                 : constraints.maxWidth;
             final isMobileShell = MediaQuery.sizeOf(context).width < 900;
             final bottomPadding = isMobileShell
@@ -1729,11 +1888,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         title: l10n.settingsSyncFrequency,
                         value: _formatSyncInterval(currentSyncInterval),
                         showChevronDown: true,
-                        onTap: () => _guard(
-                          () => _showSyncIntervalSelector(
-                            context,
-                            currentSyncInterval,
-                          ),
+                        valueSelectorOnly: true,
+                        valueSelectorFocusNode: _syncIntervalSelectorFocusNode,
+                        onValueSelectorTap: () => _showSyncIntervalSelector(
+                          context,
+                          currentSyncInterval,
                         ),
                       ),
                     ]),
@@ -1764,6 +1923,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                       _buildSettingItem(
                         title: l10n.settingsLanguageLabel,
+                        valueSelectorOnly: true,
                         trailing: Builder(
                           builder: (context) {
                             final localePrefs = ref.read(
@@ -1815,52 +1975,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               final selectedLabel = items
                                   .firstWhere((e) => e.$1 == selected)
                                   .$2;
-                              return ConstrainedBox(
-                                constraints: BoxConstraints(minHeight: 44),
-                                child: Align(
-                                  alignment: Alignment.centerRight,
-                                  child: MoviEnsureVisibleOnFocus(
-                                    verticalAlignment:
-                                        _settingsFocusVerticalAlignment,
-                                    child: MoviFocusableAction(
-                                      focusNode: _languageSelectorFocusNode,
-                                      onPressed: () => _guard(
-                                        () => _showTvLanguageSelector(
-                                          context,
-                                          currentLangCode,
-                                        ),
-                                      ),
-                                      semanticLabel: l10n.settingsLanguageLabel,
-                                      builder: (context, state) {
-                                        return MoviFocusFrame(
-                                          scale: state.focused ? 1.02 : 1,
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Flexible(
-                                                child: Text(
-                                                  selectedLabel,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color: currentAccentColor,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Icon(
-                                                Icons.keyboard_arrow_down,
-                                                size: 18,
-                                                color: currentAccentColor,
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                    ),
+                              return _buildSettingsValueSelector(
+                                label: selectedLabel,
+                                accentColor: currentAccentColor,
+                                focusNode: _languageSelectorFocusNode,
+                                semanticLabel: l10n.settingsLanguageLabel,
+                                onPressed: () => _guard(
+                                  () => _showTvLanguageSelector(
+                                    context,
+                                    currentLangCode,
                                   ),
                                 ),
                               );
@@ -1977,7 +2100,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         title: l10n.settingsAccentColor,
                         value: _getAccentColorName(currentAccentColor),
                         showChevronDown: true,
-                        trailing: Container(
+                        valueSelectorOnly: true,
+                        valueSelectorFocusNode: _accentColorSelectorFocusNode,
+                        valueSelectorLeading: Container(
                           width: 20,
                           height: 20,
                           decoration: BoxDecoration(
@@ -1989,11 +2114,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                           ),
                         ),
-                        onTap: () => _guard(
-                          () => _showAccentColorSelector(
-                            context,
-                            currentAccentColor,
-                          ),
+                        onValueSelectorTap: () => _showAccentColorSelector(
+                          context,
+                          currentAccentColor,
                         ),
                       ),
                       _buildSettingItem(
@@ -2003,6 +2126,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       _buildSettingItem(
                         title: l10n.settingsTermsOfUseTitle,
                         onTap: () => _openExternalLink(_termsOfUseUrl),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsClearCache,
+                        onTap: () => _guard(_onClearCache),
                       ),
                       _buildSettingItem(
                         title: l10n.settingsAboutTitle,
@@ -2057,21 +2184,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _buildSettingsGroup([
                       _buildSettingItem(
                         title: l10n.settingsCloudSyncAuto,
+                        valueSelectorOnly: true,
                         trailing: ListenableBuilder(
                           listenable: _cloudSyncAutoFocusNode,
                           builder: (context, _) {
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: _cloudSyncAutoFocusNode.hasFocus
-                                      ? Colors.white
-                                      : Colors.transparent,
-                                  width: 2,
-                                ),
+                            final focused = _cloudSyncAutoFocusNode.hasFocus;
+                            return MoviFocusFrame(
+                              scale: focused ? _settingsSelectorFocusScale : 1,
+                              borderRadius: BorderRadius.circular(
+                                _settingsSelectorBorderRadius,
                               ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              backgroundColor: focused
+                                  ? currentAccentColor.withValues(
+                                      alpha: _settingsSelectorFocusAlpha,
+                                    )
+                                  : Colors.transparent,
                               child: Switch.adaptive(
                                 focusNode: _cloudSyncAutoFocusNode,
                                 value: cloudSync.autoSyncEnabled,

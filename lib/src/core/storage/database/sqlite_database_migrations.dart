@@ -438,6 +438,22 @@ final class LocalDatabaseMigrations {
         'CREATE INDEX IF NOT EXISTS idx_iptv_source_connection_policies_owner_account ON iptv_source_connection_policies(owner_id, account_id);',
       );
     }
+    if (oldVersion < 25) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS entry_boot_state (
+          account_id TEXT PRIMARY KEY,
+          profile_selected_locally INTEGER NOT NULL DEFAULT 0,
+          source_selected_locally INTEGER NOT NULL DEFAULT 0,
+          selected_profile_id TEXT,
+          selected_source_id TEXT,
+          first_launch_completed_at INTEGER,
+          updated_at INTEGER NOT NULL
+        );
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_entry_boot_state_updated_at ON entry_boot_state(updated_at);',
+      );
+    }
   }
 
   static Future<void> _rebuildIptvTablesWithOwnerScope(Database db) async {

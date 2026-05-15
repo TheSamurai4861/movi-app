@@ -8,11 +8,12 @@ import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
-import 'package:movi/src/core/profile/presentation/ui/dialogs/profile_dialog_focus_border.dart';
+import 'package:movi/src/core/profile/presentation/ui/dialogs/profile_dialog_widgets.dart';
 import 'package:movi/src/core/profile/presentation/ui/dialogs/restart_required_dialog.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/modal_content_width.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
 /// Modal dialog pour créer un nouveau profil.
 class CreateProfileDialog extends ConsumerStatefulWidget {
@@ -160,14 +161,6 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
     }
 
     return KeyEventResult.ignored;
-  }
-
-  ButtonStyle _destructiveCancelButtonStyle() {
-    return OutlinedButton.styleFrom(
-      side: const BorderSide(color: Colors.red),
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 16),
-    );
   }
 
   Future<void> _createProfile() async {
@@ -408,41 +401,24 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                   blockRight: false,
                                 )
                               : KeyEventResult.ignored,
-                          child: ListenableBuilder(
-                            listenable: _kidSwitchFocusNode,
-                            builder: (context, _) {
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 120),
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: _kidSwitchFocusNode.hasFocus
-                                        ? Colors.white
-                                        : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Switch(
-                                  focusNode: _kidSwitchFocusNode,
-                                  value: _isKid,
-                                  onChanged: _isLoading
-                                      ? null
-                                      : (v) {
-                                          setState(() {
-                                            _isKid = v;
-                                            if (!v) {
-                                              _pin = null;
-                                              _pinConfirmationMessage = null;
-                                            } else {
-                                              _pegiLimit = 12;
-                                            }
-                                            _error = null;
-                                          });
-                                        },
-                                ),
-                              );
-                            },
+                          child: ProfileDialogFocusedSwitch(
+                            focusNode: _kidSwitchFocusNode,
+                            accentColor: accentColor,
+                            value: _isKid,
+                            onChanged: _isLoading
+                                ? null
+                                : (v) {
+                                    setState(() {
+                                      _isKid = v;
+                                      if (!v) {
+                                        _pin = null;
+                                        _pinConfirmationMessage = null;
+                                      } else {
+                                        _pegiLimit = 12;
+                                      }
+                                      _error = null;
+                                    });
+                                  },
                           ),
                         ),
                       ],
@@ -475,27 +451,20 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                               final value = entry.value;
                               final selected = _pegiLimit == value;
 
-                              final chip = ChoiceChip(
-                                focusNode: _pegiFocusNodes[index],
-                                label: Text('PEGI $value'),
+                              final badge = ProfileDialogPegiBadge(
+                                label: 'PEGI $value',
                                 selected: selected,
-                                onSelected: _isLoading
-                                    ? null
-                                    : (_) => setState(() {
-                                        _pegiLimit = value;
-                                        _error = null;
-                                      }),
-                                selectedColor: accentColor,
-                                backgroundColor: const Color(0xFF2C2C2E),
-                                labelStyle: TextStyle(
-                                  color: selected
-                                      ? Colors.white
-                                      : Colors.white70,
-                                ),
+                                accentColor: accentColor,
+                                focusNode: _pegiFocusNodes[index],
+                                enabled: !_isLoading,
+                                onPressed: () => setState(() {
+                                  _pegiLimit = value;
+                                  _error = null;
+                                }),
                               );
 
                               if (!useDesktopTvLayout) {
-                                return chip;
+                                return badge;
                               }
 
                               return Focus(
@@ -514,7 +483,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                   blockRight:
                                       index == _pegiFocusNodes.length - 1,
                                 ),
-                                child: chip,
+                                child: badge,
                               );
                             })
                             .toList(growable: false),
@@ -545,50 +514,38 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                   down: bottomActionTarget,
                                 )
                               : KeyEventResult.ignored,
-                          child: ProfileDialogFocusBorder(
+                          child: MoviPrimaryButton(
                             focusNode: _pinButtonFocusNode,
-                            child: ElevatedButton(
-                              focusNode: _pinButtonFocusNode,
-                              onPressed: _isLoading
-                                  ? null
-                                  : () async {
-                                      if (!mounted) return;
-                                      final pin = await showDialog<String>(
-                                        context: context,
-                                        builder: (ctx) => _PinPromptDialog(
-                                          title: l10n.profilePinSetLabel,
-                                          confirmLabel: l10n.actionConfirm,
-                                        ),
-                                      );
-                                      if (!mounted) return;
-                                      final trimmed = pin?.trim();
-                                      if (trimmed == null || trimmed.isEmpty) {
-                                        return;
-                                      }
-                                      setState(() {
-                                        _pin = trimmed;
-                                        _error = null;
-                                        _pinConfirmationMessage =
-                                            l10n.profilePinSaved;
-                                      });
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: accentColor,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                              ),
-                              child: Text(
-                                _pin == null
-                                    ? l10n.profilePinSetLabel
-                                    : l10n.profilePinEditLabel,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            expand: true,
+                            label: _pin == null
+                                ? l10n.profilePinSetLabel
+                                : l10n.profilePinEditLabel,
+                            buttonStyle: profileDialogPrimaryButtonStyle(
+                              accentColor,
                             ),
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    if (!mounted) return;
+                                    final pin = await showDialog<String>(
+                                      context: context,
+                                      builder: (ctx) => _PinPromptDialog(
+                                        title: l10n.profilePinSetLabel,
+                                        confirmLabel: l10n.actionConfirm,
+                                      ),
+                                    );
+                                    if (!mounted) return;
+                                    final trimmed = pin?.trim();
+                                    if (trimmed == null || trimmed.isEmpty) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _pin = trimmed;
+                                      _error = null;
+                                      _pinConfirmationMessage =
+                                          l10n.profilePinSaved;
+                                    });
+                                  },
                           ),
                         ),
                       ),
@@ -636,23 +593,14 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                 blockDown: true,
                               )
                             : KeyEventResult.ignored,
-                        child: ProfileDialogFocusBorder(
+                        child: MoviPrimaryButton(
                           focusNode: _cancelButtonFocusNode,
-                          child: OutlinedButton(
-                            focusNode: _cancelButtonFocusNode,
-                            onPressed: _isLoading
-                                ? null
-                                : () => Navigator.of(context).pop(false),
-                            style: _destructiveCancelButtonStyle(),
-                            child: Text(
-                              l10n.actionCancel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+                          expand: true,
+                          label: l10n.actionCancel,
+                          buttonStyle: profileDialogDestructiveButtonStyle(),
+                          onPressed: _isLoading
+                              ? null
+                              : () => Navigator.of(context).pop(false),
                         ),
                       ),
                     ),
@@ -671,33 +619,15 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                 blockDown: true,
                               )
                             : KeyEventResult.ignored,
-                        child: ProfileDialogFocusBorder(
+                        child: MoviPrimaryButton(
                           focusNode: _confirmButtonFocusNode,
-                          child: ElevatedButton(
-                            focusNode: _confirmButtonFocusNode,
-                            onPressed: canCreate ? _createProfile : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    l10n.actionConfirm,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                          expand: true,
+                          label: l10n.actionConfirm,
+                          loading: _isLoading,
+                          buttonStyle: profileDialogPrimaryButtonStyle(
+                            accentColor,
                           ),
+                          onPressed: canCreate ? _createProfile : null,
                         ),
                       ),
                     ),
@@ -823,14 +753,6 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
     return KeyEventResult.ignored;
   }
 
-  ButtonStyle _destructiveCancelButtonStyle() {
-    return OutlinedButton.styleFrom(
-      side: const BorderSide(color: Colors.red),
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 16),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -918,18 +840,12 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
                                 blockDown: true,
                               )
                             : KeyEventResult.ignored,
-                        child: OutlinedButton(
+                        child: MoviPrimaryButton(
                           focusNode: _cancelButtonFocusNode,
+                          expand: true,
+                          label: 'Annuler',
+                          buttonStyle: profileDialogDestructiveButtonStyle(),
                           onPressed: () => Navigator.of(context).pop(null),
-                          style: _destructiveCancelButtonStyle(),
-                          child: const Text(
-                            'Annuler',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                         ),
                       ),
                     ),
@@ -946,22 +862,15 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
                                 blockDown: true,
                               )
                             : KeyEventResult.ignored,
-                        child: ElevatedButton(
+                        child: MoviPrimaryButton(
                           focusNode: _confirmButtonFocusNode,
+                          expand: true,
+                          label: widget.confirmLabel,
+                          buttonStyle: profileDialogPrimaryButtonStyle(
+                            accentColor,
+                          ),
                           onPressed: () =>
                               Navigator.of(context).pop(controller.text),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: accentColor,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: Text(
-                            widget.confirmLabel,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                         ),
                       ),
                     ),

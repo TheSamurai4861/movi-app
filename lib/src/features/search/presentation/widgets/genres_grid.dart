@@ -30,6 +30,7 @@ class GenresGrid extends ConsumerStatefulWidget {
     this.focusRequestId,
     this.focusRequestColumn,
     this.focusVerticalAlignment = 0.22,
+    this.onFocusRequestApplied,
   });
 
   final double horizontalPadding;
@@ -40,6 +41,7 @@ class GenresGrid extends ConsumerStatefulWidget {
   final int? focusRequestId;
   final int? focusRequestColumn;
   final double focusVerticalAlignment;
+  final VoidCallback? onFocusRequestApplied;
 
   @override
   ConsumerState<GenresGrid> createState() => _GenresGridState();
@@ -48,6 +50,8 @@ class GenresGrid extends ConsumerStatefulWidget {
 class _GenresGridState extends ConsumerState<GenresGrid> {
   final Map<String, FocusNode> _genreFocusNodes = <String, FocusNode>{};
   int? _lastAppliedFocusRequestId;
+  List<TmdbGenre> _cachedMovieGenres = const [];
+  List<TmdbGenre> _cachedSeriesGenres = const [];
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -195,7 +199,7 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
             if (node.hasFocus) {
-              _lastAppliedFocusRequestId = widget.focusRequestId;
+              _markFocusRequestApplied();
               return;
             }
             if (attempt >= 4) return;
@@ -236,7 +240,7 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           if (node.hasFocus) {
-            _lastAppliedFocusRequestId = widget.focusRequestId;
+            _markFocusRequestApplied();
             return;
           }
           if (attempt >= 4) return;
@@ -257,11 +261,33 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
     });
   }
 
+  void _markFocusRequestApplied() {
+    _lastAppliedFocusRequestId = widget.focusRequestId;
+    widget.onFocusRequestApplied?.call();
+  }
+
+  void _schedulePendingFocusRequest() {
+    if (widget.focusRequestId == null || widget.focusRequestColumn == null) {
+      return;
+    }
+    if (_lastAppliedFocusRequestId == widget.focusRequestId) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _applyPendingFocusRequest(
+        movieGenres: _cachedMovieGenres,
+        seriesGenres: _cachedSeriesGenres,
+      );
+    });
+  }
+
   @override
   void didUpdateWidget(covariant GenresGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusRequestId != oldWidget.focusRequestId) {
       _lastAppliedFocusRequestId = null;
+      _schedulePendingFocusRequest();
     }
   }
 
@@ -478,6 +504,12 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
         }
 
         _syncFocusNodes(movieGenres: genres.movie, seriesGenres: genres.series);
+        _cachedMovieGenres = genres.movie;
+        _cachedSeriesGenres = genres.series;
+        if (widget.focusRequestId != null &&
+            _lastAppliedFocusRequestId != widget.focusRequestId) {
+          _schedulePendingFocusRequest();
+        }
 
         final accent = ref.watch(asp.currentAccentColorProvider);
 
@@ -503,11 +535,6 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
                           constraints.maxWidth,
                           genres.series.length,
                         );
-                  _applyPendingFocusRequest(
-                    movieGenres: genres.movie,
-                    seriesGenres: genres.series,
-                  );
-
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

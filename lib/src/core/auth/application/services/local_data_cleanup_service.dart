@@ -6,8 +6,6 @@ import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_prefere
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
-    as content_cache_repo;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/storage/repositories/secure_storage_repository.dart';
 
@@ -42,8 +40,6 @@ class LocalDataCleanupService {
     'selected_iptv_source_id',
   ];
 
-  static const List<String> _cacheTypesToClear = <String>['search', 'settings'];
-
   final Database _db;
   final GetIt _sl;
 
@@ -69,6 +65,8 @@ class LocalDataCleanupService {
     // sinon les identifiants peuvent ne plus être accessibles.
     await _clearCredentialsVault(cleanupTargets.accountIds);
     await _clearIptvData(cleanupTargets);
+    await _clearIptvCatalogTables();
+    await _clearProfilesAndEntryState();
 
     await _clearHistory();
     await _clearPlaylists();
@@ -79,6 +77,32 @@ class LocalDataCleanupService {
     await _clearSyncOutbox();
 
     _log('Local data cleanup completed');
+  }
+
+  Future<void> _clearProfilesAndEntryState() async {
+    await _deleteTables(
+      tableNames: const <String>['local_profiles', 'entry_boot_state'],
+      successMessage: 'Cleared local profiles and entry boot state',
+      errorContext: 'clearing local profiles and entry boot state',
+    );
+  }
+
+  Future<void> _clearIptvCatalogTables() async {
+    await _deleteTables(
+      tableNames: const <String>[
+        'iptv_accounts',
+        'stalker_accounts',
+        'iptv_playlists',
+        'iptv_playlists_v2',
+        'iptv_playlist_items_v2',
+        'iptv_episodes',
+        'iptv_playlist_settings',
+        'iptv_route_profiles',
+        'iptv_source_connection_policies',
+      ],
+      successMessage: 'Cleared IPTV account and catalog tables',
+      errorContext: 'clearing IPTV account and catalog tables',
+    );
   }
 
   Future<_IptvCleanupTargets> _loadIptvCleanupTargets() async {
@@ -165,21 +189,10 @@ class LocalDataCleanupService {
   }
 
   Future<void> _clearCache() async {
-    final cacheRepository =
-        _getOptional<content_cache_repo.ContentCacheRepository>();
-    if (cacheRepository == null) {
-      return;
-    }
-
-    await _runSafely(
-      errorContext: 'clearing cache',
-      action: () async {
-        for (final cacheType in _cacheTypesToClear) {
-          await cacheRepository.clearType(cacheType);
-        }
-
-        _log('Cleared cache');
-      },
+    await _deleteTables(
+      tableNames: const <String>['content_cache'],
+      successMessage: 'Cleared content cache',
+      errorContext: 'clearing content cache',
     );
   }
 

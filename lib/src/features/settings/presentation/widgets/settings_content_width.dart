@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 
 class SettingsContentWidth extends StatelessWidget {
   const SettingsContentWidth({
@@ -14,10 +15,12 @@ class SettingsContentWidth extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
+    final scaledMaxWidth = maxWidth * uiScale;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth > maxWidth
-            ? maxWidth
+        final width = constraints.maxWidth > scaledMaxWidth
+            ? scaledMaxWidth
             : constraints.maxWidth;
 
         return Align(

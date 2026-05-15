@@ -20,6 +20,7 @@ import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/responsive_context.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -1315,15 +1316,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   @override
   Widget build(BuildContext context) {
     const iconActionFocusedBackground = Color(0x807A7A7A);
+    final uiScale = context.tvUiScale;
     _scheduleVisibilitySync();
     final ContentReference? item = _currentItem;
     final int? tmdbId = _tmdbIdOf(item);
     final bool isWideHero = _isWideHeroLayout;
     final bool shouldExtendDesktopHero = _shouldExtendDesktopHero;
     final Alignment heroContentAlignment = _heroContentAlignment;
-    final double layoutHeight = widget.layoutHeight ?? _totalHeight;
+    final double layoutHeight = widget.layoutHeight ?? (_totalHeight * uiScale);
     final double visualBleed = shouldExtendDesktopHero
-        ? _desktopVisualBleed
+        ? (_desktopVisualBleed * uiScale)
         : 0;
     final double heroHeight = isWideHero
         ? layoutHeight + visualBleed
@@ -1549,6 +1551,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required Widget background,
     required _HeroMeta? meta,
   }) {
+    final uiScale = context.tvUiScale;
     return MoviHeroScene(
       background: background,
       imageHeight: heroHeight,
@@ -1557,7 +1560,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         Positioned(
           left: 0,
           right: 0,
-          top: MediaQuery.of(context).padding.top + 12,
+          top: MediaQuery.of(context).padding.top + (12 * uiScale),
           child: HomeHeroFilterBar(
             moviesFocusNode: widget.moviesFilterFocusNode,
           ),
@@ -1565,16 +1568,19 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         Positioned(
           left: 0,
           right: 0,
-          bottom: 16 + visualBleed,
+          bottom: (16 * uiScale) + visualBleed,
           child: Padding(
-            padding: const EdgeInsetsDirectional.only(start: 50, end: 50),
+            padding: EdgeInsetsDirectional.only(
+              start: 50 * uiScale,
+              end: 50 * uiScale,
+            ),
             child: Align(
               alignment: Alignment(
                 heroContentAlignment.x,
                 Alignment.bottomCenter.y,
               ),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
+                constraints: BoxConstraints(maxWidth: 560 * uiScale),
                 child: _HeroTextScope(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -1631,7 +1637,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                 ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 * uiScale),
                       _buildHeroPills(
                         tmdbId: tmdbId,
                         year: year,
@@ -1641,9 +1647,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         seasonsText: seasonsText,
                         centered: false,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 * uiScale),
                       SizedBox(
-                        height: 72,
+                        height: 72 * uiScale,
                         child: Align(
                           alignment: Alignment.topLeft,
                           child: Text(
@@ -1659,12 +1665,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 * uiScale),
                       _buildHeroActionsRow(
                         context: context,
                         iconActionFocusedBackground:
                             iconActionFocusedBackground,
-                        primaryButtonWidth: 320,
+                        primaryButtonWidth: 320 * uiScale,
                       ),
                     ],
                   ),
@@ -1694,6 +1700,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required Widget background,
     required _HeroMeta? meta,
   }) {
+    final uiScale = context.tvUiScale;
     final mobileTextWidth = MediaQuery.of(context).size.width * 0.8;
     final Widget synopsis = SizedBox(
       width: mobileTextWidth,
@@ -1716,12 +1723,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       builder: (context, constraints) {
         // Evite les overflows en mode mobile lorsque le parent contraint la
         // hauteur totale du hero (cas observé sur Windows desktop compact).
-        const mobileBottomSectionMinHeight = 180.0;
+        final mobileBottomSectionMinHeight = 180.0 * uiScale;
         double resolvedHeroHeight = heroHeight;
         if (constraints.hasBoundedHeight) {
           final availableForHero =
               constraints.maxHeight - mobileBottomSectionMinHeight;
-          resolvedHeroHeight = availableForHero.clamp(260.0, heroHeight);
+          resolvedHeroHeight = availableForHero.clamp(
+            260.0 * uiScale,
+            heroHeight,
+          );
         }
 
         return Column(
@@ -1742,7 +1752,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                   Positioned(
                     left: 0,
                     right: 0,
-                    top: HomeLayoutConstants.heroMobileTopActionsTopInset,
+                    top:
+                        HomeLayoutConstants.heroMobileTopActionsTopInset *
+                        uiScale,
                     child: HomeHeroFilterBar(
                       moviesFocusNode: widget.moviesFilterFocusNode,
                     ),
@@ -1750,7 +1762,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                   Positioned(
                     left: AppSpacing.lg,
                     right: AppSpacing.lg,
-                    bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                    bottom:
+                        HomeLayoutConstants.heroMobileContentBottomInset *
+                        uiScale,
                     child: _HeroTextScope(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -1761,7 +1775,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                             hasTitle: hasTitle,
                             logoUrl: logoUrl,
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16 * uiScale),
                           _buildHeroPills(
                             tmdbId: tmdbId,
                             year: year,
@@ -1794,7 +1808,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       synopsis,
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 * uiScale),
                       _buildHeroActionsRow(
                         context: context,
                         iconActionFocusedBackground:
@@ -1817,6 +1831,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required bool hasTitle,
     required String? logoUrl,
   }) {
+    final uiScale = context.tvUiScale;
     return AnimatedSwitcher(
       duration: _fade,
       transitionBuilder: (child, animation) =>
@@ -1831,7 +1846,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         child: FractionallySizedBox(
           widthFactor: HomeLayoutConstants.heroMobileLogoWidthFactor,
           child: SizedBox(
-            height: HomeLayoutConstants.heroMobileLogoHeight,
+            height: HomeLayoutConstants.heroMobileLogoHeight * uiScale,
             child: Center(
               child: logoUrl == null
                   ? Text(
@@ -1885,6 +1900,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required String? seasonsText,
     required bool centered,
   }) {
+    final uiScale = context.tvUiScale;
     const heroPillBackground = Color(0x80383838);
     final List<Widget> pills = [
       if (durationText != null)
@@ -1917,8 +1933,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       ),
       child: Wrap(
         key: ValueKey('${tmdbId}_${centered ? 'centered' : 'wide'}_pills'),
-        spacing: 8,
-        runSpacing: 8,
+        spacing: 8 * uiScale,
+        runSpacing: 8 * uiScale,
         alignment: centered ? WrapAlignment.center : WrapAlignment.start,
         children: pills,
       ),
@@ -1930,6 +1946,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required Color iconActionFocusedBackground,
     double? primaryButtonWidth,
   }) {
+    final uiScale = context.tvUiScale;
     final Widget primaryButton = Focus(
       canRequestFocus: false,
       onKeyEvent: (_, event) => _handlePrimaryActionKey(event),
@@ -1951,7 +1968,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           Expanded(child: primaryButton)
         else
           SizedBox(width: primaryButtonWidth, child: primaryButton),
-        const SizedBox(width: 16),
+        SizedBox(width: 16 * uiScale),
         Focus(
           canRequestFocus: false,
           onKeyEvent: (_, event) => _handleFavoriteActionKey(event),
@@ -2434,6 +2451,7 @@ class _HeroSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final overlaySpec = MoviHeroOverlaySpec.homeBottomOnly(
       isWideLayout: isWideHero,
     );
@@ -2450,17 +2468,19 @@ class _HeroSkeleton extends StatelessWidget {
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: MediaQuery.of(context).padding.top + 12,
+                  top: MediaQuery.of(context).padding.top + (12 * uiScale),
                   child: const HomeHeroFilterBar(),
                 ),
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                  bottom:
+                      HomeLayoutConstants.heroMobileContentBottomInset *
+                      uiScale,
                   child: Center(
                     child: SizedBox(
                       width: MediaQuery.of(context).size.width - 40,
-                      height: 120,
+                      height: 120 * uiScale,
                       child: FittedBox(
                         fit: BoxFit.contain,
                         child: Consumer(
@@ -2511,17 +2531,18 @@ class _HeroSkeleton extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                top: HomeLayoutConstants.heroMobileTopActionsTopInset,
+                top: HomeLayoutConstants.heroMobileTopActionsTopInset * uiScale,
                 child: const HomeHeroFilterBar(),
               ),
               Positioned(
                 left: AppSpacing.lg,
                 right: AppSpacing.lg,
-                bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                bottom:
+                    HomeLayoutConstants.heroMobileContentBottomInset * uiScale,
                 child: Center(
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width - 40,
-                    height: 120,
+                    height: 120 * uiScale,
                     child: FittedBox(
                       fit: BoxFit.contain,
                       child: Consumer(
@@ -2575,6 +2596,7 @@ class _HeroEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final uiScale = context.tvUiScale;
     final overlaySpec = MoviHeroOverlaySpec.homeBottomOnly(
       isWideLayout: isWideHero,
     );
@@ -2591,13 +2613,15 @@ class _HeroEmpty extends StatelessWidget {
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: MediaQuery.of(context).padding.top + 12,
+                  top: MediaQuery.of(context).padding.top + (12 * uiScale),
                   child: const HomeHeroFilterBar(),
                 ),
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                  bottom:
+                      HomeLayoutConstants.heroMobileContentBottomInset *
+                      uiScale,
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -2647,13 +2671,14 @@ class _HeroEmpty extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                top: HomeLayoutConstants.heroMobileTopActionsTopInset,
+                top: HomeLayoutConstants.heroMobileTopActionsTopInset * uiScale,
                 child: const HomeHeroFilterBar(),
               ),
               Positioned(
                 left: AppSpacing.lg,
                 right: AppSpacing.lg,
-                bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                bottom:
+                    HomeLayoutConstants.heroMobileContentBottomInset * uiScale,
                 child: Text(
                   AppLocalizations.of(context)!.homeNoTrends,
                   textAlign: TextAlign.center,
