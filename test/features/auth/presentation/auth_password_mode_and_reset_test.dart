@@ -129,115 +129,118 @@ void main() {
       find.byType(TextFormField).first,
       'reset@example.com',
     );
-    await tester.tap(find.text('Send link'));
+    await tester.ensureVisible(find.text('Envoyer la demande'));
+    await tester.tap(find.text('Envoyer la demande'));
     await tester.pumpAndSettle();
 
     expect(capturedEmail, 'reset@example.com');
-    expect(find.text('Password reset email sent.'), findsOneWidget);
+    expect(
+      find.textContaining('un lien de reinitialisation a ete envoye'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets(
-    'forgot password remains reachable when launch guard is active',
-    (tester) async {
-      final authRepository = _FakeAuthRepository.unauthenticatedResolved();
-      sl.registerSingleton<AuthRepository>(authRepository);
+  testWidgets('forgot password remains reachable when launch guard is active', (
+    tester,
+  ) async {
+    final authRepository = _FakeAuthRepository.unauthenticatedResolved();
+    sl.registerSingleton<AuthRepository>(authRepository);
 
-      final localePreferences = _MemoryLocalePreferences();
-      sl.registerSingleton<LocalePreferences>(localePreferences);
+    final localePreferences = _MemoryLocalePreferences();
+    sl.registerSingleton<LocalePreferences>(localePreferences);
 
-      final launchRegistry = AppLaunchStateRegistry(
-        initial: const AppLaunchState(
-          status: AppLaunchStatus.success,
-          destination: BootstrapDestination.auth,
+    final launchRegistry = AppLaunchStateRegistry(
+      initial: const AppLaunchState(
+        status: AppLaunchStatus.success,
+        destination: BootstrapDestination.auth,
+      ),
+    );
+    final tunnelStateRegistry = TunnelStateRegistry(
+      initial: const TunnelState(
+        stage: TunnelStage.authRequired,
+        executionMode: TunnelExecutionMode.cloud,
+        loadingState: TunnelLoadingState.completed,
+        reasonCode: 'auth_required',
+        hasSession: false,
+        hasSelectedProfile: false,
+        hasSelectedSource: false,
+        hasCatalogReady: false,
+        hasHomePreloaded: false,
+        hasLibraryReady: false,
+        profilesCount: 0,
+        sourcesCount: 0,
+        isShadowMode: false,
+        legacyDestination: BootstrapDestination.auth,
+      ),
+    );
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    addTearDown(authRepository.dispose);
+    addTearDown(localePreferences.dispose);
+
+    final appStateController = container.read(appStateControllerProvider);
+    final guard = LaunchRedirectGuard(
+      logger: _MemoryLogger(),
+      appStateController: appStateController,
+      authRepository: authRepository,
+      launchRegistry: launchRegistry,
+      tunnelStateRegistry: tunnelStateRegistry,
+      enableEntryJourneyStateModelV2: true,
+      enableEntryJourneyRoutingV2: true,
+    );
+    addTearDown(guard.dispose);
+
+    final router = GoRouter(
+      initialLocation: AppRoutePaths.authOtp,
+      refreshListenable: guard,
+      redirect: guard.handle,
+      routes: [
+        GoRoute(
+          path: AppRoutePaths.launch,
+          builder: (context, state) => const SizedBox.shrink(),
         ),
-      );
-      final tunnelStateRegistry = TunnelStateRegistry(
-        initial: const TunnelState(
-          stage: TunnelStage.authRequired,
-          executionMode: TunnelExecutionMode.cloud,
-          loadingState: TunnelLoadingState.completed,
-          reasonCode: 'auth_required',
-          hasSession: false,
-          hasSelectedProfile: false,
-          hasSelectedSource: false,
-          hasCatalogReady: false,
-          hasHomePreloaded: false,
-          hasLibraryReady: false,
-          profilesCount: 0,
-          sourcesCount: 0,
-          isShadowMode: false,
-          legacyDestination: BootstrapDestination.auth,
+        GoRoute(
+          path: AppRoutePaths.authOtp,
+          builder: (context, state) =>
+              const AuthPasswordPage(returnOnSuccess: false),
         ),
-      );
-
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      addTearDown(authRepository.dispose);
-      addTearDown(localePreferences.dispose);
-
-      final appStateController = container.read(appStateControllerProvider);
-      final guard = LaunchRedirectGuard(
-        logger: _MemoryLogger(),
-        appStateController: appStateController,
-        authRepository: authRepository,
-        launchRegistry: launchRegistry,
-        tunnelStateRegistry: tunnelStateRegistry,
-        enableEntryJourneyStateModelV2: true,
-        enableEntryJourneyRoutingV2: true,
-      );
-      addTearDown(guard.dispose);
-
-      final router = GoRouter(
-        initialLocation: AppRoutePaths.authOtp,
-        refreshListenable: guard,
-        redirect: guard.handle,
-        routes: [
-          GoRoute(
-            path: AppRoutePaths.launch,
-            builder: (context, state) => const SizedBox.shrink(),
-          ),
-          GoRoute(
-            path: AppRoutePaths.authOtp,
-            builder: (context, state) =>
-                const AuthPasswordPage(returnOnSuccess: false),
-          ),
-          GoRoute(
-            path: AppRoutePaths.authForgotPassword,
-            builder: (context, state) => const AuthForgotPasswordPage(),
-          ),
-          GoRoute(
-            path: AppRoutePaths.authUpdatePassword,
-            builder: (context, state) => const AuthUpdatePasswordPage(),
-          ),
-          GoRoute(
-            path: AppRoutePaths.authUpdatePasswordCallback,
-            builder: (context, state) => const SizedBox.shrink(),
-          ),
-        ],
-      );
-      addTearDown(router.dispose);
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp.router(
-            routerConfig: router,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-          ),
+        GoRoute(
+          path: AppRoutePaths.authForgotPassword,
+          builder: (context, state) => const AuthForgotPasswordPage(),
         ),
-      );
-      await tester.pumpAndSettle();
+        GoRoute(
+          path: AppRoutePaths.authUpdatePassword,
+          builder: (context, state) => const AuthUpdatePasswordPage(),
+        ),
+        GoRoute(
+          path: AppRoutePaths.authUpdatePasswordCallback,
+          builder: (context, state) => const SizedBox.shrink(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
 
-      expect(find.byType(AuthPasswordPage), findsOneWidget);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Forgot password?'));
-      await tester.pumpAndSettle();
+    expect(find.byType(AuthPasswordPage), findsOneWidget);
 
-      expect(find.byType(AuthForgotPasswordPage), findsOneWidget);
-      expect(find.byType(AuthPasswordPage), findsNothing);
-    },
-  );
+    await tester.tap(find.text('Forgot password?'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AuthForgotPasswordPage), findsOneWidget);
+    expect(find.byType(AuthPasswordPage), findsNothing);
+  });
 
   testWidgets(
     'forgot password keeps neutral success notice when reset sender fails',
@@ -293,10 +296,14 @@ void main() {
         find.byType(TextFormField).first,
         'reset@example.com',
       );
-      await tester.tap(find.text('Send link'));
+      await tester.ensureVisible(find.text('Envoyer la demande'));
+      await tester.tap(find.text('Envoyer la demande'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Password reset email sent.'), findsOneWidget);
+      expect(
+        find.textContaining('un lien de reinitialisation a ete envoye'),
+        findsOneWidget,
+      );
       expect(find.text('backend_failure'), findsNothing);
     },
   );
@@ -476,7 +483,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          authUpdatePasswordSubmitterProvider.overrideWithValue(
+          authUpdatePasswordCompletionProvider.overrideWithValue(
             (password) async {},
           ),
         ],
@@ -516,6 +523,73 @@ void main() {
       find.text('Mot de passe mis a jour. Vous pouvez vous reconnecter.'),
       findsOneWidget,
     );
+    expect(find.text('Se reconnecter'), findsOneWidget);
+    expect(find.text('Mettre a jour'), findsNothing);
+  });
+
+  testWidgets('update-password success sends user back to password sign in', (
+    tester,
+  ) async {
+    final authRepository = _FakeAuthRepository();
+    sl.registerSingleton<AuthRepository>(authRepository);
+
+    var completedPasswordUpdate = false;
+    final container = ProviderContainer(
+      overrides: [
+        authUpdatePasswordCompletionProvider.overrideWithValue((
+          password,
+        ) async {
+          completedPasswordUpdate = true;
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(authRepository.dispose);
+
+    final router = GoRouter(
+      initialLocation: AppRoutePaths.authUpdatePassword,
+      routes: [
+        GoRoute(
+          path: AppRoutePaths.authUpdatePassword,
+          builder: (context, state) => const AuthUpdatePasswordPage(),
+        ),
+        GoRoute(
+          path: AppRoutePaths.authOtp,
+          builder: (context, state) =>
+              const AuthPasswordPage(returnOnSuccess: false),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'password123');
+    await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+    await tester.ensureVisible(find.text('Mettre a jour'));
+    await tester.tap(find.text('Mettre a jour'));
+    await tester.pumpAndSettle();
+
+    expect(completedPasswordUpdate, isTrue);
+    expect(find.text('Se reconnecter'), findsOneWidget);
+    expect(find.text('Mettre a jour'), findsNothing);
+
+    await tester.ensureVisible(find.text('Se reconnecter'));
+    await tester.tap(find.text('Se reconnecter'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AuthPasswordPage), findsOneWidget);
+    expect(find.byType(AuthUpdatePasswordPage), findsNothing);
   });
 
   testWidgets('update-password page shows recovery-expired style message', (
@@ -524,7 +598,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          authUpdatePasswordSubmitterProvider.overrideWithValue((
+          authUpdatePasswordCompletionProvider.overrideWithValue((
             password,
           ) async {
             throw Exception('session expired');

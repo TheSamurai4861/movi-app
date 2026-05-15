@@ -12,14 +12,16 @@ import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/shared/widgets/app_labeled_text_field.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
-typedef AuthUpdatePasswordSubmitter = Future<void> Function(String password);
+typedef AuthUpdatePasswordCompletion = Future<void> Function(String password);
 
-final authUpdatePasswordSubmitterProvider =
-    Provider<AuthUpdatePasswordSubmitter?>((ref) {
+final authUpdatePasswordCompletionProvider =
+    Provider<AuthUpdatePasswordCompletion?>((ref) {
       final client = ref.watch(supabaseClientProvider);
       if (client == null) return null;
-      return (password) =>
-          client.auth.updateUser(UserAttributes(password: password));
+      return (password) async {
+        await client.auth.updateUser(UserAttributes(password: password));
+        await client.auth.signOut();
+      };
     });
 
 /// Update-password screen used by the recovery callback route.
@@ -91,8 +93,10 @@ class _AuthUpdatePasswordPageState
       _globalMessage = null;
     });
 
-    final submitter = ref.read(authUpdatePasswordSubmitterProvider);
-    if (submitter == null) {
+    final completePasswordUpdate = ref.read(
+      authUpdatePasswordCompletionProvider,
+    );
+    if (completePasswordUpdate == null) {
       setState(() {
         _status = _UpdatePasswordStatus.error;
         _globalMessage =
@@ -102,7 +106,7 @@ class _AuthUpdatePasswordPageState
     }
 
     try {
-      await submitter(password);
+      await completePasswordUpdate(password);
       if (!mounted) return;
       globalMessage = 'Mot de passe mis a jour. Vous pouvez vous reconnecter.';
       setState(() {
@@ -167,29 +171,31 @@ class _AuthUpdatePasswordPageState
                       showHelpTextWhenError: true,
                       decoration: BootFormTokens.bootTextFieldDecoration(theme)
                           .copyWith(
-                        suffixIcon: IconButton(
-                          onPressed: isBusy
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
-                          tooltip: _isPasswordVisible
-                              ? 'Masquer le mot de passe'
-                              : 'Afficher le mot de passe',
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 20,
+                            suffixIcon: IconButton(
+                              onPressed: isBusy
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
+                                      });
+                                    },
+                              tooltip: _isPasswordVisible
+                                  ? 'Masquer le mot de passe'
+                                  : 'Afficher le mot de passe',
+                              icon: Icon(
+                                _isPasswordVisible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 20,
+                              ),
+                            ),
+                            suffixIconColor: theme.colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                        suffixIconColor: theme.colorScheme.onSurfaceVariant,
-                      ),
                       onChanged: (_) {
                         if (_status == _UpdatePasswordStatus.error &&
-                            (_passwordError != null || _globalMessage != null)) {
+                            (_passwordError != null ||
+                                _globalMessage != null)) {
                           setState(() {
                             _passwordError = null;
                             if (_confirmPasswordError == null) {
@@ -211,27 +217,27 @@ class _AuthUpdatePasswordPageState
                       obscureText: !_isConfirmPasswordVisible,
                       decoration: BootFormTokens.bootTextFieldDecoration(theme)
                           .copyWith(
-                        suffixIcon: IconButton(
-                          onPressed: isBusy
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _isConfirmPasswordVisible =
-                                        !_isConfirmPasswordVisible;
-                                  });
-                                },
-                          tooltip: _isConfirmPasswordVisible
-                              ? 'Masquer le mot de passe'
-                              : 'Afficher le mot de passe',
-                          icon: Icon(
-                            _isConfirmPasswordVisible
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 20,
+                            suffixIcon: IconButton(
+                              onPressed: isBusy
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _isConfirmPasswordVisible =
+                                            !_isConfirmPasswordVisible;
+                                      });
+                                    },
+                              tooltip: _isConfirmPasswordVisible
+                                  ? 'Masquer le mot de passe'
+                                  : 'Afficher le mot de passe',
+                              icon: Icon(
+                                _isConfirmPasswordVisible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 20,
+                              ),
+                            ),
+                            suffixIconColor: theme.colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                        suffixIconColor: theme.colorScheme.onSurfaceVariant,
-                      ),
                       onChanged: (_) {
                         if (_status == _UpdatePasswordStatus.error &&
                             (_confirmPasswordError != null ||
@@ -266,26 +272,29 @@ class _AuthUpdatePasswordPageState
                     ),
                   ],
                   const SizedBox(height: BootFormTokens.formElementGap),
-                  BootFormTokens.constrainPrimaryAction(
-                    MoviPrimaryButton(
-                      label: 'Mettre a jour',
-                      loading: isBusy,
-                      onPressed: isBusy ? null : _onSubmit,
-                      height: BootFormTokens.primaryActionHeight,
-                      buttonStyle: BootFormTokens.bootPrimaryButtonStyle(theme),
-                    ),
-                  ),
-                  if (_status == _UpdatePasswordStatus.success) ...[
-                    const SizedBox(height: AppSpacing.md),
+                  if (_status != _UpdatePasswordStatus.success)
                     BootFormTokens.constrainPrimaryAction(
                       MoviPrimaryButton(
-                        label: 'Aller a la connexion',
+                        label: 'Mettre a jour',
+                        loading: isBusy,
+                        onPressed: isBusy ? null : _onSubmit,
+                        height: BootFormTokens.primaryActionHeight,
+                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+                          theme,
+                        ),
+                      ),
+                    )
+                  else
+                    BootFormTokens.constrainPrimaryAction(
+                      MoviPrimaryButton(
+                        label: 'Se reconnecter',
                         onPressed: () => context.go(AppRoutePaths.authOtp),
                         height: BootFormTokens.primaryActionHeight,
-                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(theme),
+                        buttonStyle: BootFormTokens.bootPrimaryButtonStyle(
+                          theme,
+                        ),
                       ),
                     ),
-                  ],
                 ],
               ),
             ),
