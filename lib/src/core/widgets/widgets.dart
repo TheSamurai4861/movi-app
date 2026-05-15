@@ -3,6 +3,7 @@ export 'movi_bottom_nav_bar.dart';
 export 'movi_favorite_button.dart';
 export 'movi_focusable.dart';
 export 'movi_items_list.dart';
+export 'movi_lazy_section_scroll.dart';
 export 'movi_ellipsis_text.dart';
 export 'movi_media_card.dart';
 export 'movi_media_grid.dart';

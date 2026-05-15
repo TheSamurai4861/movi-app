@@ -15,13 +15,13 @@ class HomeHeroSection extends ConsumerWidget {
   const HomeHeroSection({
     super.key,
     required this.heroItems,
-    required this.onLoadingChanged,
+    this.onLoadingChanged,
     this.primaryActionFocusNode,
     this.moviesFilterFocusNode,
   });
 
   final List<ContentReference> heroItems;
-  final ValueChanged<bool> onLoadingChanged;
+  final ValueChanged<bool>? onLoadingChanged;
   final FocusNode? primaryActionFocusNode;
   final FocusNode? moviesFilterFocusNode;
 

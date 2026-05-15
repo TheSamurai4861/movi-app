@@ -67,6 +67,82 @@ class TmdbImageResolver {
   Uri? still(String? path, {String size = 'w185'}) =>
       _build(path, _sanitizeSize(size, fallback: 'w185'));
 
+  /// Choisit la plus petite variante TMDB `w###` couvrant [targetPixels].
+  String posterSizeForPixelWidth(int targetPixels, {String fallback = 'w342'}) {
+    return _smallestCoveringWidth(
+      _posterWidthSizes,
+      targetPixels,
+      fallback: fallback,
+    );
+  }
+
+  /// Choisit la plus petite variante backdrop `w###` couvrant [targetPixels].
+  String backdropSizeForPixelWidth(int targetPixels, {String fallback = 'w780'}) {
+    return _smallestCoveringWidth(
+      _backdropWidthSizes,
+      targetPixels,
+      fallback: fallback,
+    );
+  }
+
+  Uri? posterForLogicalWidth(
+    String? path, {
+    required double logicalWidth,
+    double devicePixelRatio = 1,
+    double scaleFactor = 2,
+  }) {
+    final targetPixels = (logicalWidth * devicePixelRatio * scaleFactor).round();
+    return poster(
+      path,
+      size: posterSizeForPixelWidth(targetPixels),
+    );
+  }
+
+  /// Réduit une URL TMDB déjà résolue vers une taille `w###` cible si possible.
+  Uri? downgradeTmdbUrl(String? url, String targetSize) {
+    final downgraded = downgradeHttpUrl(url, targetSize);
+    if (downgraded == null) return null;
+    return Uri.tryParse(downgraded);
+  }
+
+  /// Variante chaîne de [downgradeTmdbUrl] pour prefetch / logs.
+  static String? downgradeHttpUrl(String? url, String targetSize) {
+    final raw = url?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    final sanitized = _sanitizeSizeValue(targetSize, fallback: 'w342');
+    if (!RegExp(r'/t/p/w\d+/').hasMatch(raw)) {
+      return raw;
+    }
+    return raw.replaceFirst(
+      RegExp(r'/t/p/w\d+/'),
+      '/t/p/$sanitized/',
+    );
+  }
+
+  static String _sanitizeSizeValue(String raw, {required String fallback}) {
+    final s = raw.trim();
+    if (s == 'original') return s;
+    final re = RegExp(r'^[wh]\d{2,4}$');
+    return re.hasMatch(s) ? s : fallback;
+  }
+
+  static const List<int> _posterWidthSizes = <int>[92, 154, 185, 342, 500, 780];
+  static const List<int> _backdropWidthSizes = <int>[300, 780, 1280];
+
+  String _smallestCoveringWidth(
+    List<int> availableWidths,
+    int targetPixels, {
+    required String fallback,
+  }) {
+    if (targetPixels <= 0) return fallback;
+    for (final width in availableWidths) {
+      if (width >= targetPixels) {
+        return 'w$width';
+      }
+    }
+    return 'w${availableWidths.last}';
+  }
+
   // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
@@ -76,10 +152,7 @@ class TmdbImageResolver {
   ///  - `w###` ou `h###` (2–4 chiffres)
   /// En cas de valeur invalide, applique `fallback`.
   String _sanitizeSize(String raw, {required String fallback}) {
-    final s = (raw).trim();
-    if (s == 'original') return s;
-    final re = RegExp(r'^[wh]\d{2,4}$');
-    return re.hasMatch(s) ? s : fallback;
+    return _sanitizeSizeValue(raw, fallback: fallback);
   }
 
   /// Construit l’URI final en gérant :

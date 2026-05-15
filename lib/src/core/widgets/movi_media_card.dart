@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/images/image_decode_size.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/movi_ellipsis_text.dart';
@@ -6,11 +7,13 @@ import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 
 Widget _buildPosterImage(
+  BuildContext context,
   Uri? poster,
   double width,
   double height, {
   PlaceholderType? placeholderType,
 }) {
+  final decodeSize = ImageDecodeSize.decodeSizeForCard(context, width, height);
   final Widget placeholder = (placeholderType == null)
       ? Container(
           width: width,
@@ -38,8 +41,8 @@ Widget _buildPosterImage(
       fit: BoxFit.cover,
       gaplessPlayback: true,
       filterQuality: FilterQuality.low,
-      cacheWidth: (width * 2).toInt(),
-      cacheHeight: (height * 2).toInt(),
+      cacheWidth: decodeSize.width,
+      cacheHeight: decodeSize.height,
       errorBuilder: (_, __, ___) => placeholder,
     );
   }
@@ -52,8 +55,8 @@ Widget _buildPosterImage(
     height: height,
     fit: BoxFit.cover,
     errorBuilder: (_, __, ___) => placeholder,
-    cacheWidth: (width * 2).toInt(),
-    cacheHeight: (height * 2).toInt(),
+    cacheWidth: decodeSize.width,
+    cacheHeight: decodeSize.height,
   );
 }
 
@@ -204,6 +207,7 @@ class _PosterWithOverlay extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         _buildPosterImage(
+          context,
           media.poster,
           width,
           height,

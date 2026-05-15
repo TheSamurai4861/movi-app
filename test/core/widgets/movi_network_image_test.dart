@@ -24,8 +24,10 @@ void main() {
         find.byType(CachedNetworkImage),
       );
       final dpr = tester.view.devicePixelRatio;
-      expect(widget.maxWidthDiskCache, (200 * dpr).round());
-      expect(widget.maxHeightDiskCache, (100 * dpr).round());
+      final expectedWidth = (200 * dpr * 2).round().clamp(120, 1280);
+      final expectedHeight = (100 * dpr * 2).round().clamp(120, 1280);
+      expect(widget.memCacheWidth, expectedWidth);
+      expect(widget.memCacheHeight, expectedHeight);
     });
 
     testWidgets('honors explicit cache dimensions', (tester) async {
@@ -46,8 +48,8 @@ void main() {
       final widget = tester.widget<CachedNetworkImage>(
         find.byType(CachedNetworkImage),
       );
-      expect(widget.maxWidthDiskCache, 640);
-      expect(widget.maxHeightDiskCache, 360);
+      expect(widget.memCacheWidth, 640);
+      expect(widget.memCacheHeight, 360);
     });
 
     testWidgets('uses errorBuilder for empty urls', (tester) async {

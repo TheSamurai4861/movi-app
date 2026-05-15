@@ -30,20 +30,23 @@ class CategoryGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
-        MoviMediaGrid(
-          itemCount: items.length,
-          firstItemFocusNode: firstItemFocusNode,
-          onExitUp: () {
-            backFocusNode.requestFocus();
-            return true;
-          },
-          onExitDown: () {
-            if (hasMore && !isLoadingMore) {
-              onLoadMore?.call();
-            }
-            return true;
-          },
-          itemBuilder: (context, index, focusNode, cardWidth, posterHeight) {
+        Expanded(
+          child: MoviMediaGrid(
+            shrinkWrap: false,
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: items.length,
+            firstItemFocusNode: firstItemFocusNode,
+            onExitUp: () {
+              backFocusNode.requestFocus();
+              return true;
+            },
+            onExitDown: () {
+              if (hasMore && !isLoadingMore) {
+                onLoadMore?.call();
+              }
+              return true;
+            },
+            itemBuilder: (context, index, focusNode, cardWidth, posterHeight) {
             final reference = items[index];
             final media = MoviMedia(
               id: reference.id,
@@ -87,7 +90,8 @@ class CategoryGrid extends ConsumerWidget {
                 );
               },
             );
-          },
+            },
+          ),
         ),
         if (isLoadingMore) ...[
           const Padding(

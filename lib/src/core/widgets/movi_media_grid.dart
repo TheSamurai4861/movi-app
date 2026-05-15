@@ -34,6 +34,8 @@ class MoviMediaGrid extends StatefulWidget {
     this.padding = EdgeInsets.zero,
     this.focusRequestId,
     this.focusRequestIndex,
+    this.shrinkWrap = true,
+    this.physics,
   });
 
   final int itemCount;
@@ -60,6 +62,12 @@ class MoviMediaGrid extends StatefulWidget {
   final EdgeInsetsGeometry padding;
   final int? focusRequestId;
   final int? focusRequestIndex;
+
+  /// Quand `false`, la grille devient le scrollable principal (parent [Expanded]).
+  final bool shrinkWrap;
+
+  /// Physique du scroll ; par défaut bloqué si [shrinkWrap], sinon scrollable.
+  final ScrollPhysics? physics;
 
   @override
   State<MoviMediaGrid> createState() => _MoviMediaGridState();
@@ -378,6 +386,12 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
             (layoutCardWidth * crossAxisCount) +
             gridGapH * (crossAxisCount - 1);
 
+        final scrollPhysics =
+            widget.physics ??
+            (widget.shrinkWrap
+                ? const NeverScrollableScrollPhysics()
+                : const AlwaysScrollableScrollPhysics());
+
         return Align(
           alignment: Alignment.topCenter,
           child: Padding(
@@ -385,8 +399,8 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
             child: SizedBox(
               width: gridWidth,
               child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: widget.shrinkWrap,
+                physics: scrollPhysics,
                 padding: widget.padding,
                 itemCount: widget.itemCount,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

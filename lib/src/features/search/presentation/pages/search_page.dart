@@ -14,6 +14,7 @@ import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/images/image_decode_size.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/subscription/subscription.dart';
@@ -543,107 +544,124 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       _syncedFromState = true;
     }
 
-    final searchHeaderChildren = <Widget>[
-      SizedBox(height: topSpacing),
-      Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: contentMaxWidth),
-            child: Text(
-              l10n.searchTitle,
-              style:
-                  Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ) ??
-                  const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 16),
-      Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: searchFieldMaxWidth),
-            child: _SearchField(
-              controller: _textCtrl,
-              focusNode: _focusNode,
-              clearFocusNode: _clearFocusNode,
-              hintText: l10n.searchHint,
-              clearTooltip: l10n.clear,
-              onArrowLeft: () {
-                _runWithExpectedInputUnfocus(() {
-                  _resolveExitFromRegion(AppFocusRegionId.searchInput);
-                });
-              },
-              onArrowUp: _noop,
-              onArrowDown: () => _runWithExpectedInputUnfocus(
-                () => _focusSearchContentBelow(preferHistory: hasHistoryItems),
+    final sectionBuilders = <Widget Function()>[];
+
+    void addSection(Widget Function() buildSection) {
+      sectionBuilders.add(buildSection);
+    }
+
+    addSection(
+      () => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: topSpacing),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                child: Text(
+                  l10n.searchTitle,
+                  style:
+                      Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ) ??
+                      const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
               ),
-              onArrowRight: () {
-                if (_textCtrl.text.isEmpty) return;
-                _runWithExpectedInputUnfocus(() {
-                  FocusDirectionalNavigation.requestFocus(_clearFocusNode);
-                });
-              },
-              onClearArrowLeft: () {
-                FocusDirectionalNavigation.requestFocus(_focusNode);
-              },
-              onClearArrowUp: _noop,
-              onClearArrowDown: () => _focusSearchContentBelow(),
-              onActivate: () => _setSearchInputActivated(true),
-              onChanged: (value) {
-                _setSearchInputActivated(true);
-                _debugSearchFocus(
-                  'onChanged value="$value" len=${value.trim().length}',
-                );
-                ctrl.setDraftQuery(value);
-
-                if (value.trim().length < _searchQueryMinLength) {
-                  unawaited(
-                    ref
-                        .read(searchHistoryControllerProvider.notifier)
-                        .refresh(),
-                  );
-                }
-              },
-              onClear: () {
-                _debugSearchFocus(
-                  'onClear pressed textBefore="${_textCtrl.text}"',
-                );
-                _markProgrammaticTextChange('on_clear_pressed');
-                _textCtrl.clear();
-                ctrl.clear();
-                unawaited(
-                  ref.read(searchHistoryControllerProvider.notifier).refresh(),
-                );
-                FocusDirectionalNavigation.requestFocus(_focusNode);
-              },
-              onSubmitted: (value) {
-                _setSearchInputActivated(true);
-                _debugSearchFocus('onSubmitted value="$value"');
-                unawaited(ctrl.submitCurrentQuery());
-              },
             ),
           ),
-        ),
-      ),
-      const SizedBox(height: 32),
-    ];
-
-    List<Widget> buildResultsChildren() {
-      Widget section(Widget child) {
-        return child;
-      }
-
-      return [
-        if (state.movies.isNotEmpty) ...[
           const SizedBox(height: 16),
-          FocusRegionScope(
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: searchFieldMaxWidth),
+                child: _SearchField(
+                  controller: _textCtrl,
+                  focusNode: _focusNode,
+                  clearFocusNode: _clearFocusNode,
+                  hintText: l10n.searchHint,
+                  clearTooltip: l10n.clear,
+                  onArrowLeft: () {
+                    _runWithExpectedInputUnfocus(() {
+                      _resolveExitFromRegion(AppFocusRegionId.searchInput);
+                    });
+                  },
+                  onArrowUp: _noop,
+                  onArrowDown: () => _runWithExpectedInputUnfocus(
+                    () => _focusSearchContentBelow(
+                      preferHistory: hasHistoryItems,
+                    ),
+                  ),
+                  onArrowRight: () {
+                    if (_textCtrl.text.isEmpty) return;
+                    _runWithExpectedInputUnfocus(() {
+                      FocusDirectionalNavigation.requestFocus(
+                        _clearFocusNode,
+                      );
+                    });
+                  },
+                  onClearArrowLeft: () {
+                    FocusDirectionalNavigation.requestFocus(_focusNode);
+                  },
+                  onClearArrowUp: _noop,
+                  onClearArrowDown: () => _focusSearchContentBelow(),
+                  onActivate: () => _setSearchInputActivated(true),
+                  onChanged: (value) {
+                    _setSearchInputActivated(true);
+                    _debugSearchFocus(
+                      'onChanged value="$value" len=${value.trim().length}',
+                    );
+                    ctrl.setDraftQuery(value);
+
+                    if (value.trim().length < _searchQueryMinLength) {
+                      unawaited(
+                        ref
+                            .read(searchHistoryControllerProvider.notifier)
+                            .refresh(),
+                      );
+                    }
+                  },
+                  onClear: () {
+                    _debugSearchFocus(
+                      'onClear pressed textBefore="${_textCtrl.text}"',
+                    );
+                    _markProgrammaticTextChange('on_clear_pressed');
+                    _textCtrl.clear();
+                    ctrl.clear();
+                    unawaited(
+                      ref
+                          .read(searchHistoryControllerProvider.notifier)
+                          .refresh(),
+                    );
+                    FocusDirectionalNavigation.requestFocus(_focusNode);
+                  },
+                  onSubmitted: (value) {
+                    _setSearchInputActivated(true);
+                    _debugSearchFocus('onSubmitted value="$value"');
+                    unawaited(ctrl.submitCurrentQuery());
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+
+    void appendResultsSections() {
+      final movies = state.movies.take(10).toList(growable: false);
+      if (movies.isNotEmpty) {
+        addSection(() => const SizedBox(height: 16));
+        addSection(
+          () => FocusRegionScope(
             regionId: AppFocusRegionId.searchResultsMovies,
             binding: FocusRegionBinding(
               resolvePrimaryEntryNode: () => _firstMovieResultFocusNode,
@@ -653,57 +671,52 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               DirectionalEdge.back: AppFocusRegionId.shellSidebar,
             }),
             debugLabel: 'SearchMoviesRegion',
-            child: section(
-              MoviItemsList(
-                title: l10n.moviesTitle,
-                subtitle: l10n.resultsCount(state.movies.length),
-                estimatedItemWidth: 150,
-                estimatedItemHeight: 300,
-                verticalFocusAlignment: _focusVerticalAlignment,
-                titlePadding: horizontalPadding,
-                horizontalPadding: resultsListPadding,
-                items: state.movies
-                    .take(10)
-                    .toList()
-                    .asMap()
-                    .entries
-                    .map(
-                      (entry) => _AnimatedMovieCard(
-                        suppressEntranceAnimation: suppressResultCardAnimations,
-                        media: MoviMedia(
-                          id: entry.value.id.value,
-                          title: entry.value.title.display,
-                          poster: entry.value.poster,
-                          year: entry.value.releaseYear,
-                          type: MoviMediaType.movie,
-                        ),
-                        onTap: (mm) => navigateToMovieDetail(
-                          context,
-                          ref,
-                          ContentRouteArgs.movie(mm.id),
-                          originRegionId: AppFocusRegionId.searchResultsMovies,
-                          fallbackRegionId:
-                              AppFocusRegionId.searchResultsMovies,
-                        ),
-                        focusNode: entry.key == 0
-                            ? _firstMovieResultFocusNode
-                            : null,
-                        onFirstLeft: entry.key == 0
-                            ? () => _resolveExitFromRegion(
-                                AppFocusRegionId.searchResultsMovies,
-                              )
-                            : null,
-                        delay: Duration(milliseconds: entry.key * 100),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
+            child: MoviItemsList.builder(
+              title: l10n.moviesTitle,
+              subtitle: l10n.resultsCount(state.movies.length),
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 300,
+              verticalFocusAlignment: _focusVerticalAlignment,
+              titlePadding: horizontalPadding,
+              horizontalPadding: resultsListPadding,
+              itemCount: movies.length,
+              itemBuilder: (context, index) {
+                final movie = movies[index];
+                return _AnimatedMovieCard(
+                  suppressEntranceAnimation: suppressResultCardAnimations,
+                  media: MoviMedia(
+                    id: movie.id.value,
+                    title: movie.title.display,
+                    poster: movie.poster,
+                    year: movie.releaseYear,
+                    type: MoviMediaType.movie,
+                  ),
+                  onTap: (mm) => navigateToMovieDetail(
+                    context,
+                    ref,
+                    ContentRouteArgs.movie(mm.id),
+                    originRegionId: AppFocusRegionId.searchResultsMovies,
+                    fallbackRegionId: AppFocusRegionId.searchResultsMovies,
+                  ),
+                  focusNode: index == 0 ? _firstMovieResultFocusNode : null,
+                  onFirstLeft: index == 0
+                      ? () => _resolveExitFromRegion(
+                          AppFocusRegionId.searchResultsMovies,
+                        )
+                      : null,
+                  delay: Duration(milliseconds: index * 100),
+                );
+              },
             ),
           ),
-        ],
-        if (state.shows.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          FocusRegionScope(
+        );
+      }
+
+      final shows = state.shows.take(10).toList(growable: false);
+      if (shows.isNotEmpty) {
+        addSection(() => const SizedBox(height: 16));
+        addSection(
+          () => FocusRegionScope(
             regionId: AppFocusRegionId.searchResultsSeries,
             binding: FocusRegionBinding(
               resolvePrimaryEntryNode: () => _firstShowResultFocusNode,
@@ -713,56 +726,51 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               DirectionalEdge.back: AppFocusRegionId.shellSidebar,
             }),
             debugLabel: 'SearchSeriesRegion',
-            child: section(
-              MoviItemsList(
-                title: l10n.seriesTitle,
-                subtitle: l10n.resultsCount(state.shows.length),
-                estimatedItemWidth: 150,
-                estimatedItemHeight: 300,
-                verticalFocusAlignment: _focusVerticalAlignment,
-                titlePadding: horizontalPadding,
-                horizontalPadding: resultsListPadding,
-                items: state.shows
-                    .take(10)
-                    .toList()
-                    .asMap()
-                    .entries
-                    .map(
-                      (entry) => _AnimatedMovieCard(
-                        suppressEntranceAnimation: suppressResultCardAnimations,
-                        media: MoviMedia(
-                          id: entry.value.id.value,
-                          title: entry.value.title.display,
-                          poster: entry.value.poster,
-                          type: MoviMediaType.series,
-                        ),
-                        onTap: (mm) => navigateToTvDetail(
-                          context,
-                          ref,
-                          ContentRouteArgs.series(mm.id),
-                          originRegionId: AppFocusRegionId.searchResultsSeries,
-                          fallbackRegionId:
-                              AppFocusRegionId.searchResultsSeries,
-                        ),
-                        focusNode: entry.key == 0
-                            ? _firstShowResultFocusNode
-                            : null,
-                        onFirstLeft: entry.key == 0
-                            ? () => _resolveExitFromRegion(
-                                AppFocusRegionId.searchResultsSeries,
-                              )
-                            : null,
-                        delay: Duration(milliseconds: entry.key * 100),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
+            child: MoviItemsList.builder(
+              title: l10n.seriesTitle,
+              subtitle: l10n.resultsCount(state.shows.length),
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 300,
+              verticalFocusAlignment: _focusVerticalAlignment,
+              titlePadding: horizontalPadding,
+              horizontalPadding: resultsListPadding,
+              itemCount: shows.length,
+              itemBuilder: (context, index) {
+                final show = shows[index];
+                return _AnimatedMovieCard(
+                  suppressEntranceAnimation: suppressResultCardAnimations,
+                  media: MoviMedia(
+                    id: show.id.value,
+                    title: show.title.display,
+                    poster: show.poster,
+                    type: MoviMediaType.series,
+                  ),
+                  onTap: (mm) => navigateToTvDetail(
+                    context,
+                    ref,
+                    ContentRouteArgs.series(mm.id),
+                    originRegionId: AppFocusRegionId.searchResultsSeries,
+                    fallbackRegionId: AppFocusRegionId.searchResultsSeries,
+                  ),
+                  focusNode: index == 0 ? _firstShowResultFocusNode : null,
+                  onFirstLeft: index == 0
+                      ? () => _resolveExitFromRegion(
+                          AppFocusRegionId.searchResultsSeries,
+                        )
+                      : null,
+                  delay: Duration(milliseconds: index * 100),
+                );
+              },
             ),
           ),
-        ],
-        if (state.people.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          FocusRegionScope(
+        );
+      }
+
+      final people = state.people.take(10).toList(growable: false);
+      if (people.isNotEmpty) {
+        addSection(() => const SizedBox(height: 16));
+        addSection(
+          () => FocusRegionScope(
             regionId: AppFocusRegionId.searchResultsPeople,
             binding: FocusRegionBinding(
               resolvePrimaryEntryNode: () => _firstPersonResultFocusNode,
@@ -772,52 +780,47 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               DirectionalEdge.back: AppFocusRegionId.shellSidebar,
             }),
             debugLabel: 'SearchPeopleRegion',
-            child: section(
-              MoviItemsList(
-                title: l10n.searchPeopleTitle,
-                subtitle: l10n.resultsCount(state.people.length),
-                estimatedItemWidth: 150,
-                estimatedItemHeight: 300,
-                verticalFocusAlignment: _focusVerticalAlignment,
-                titlePadding: horizontalPadding,
-                horizontalPadding: resultsListPadding,
-                items: state.people
-                    .take(10)
-                    .toList()
-                    .asMap()
-                    .entries
-                    .map(
-                      (entry) => _AnimatedPersonCard(
-                        suppressEntranceAnimation: suppressResultCardAnimations,
-                        person: MoviPerson(
-                          id: entry.value.id.value,
-                          name: entry.value.name,
-                          poster: entry.value.photo,
-                          role: l10n.personRoleActor,
-                        ),
-                        onTap: (p) => context.push(
-                          AppRouteNames.person,
-                          extra: entry.value,
-                        ),
-                        focusNode: entry.key == 0
-                            ? _firstPersonResultFocusNode
-                            : null,
-                        onFirstLeft: entry.key == 0
-                            ? () => _resolveExitFromRegion(
-                                AppFocusRegionId.searchResultsPeople,
-                              )
-                            : null,
-                        delay: Duration(milliseconds: entry.key * 100),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
+            child: MoviItemsList.builder(
+              title: l10n.searchPeopleTitle,
+              subtitle: l10n.resultsCount(state.people.length),
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 300,
+              verticalFocusAlignment: _focusVerticalAlignment,
+              titlePadding: horizontalPadding,
+              horizontalPadding: resultsListPadding,
+              itemCount: people.length,
+              itemBuilder: (context, index) {
+                final person = people[index];
+                return _AnimatedPersonCard(
+                  suppressEntranceAnimation: suppressResultCardAnimations,
+                  person: MoviPerson(
+                    id: person.id.value,
+                    name: person.name,
+                    poster: person.photo,
+                    role: l10n.personRoleActor,
+                  ),
+                  onTap: (p) => context.push(
+                    AppRouteNames.person,
+                    extra: person,
+                  ),
+                  focusNode: index == 0 ? _firstPersonResultFocusNode : null,
+                  onFirstLeft: index == 0
+                      ? () => _resolveExitFromRegion(
+                          AppFocusRegionId.searchResultsPeople,
+                        )
+                      : null,
+                  delay: Duration(milliseconds: index * 100),
+                );
+              },
             ),
           ),
-        ],
-        if (state.sagas.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Consumer(
+        );
+      }
+
+      if (state.sagas.isNotEmpty) {
+        addSection(() => const SizedBox(height: 16));
+        addSection(
+          () => Consumer(
             builder: (context, ref, _) {
               final filteredSagasAsync = ref.watch(
                 filteredSagasProvider(state.sagas),
@@ -827,6 +830,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   if (filteredSagas.isEmpty) {
                     return const SizedBox.shrink();
                   }
+                  final sagas = filteredSagas.take(10).toList(growable: false);
                   return FocusRegionScope(
                     regionId: AppFocusRegionId.searchResultsSagas,
                     binding: FocusRegionBinding(
@@ -837,38 +841,32 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       DirectionalEdge.back: AppFocusRegionId.shellSidebar,
                     }),
                     debugLabel: 'SearchSagasRegion',
-                    child: section(
-                      MoviItemsList(
-                        title: l10n.searchSagasTitle,
-                        subtitle: l10n.resultsCount(filteredSagas.length),
-                        estimatedItemWidth: 150,
-                        estimatedItemHeight: 300,
-                        verticalFocusAlignment: _focusVerticalAlignment,
-                        titlePadding: horizontalPadding,
-                        horizontalPadding: resultsListPadding,
-                        items: filteredSagas
-                            .take(10)
-                            .toList()
-                            .asMap()
-                            .entries
-                            .map(
-                              (entry) => _AnimatedSagaCard(
-                                suppressEntranceAnimation:
-                                    suppressResultCardAnimations,
-                                saga: entry.value,
-                                focusNode: entry.key == 0
-                                    ? _firstSagaResultFocusNode
-                                    : null,
-                                onFirstLeft: entry.key == 0
-                                    ? () => _resolveExitFromRegion(
-                                        AppFocusRegionId.searchResultsSagas,
-                                      )
-                                    : null,
-                                delay: Duration(milliseconds: entry.key * 100),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
+                    child: MoviItemsList.builder(
+                      title: l10n.searchSagasTitle,
+                      subtitle: l10n.resultsCount(filteredSagas.length),
+                      estimatedItemWidth: 150,
+                      estimatedItemHeight: 300,
+                      verticalFocusAlignment: _focusVerticalAlignment,
+                      titlePadding: horizontalPadding,
+                      horizontalPadding: resultsListPadding,
+                      itemCount: sagas.length,
+                      itemBuilder: (context, index) {
+                        final saga = sagas[index];
+                        return _AnimatedSagaCard(
+                          suppressEntranceAnimation:
+                              suppressResultCardAnimations,
+                          saga: saga,
+                          focusNode: index == 0
+                              ? _firstSagaResultFocusNode
+                              : null,
+                          onFirstLeft: index == 0
+                              ? () => _resolveExitFromRegion(
+                                  AppFocusRegionId.searchResultsSagas,
+                                )
+                              : null,
+                          delay: Duration(milliseconds: index * 100),
+                        );
+                      },
                     ),
                   );
                 },
@@ -877,9 +875,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               );
             },
           ),
-        ],
-        if (!state.hasAnyResults)
-          Center(
+        );
+      }
+
+      if (!state.hasAnyResults) {
+        addSection(
+          () => Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
@@ -889,13 +890,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ),
             ),
           ),
-        const SizedBox(height: 100),
-      ];
+        );
+      }
+      addSection(() => const SizedBox(height: 100));
     }
 
-    List<Widget> buildDiscoveryChildren() {
-      return [
-        AnimatedSize(
+    void appendDiscoverySections() {
+      addSection(
+        () => AnimatedSize(
           duration: const Duration(milliseconds: 340),
           curve: Curves.easeInOutCubic,
           alignment: Alignment.topCenter,
@@ -905,7 +907,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   child: FocusRegionScope(
                     regionId: AppFocusRegionId.searchHistory,
                     binding: FocusRegionBinding(
-                      resolvePrimaryEntryNode: () => _firstHistoryItemFocusNode,
+                      resolvePrimaryEntryNode: () =>
+                          _firstHistoryItemFocusNode,
                     ),
                     exitMap: FocusRegionExitMap({
                       DirectionalEdge.left: AppFocusRegionId.shellSidebar,
@@ -942,8 +945,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 )
               : const SizedBox.shrink(),
         ),
-        if (showWatchProviders)
-          FocusRegionScope(
+      );
+      if (showWatchProviders) {
+        addSection(
+          () => FocusRegionScope(
             regionId: AppFocusRegionId.searchProviders,
             binding: FocusRegionBinding(
               resolvePrimaryEntryNode: () => _firstProviderFocusNode,
@@ -959,94 +964,59 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               firstItemFocusNode: _firstProviderFocusNode,
               onFirstItemLeft: () =>
                   _resolveExitFromRegion(AppFocusRegionId.searchProviders),
-              // onLastRowDown: _focusNearestGenreFromProviders,
               focusVerticalAlignment: _focusVerticalAlignment,
               focusRequestId: _providerFocusRequestId,
               focusRequestColumn: _providerFocusRequestColumn,
               onFocusRequestApplied: _onCrossSectionFocusApplied,
             ),
           ),
-        if (showWatchProviders) const SizedBox(height: 32),
-        // Section genres masquée (tous appareils).
-        // FocusRegionScope(
-        //   regionId: AppFocusRegionId.searchGenres,
-        //   binding: FocusRegionBinding(
-        //     resolvePrimaryEntryNode: () => _firstGenreFocusNode,
-        //   ),
-        //   exitMap: FocusRegionExitMap({
-        //     DirectionalEdge.left: AppFocusRegionId.shellSidebar,
-        //     DirectionalEdge.back: AppFocusRegionId.shellSidebar,
-        //   }),
-        //   debugLabel: 'SearchGenresRegion',
-        //   child: GenresGrid(
-        //     horizontalPadding: horizontalPadding,
-        //     maxContentWidth: gridMaxWidth,
-        //     firstItemFocusNode: _firstGenreFocusNode,
-        //     onFirstItemLeft: () =>
-        //         _resolveExitFromRegion(AppFocusRegionId.searchGenres),
-        //     onFirstRowUp: showWatchProviders
-        //         ? _focusNearestProviderFromGenres
-        //         : null,
-        //     focusRequestId: _genreFocusRequestId,
-        //     focusRequestColumn: _genreFocusRequestColumn,
-        //     focusVerticalAlignment: _focusVerticalAlignment,
-        //     onFocusRequestApplied: _onCrossSectionFocusApplied,
-        //   ),
-        // ),
-        const SizedBox(height: 125),
-      ];
+        );
+        addSection(() => const SizedBox(height: 32));
+      }
+      addSection(() => const SizedBox(height: 125));
     }
 
-    List<Widget> buildReadyToSubmitChildren() {
-      return [
-        const SizedBox(height: 32),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Text(
-            l10n.searchHint,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+    switch (searchUiMode) {
+      case SearchUiMode.discovery:
+        appendDiscoverySections();
+      case SearchUiMode.readyToSubmit:
+        addSection(() => const SizedBox(height: 32));
+        addSection(
+          () => Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Text(
+              l10n.searchHint,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
-        const SizedBox(height: 100),
-      ];
-    }
-
-    List<Widget> buildLoadingChildren() {
-      return const [
-        SizedBox(height: 120),
-        Center(child: CircularProgressIndicator()),
-        SizedBox(height: 100),
-      ];
-    }
-
-    List<Widget> buildErrorChildren() {
-      return [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Text(
-            state.error!,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-              fontWeight: FontWeight.w500,
+        );
+        addSection(() => const SizedBox(height: 100));
+      case SearchUiMode.loadingResults:
+        addSection(() => const SizedBox(height: 120));
+        addSection(
+          () => const Center(child: CircularProgressIndicator()),
+        );
+        addSection(() => const SizedBox(height: 100));
+      case SearchUiMode.error:
+        addSection(
+          () => Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Text(
+              state.error!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
-        const SizedBox(height: 100),
-      ];
-    }
-
-    List<Widget> bodyChildren() {
-      return switch (searchUiMode) {
-        SearchUiMode.discovery => buildDiscoveryChildren(),
-        SearchUiMode.readyToSubmit => buildReadyToSubmitChildren(),
-        SearchUiMode.loadingResults => buildLoadingChildren(),
-        SearchUiMode.error => buildErrorChildren(),
-        SearchUiMode.showingResults => buildResultsChildren(),
-      };
+        );
+        addSection(() => const SizedBox(height: 100));
+      case SearchUiMode.showingResults:
+        appendResultsSections();
     }
 
     return FocusRegionScope(
@@ -1086,10 +1056,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       MoviVerticalRevealPolicy.minimal
                   ? 1
                   : 0,
-              child: ListView(
+              child: MoviLazySectionScroll(
                 controller: PrimaryScrollController.maybeOf(context),
-                padding: EdgeInsets.zero,
-                children: [...searchHeaderChildren, ...bodyChildren()],
+                sectionCount: sectionBuilders.length,
+                keepAliveSectionIndices: const {0},
+                sectionBuilder: (context, index) =>
+                    sectionBuilders[index](),
               ),
             ),
           ),
@@ -1881,7 +1853,7 @@ class _SagaCard extends ConsumerWidget {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: _buildPosterImage(saga.cover, 150, 225),
+                    child: _buildPosterImage(context, saga.cover, 150, 225),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1903,7 +1875,13 @@ class _SagaCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildPosterImage(Uri? poster, double width, double height) {
+  Widget _buildPosterImage(
+    BuildContext context,
+    Uri? poster,
+    double width,
+    double height,
+  ) {
+    final decodeSize = ImageDecodeSize.decodeSizeForCard(context, width, height);
     if (poster == null) {
       return Container(
         width: width,
@@ -1944,8 +1922,8 @@ class _SagaCard extends ConsumerWidget {
         ),
         gaplessPlayback: true,
         filterQuality: FilterQuality.low,
-        cacheWidth: (width * 2).toInt(),
-        cacheHeight: (height * 2).toInt(),
+        cacheWidth: decodeSize.width,
+        cacheHeight: decodeSize.height,
       );
     }
 
@@ -1963,8 +1941,8 @@ class _SagaCard extends ConsumerWidget {
           child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
         ),
       ),
-      cacheWidth: (width * 2).toInt(),
-      cacheHeight: (height * 2).toInt(),
+      cacheWidth: decodeSize.width,
+      cacheHeight: decodeSize.height,
     );
   }
 }

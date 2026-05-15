@@ -339,6 +339,9 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
     final itemCount = _isMovie ? _movies.length : _shows.length;
+    final previewMovies = _movies.take(10).toList(growable: false);
+    final previewShows = _shows.take(10).toList(growable: false);
+    final previewCount = _isMovie ? previewMovies.length : previewShows.length;
     _requestInitialMediaFocusIfNeeded(context);
 
     final initialFocusNode = itemCount > 0
@@ -416,128 +419,142 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      MoviItemsList(
-                        title: _isMovie
-                            ? AppLocalizations.of(context)!.moviesTitle
-                            : AppLocalizations.of(context)!.seriesTitle,
-                        subtitle: itemCount > 0
-                            ? AppLocalizations.of(
-                                context,
-                              )!.resultsCount(itemCount)
-                            : null,
-                        estimatedItemWidth: 150,
-                        estimatedItemHeight: MoviMediaCard.listHeight,
-                        titlePadding: 20,
-                        horizontalPadding: const EdgeInsetsDirectional.only(
-                          start: 20,
-                          end: 20,
-                        ),
-                        action: itemCount > 10
-                            ? TextButton(
-                                onPressed: () {
-                                  context.push(
-                                    AppRouteNames.genreAllResults,
-                                    extra: GenreAllResultsArgs(
-                                      genreId: args.genreId,
-                                      genreName: args.genreName,
-                                      type: args.type,
+                  child: Builder(
+                    builder: (context) {
+                      final sectionBuilders = <Widget Function()>[];
+
+                      if (previewCount > 0) {
+                        sectionBuilders.add(
+                          () => MoviItemsList.builder(
+                            title: _isMovie
+                                ? AppLocalizations.of(context)!.moviesTitle
+                                : AppLocalizations.of(context)!.seriesTitle,
+                            subtitle: itemCount > 0
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.resultsCount(itemCount)
+                                : null,
+                            estimatedItemWidth: 150,
+                            estimatedItemHeight: MoviMediaCard.listHeight,
+                            titlePadding: 20,
+                            horizontalPadding: const EdgeInsetsDirectional.only(
+                              start: 20,
+                              end: 20,
+                            ),
+                            action: itemCount > 10
+                                ? TextButton(
+                                    onPressed: () {
+                                      context.push(
+                                        AppRouteNames.genreAllResults,
+                                        extra: GenreAllResultsArgs(
+                                          genreId: args.genreId,
+                                          genreName: args.genreName,
+                                          type: args.type,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.actionSeeAll,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  );
-                                },
-                                child: Text(
-                                  AppLocalizations.of(context)!.actionSeeAll,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
+                                  )
+                                : null,
+                            itemCount: previewCount,
+                            itemBuilder: (context, index) {
+                              if (_isMovie) {
+                                final mm = previewMovies[index];
+                                final media = MoviMedia(
+                                  id: mm.id.toString(),
+                                  title: mm.title,
+                                  poster: imageResolver.poster(mm.posterPath),
+                                  year:
+                                      mm.releaseDate != null &&
+                                          mm.releaseDate!.length >= 4
+                                      ? int.tryParse(
+                                          mm.releaseDate!.substring(0, 4),
+                                        )
+                                      : null,
+                                  type: MoviMediaType.movie,
+                                );
+                                return MoviMediaCard(
+                                  media: media,
+                                  focusNode: index == 0
+                                      ? _firstMediaFocusNode
+                                      : null,
+                                  onTap: (x) => navigateToMovieDetail(
+                                    context,
+                                    ref,
+                                    ContentRouteArgs.movie(x.id),
+                                    originRegionId:
+                                        AppFocusRegionId.genreResultsPrimary,
+                                    fallbackRegionId:
+                                        AppFocusRegionId.genreResultsPrimary,
                                   ),
+                                );
+                              }
+
+                              final ss = previewShows[index];
+                              final media = MoviMedia(
+                                id: ss.id.toString(),
+                                title: ss.name,
+                                poster: imageResolver.poster(ss.posterPath),
+                                type: MoviMediaType.series,
+                              );
+                              return MoviMediaCard(
+                                media: media,
+                                focusNode: index == 0
+                                    ? _firstMediaFocusNode
+                                    : null,
+                                onTap: (x) => navigateToTvDetail(
+                                  context,
+                                  ref,
+                                  ContentRouteArgs.series(x.id),
+                                  originRegionId:
+                                      AppFocusRegionId.genreResultsPrimary,
+                                  fallbackRegionId:
+                                      AppFocusRegionId.genreResultsPrimary,
                                 ),
-                              )
-                            : null,
-                        items: _isMovie
-                            ? _movies
-                                  .take(10)
-                                  .map((mm) {
-                                    final media = MoviMedia(
-                                      id: mm.id.toString(),
-                                      title: mm.title,
-                                      poster: imageResolver.poster(
-                                        mm.posterPath,
-                                      ),
-                                      year:
-                                          mm.releaseDate != null &&
-                                              mm.releaseDate!.length >= 4
-                                          ? int.tryParse(
-                                              mm.releaseDate!.substring(0, 4),
-                                            )
-                                          : null,
-                                      type: MoviMediaType.movie,
-                                    );
-                                    return MoviMediaCard(
-                                      media: media,
-                                      focusNode: identical(mm, _movies.first)
-                                          ? _firstMediaFocusNode
-                                          : null,
-                                      onTap: (x) => navigateToMovieDetail(
-                                        context,
-                                        ref,
-                                        ContentRouteArgs.movie(x.id),
-                                        originRegionId: AppFocusRegionId
-                                            .genreResultsPrimary,
-                                        fallbackRegionId: AppFocusRegionId
-                                            .genreResultsPrimary,
-                                      ),
-                                    );
-                                  })
-                                  .toList(growable: false)
-                            : _shows
-                                  .take(10)
-                                  .map((ss) {
-                                    final media = MoviMedia(
-                                      id: ss.id.toString(),
-                                      title: ss.name,
-                                      poster: imageResolver.poster(
-                                        ss.posterPath,
-                                      ),
-                                      type: MoviMediaType.series,
-                                    );
-                                    return MoviMediaCard(
-                                      media: media,
-                                      focusNode: identical(ss, _shows.first)
-                                          ? _firstMediaFocusNode
-                                          : null,
-                                      onTap: (x) => navigateToTvDetail(
-                                        context,
-                                        ref,
-                                        ContentRouteArgs.series(x.id),
-                                        originRegionId: AppFocusRegionId
-                                            .genreResultsPrimary,
-                                        fallbackRegionId: AppFocusRegionId
-                                            .genreResultsPrimary,
-                                      ),
-                                    );
-                                  })
-                                  .toList(growable: false),
-                      ),
-                      if (_isLoading)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                      if (!_isLoading && itemCount == 0)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              AppLocalizations.of(context)!.noResults,
-                              style: const TextStyle(fontSize: 16),
+                              );
+                            },
+                          ),
+                        );
+                      }
+
+                      if (_isLoading) {
+                        sectionBuilders.add(
+                          () => const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        );
+                      }
+
+                      if (!_isLoading && itemCount == 0) {
+                        sectionBuilders.add(
+                          () => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                AppLocalizations.of(context)!.noResults,
+                                style: const TextStyle(fontSize: 16),
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                        );
+                      }
+
+                      return MoviLazySectionScroll(
+                        sectionCount: sectionBuilders.length,
+                        sectionBuilder: (context, index) =>
+                            sectionBuilders[index](),
+                      );
+                    },
                   ),
                 ),
               ],

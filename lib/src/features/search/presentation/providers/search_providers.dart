@@ -1,10 +1,9 @@
 // lib/src/features/search/presentation/providers/search_providers.dart
 import 'package:dio/dio.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/images/image_loading_policy.dart';
-import 'package:movi/src/core/images/safe_image_cache_manager.dart';
+import 'package:movi/src/core/images/image_prefetch_coordinator.dart';
+import 'package:movi/src/core/images/image_prefetch_policy.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
@@ -163,10 +162,6 @@ final tmdbDiscoveryCacheProvider = Provider<TmdbDiscoveryCacheDataSource>((
   final locator = ref.watch(slProvider);
   return locator<TmdbDiscoveryCacheDataSource>();
 });
-
-const _providerGridPrefetchTimeout = Duration(seconds: 8);
-const _providerGridPrefetchedUrlMax = 400;
-final Set<String> _providerGridPrefetchedUrls = <String>{};
 
 /// IDs des fournisseurs de streaming dans l'ordre souhaité
 const _providerOrder = [
@@ -540,38 +535,15 @@ Future<PopularMediaPoster?> _refreshProviderPopularMedia({
 }
 
 void _prefetchProviderGridImages({String? posterUrl, String? backdropUrl}) {
-  final policy = ImageLoadingPolicyService.resolve();
-  if (!policy.enableDiskCache ||
-      !policy.enableCachedNetworkPath ||
-      policy.forceNetworkFallbackOnly) {
-    return;
-  }
-  final cacheManager = SafeImageCacheManager.tryGet(enabled: true);
-  if (cacheManager == null) return;
-
   final urls = <String>[
     if (backdropUrl != null) backdropUrl.trim(),
     if (posterUrl != null) posterUrl.trim(),
-  ].where((url) => url.startsWith('https://') || url.startsWith('http://'));
-
-  for (final url in urls) {
-    if (_providerGridPrefetchedUrls.length > _providerGridPrefetchedUrlMax) {
-      _providerGridPrefetchedUrls.clear();
-    }
-    if (!_providerGridPrefetchedUrls.add(url)) continue;
-    unawaited(_warmProviderGridUrl(cacheManager, url));
-  }
-}
-
-Future<void> _warmProviderGridUrl(
-  BaseCacheManager cacheManager,
-  String url,
-) async {
-  try {
-    await cacheManager.getSingleFile(url).timeout(_providerGridPrefetchTimeout);
-  } catch (_) {
-    // Le rendu principal gère déjà ses fallbacks.
-  }
+  ];
+  ImagePrefetchCoordinator.instance.scheduleUrls(
+    urls,
+    reason: ImagePrefetchReason.providerGrid,
+    policyOverride: ImagePrefetchPolicy.diskOnly,
+  );
 }
 
 Future<TmdbGenres> _refreshGenres({

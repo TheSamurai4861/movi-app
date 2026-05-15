@@ -383,58 +383,61 @@ class _ProviderAllResultsPageState
                             ),
                             handleDirectionalExits: false,
                             debugLabel: 'ProviderAllResultsGrid',
-                            child: ListView(
-                              padding: const EdgeInsets.only(bottom: 24),
-                              children: [
-                                NotificationListener<ScrollNotification>(
-                                  onNotification: (notification) {
-                                    if (!_hasMore || _isLoading) return false;
-                                    if (notification
-                                        is! ScrollUpdateNotification) {
-                                      return false;
-                                    }
-                                    if (notification.dragDetails != null) {
-                                      return false;
-                                    }
-                                    final delta = notification.scrollDelta;
-                                    if (delta == null || delta <= 0) {
-                                      return false;
-                                    }
-                                    if (notification.metrics.extentAfter >
-                                        320) {
-                                      return false;
-                                    }
-                                    final now =
-                                        DateTime.now().millisecondsSinceEpoch;
-                                    if (now - _lastWheelLoadMs < 450) {
-                                      return false;
-                                    }
-                                    _lastWheelLoadMs = now;
-                                    unawaited(_loadMore());
-                                    return false;
-                                  },
-                                  child: MoviMediaGrid(
-                                    itemCount: itemsCount,
-                                    firstItemFocusNode: _firstItemFocusNode,
-                                    onExitUp: () => _enterRegion(
-                                      AppFocusRegionId.providerAllHeader,
-                                      restoreLastFocused: false,
-                                    ),
-                                    onExitDown: () {
-                                      if (_errorMessage != null) {
-                                        FocusDirectionalNavigation.requestFocus(
-                                          _retryFocusNode,
-                                        );
+                            child: NotificationListener<ScrollNotification>(
+                              onNotification: (notification) {
+                                if (!_hasMore || _isLoading) return false;
+                                if (notification is! ScrollUpdateNotification) {
+                                  return false;
+                                }
+                                if (notification.dragDetails != null) {
+                                  return false;
+                                }
+                                final delta = notification.scrollDelta;
+                                if (delta == null || delta <= 0) {
+                                  return false;
+                                }
+                                if (notification.metrics.extentAfter > 320) {
+                                  return false;
+                                }
+                                final now =
+                                    DateTime.now().millisecondsSinceEpoch;
+                                if (now - _lastWheelLoadMs < 450) {
+                                  return false;
+                                }
+                                _lastWheelLoadMs = now;
+                                unawaited(_loadMore());
+                                return false;
+                              },
+                              child: Column(
+                                children: [
+                                  Expanded(
+                                    child: MoviMediaGrid(
+                                      shrinkWrap: false,
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
+                                      padding:
+                                          const EdgeInsets.only(bottom: 24),
+                                      itemCount: itemsCount,
+                                      firstItemFocusNode: _firstItemFocusNode,
+                                      footerFocusNode: _retryFocusNode,
+                                      onExitUp: () => _enterRegion(
+                                        AppFocusRegionId.providerAllHeader,
+                                        restoreLastFocused: false,
+                                      ),
+                                      onExitDown: () {
+                                        if (_errorMessage != null) {
+                                          FocusDirectionalNavigation
+                                              .requestFocus(_retryFocusNode);
+                                          return true;
+                                        }
+                                        if (_hasMore && !_isLoading) {
+                                          unawaited(_loadMore());
+                                        }
                                         return true;
-                                      }
-                                      if (_hasMore && !_isLoading) {
-                                        unawaited(_loadMore());
-                                      }
-                                      return true;
-                                    },
-                                    pageHorizontalPadding:
-                                        _pageHorizontalPadding,
-                                    itemBuilder:
+                                      },
+                                      pageHorizontalPadding:
+                                          _pageHorizontalPadding,
+                                      itemBuilder:
                                         (
                                           context,
                                           index,
@@ -498,44 +501,44 @@ class _ProviderAllResultsPageState
                                                 ),
                                           );
                                         },
-                                  ),
-                                ),
-                                if (_errorMessage != null) ...[
-                                  const SizedBox(height: 16),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                    ),
-                                    child: Text(
-                                      _errorMessage!,
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(color: Colors.redAccent),
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Center(
-                                    child: MoviPrimaryButton(
-                                      label: l10n.actionRetry,
-                                      onPressed: () {
-                                        unawaited(_retryLoad());
-                                      },
-                                      focusNode: _retryFocusNode,
-                                      expand: false,
+                                  if (_errorMessage != null) ...[
+                                    const SizedBox(height: 16),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      child: Text(
+                                        _errorMessage!,
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(color: Colors.redAccent),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 12),
+                                    Center(
+                                      child: MoviPrimaryButton(
+                                        label: l10n.actionRetry,
+                                        onPressed: () {
+                                          unawaited(_retryLoad());
+                                        },
+                                        focusNode: _retryFocusNode,
+                                        expand: false,
+                                      ),
+                                    ),
+                                  ],
+                                  if (_isLoading)
+                                    const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    ),
                                 ],
-                                if (_isLoading) ...[
-                                  const Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                ],
-                              ],
+                              ),
                             ),
                           ),
                   ),

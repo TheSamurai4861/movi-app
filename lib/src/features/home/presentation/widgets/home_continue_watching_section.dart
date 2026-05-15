@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
-import 'package:movi/src/core/images/image_loading_policy.dart';
-import 'package:movi/src/core/images/safe_image_cache_manager.dart';
+import 'package:movi/src/core/images/image_prefetch_coordinator.dart';
+import 'package:movi/src/core/images/image_prefetch_policy.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
@@ -53,11 +53,6 @@ class HomeContinueWatchingSection extends ConsumerStatefulWidget {
 
 class _HomeContinueWatchingSectionState
     extends ConsumerState<HomeContinueWatchingSection> {
-  static const Duration _prefetchTimeout = Duration(seconds: 8);
-  static const int _maxPrefetchItems = 14;
-  static const int _maxPrefetchedUrlMemory = 500;
-
-  final Set<String> _prefetchedBackdrops = <String>{};
   ProviderSubscription<AsyncValue<List<domain.InProgressMedia>>>?
   _inProgressSub;
 
@@ -217,53 +212,13 @@ class _HomeContinueWatchingSectionState
   }
 
   void _schedulePrefetch(List<domain.InProgressMedia> items) {
-    final policy = ImageLoadingPolicyService.resolve();
-    final useDiskCachePath =
-        policy.enableDiskCache &&
-        policy.enableCachedNetworkPath &&
-        !policy.forceNetworkFallbackOnly;
-    final candidates = items
-        .map((item) => item.backdrop?.toString().trim())
-        .whereType<String>()
-        .where(
-          (url) =>
-              url.isNotEmpty &&
-              (url.startsWith('https://') || url.startsWith('http://')),
-        )
-        .take(_maxPrefetchItems);
-
-    for (final url in candidates) {
-      if (_prefetchedBackdrops.length > _maxPrefetchedUrlMemory) {
-        _prefetchedBackdrops.clear();
-      }
-      if (_prefetchedBackdrops.add(url)) {
-        unawaited(_prefetchImage(url, useDiskCachePath: useDiskCachePath));
-      }
-    }
-  }
-
-  Future<void> _prefetchImage(
-    String url, {
-    required bool useDiskCachePath,
-  }) async {
-    if (useDiskCachePath) {
-      final cacheManager = SafeImageCacheManager.tryGet(enabled: true);
-      if (cacheManager != null) {
-        try {
-          await cacheManager.getSingleFile(url).timeout(_prefetchTimeout);
-          return;
-        } catch (_) {
-          // Fallback mémoire si le cache disque échoue.
-        }
-      }
-    }
-
     if (!mounted) return;
-    try {
-      await precacheImage(NetworkImage(url), context).timeout(_prefetchTimeout);
-    } catch (_) {
-      // Aucune propagation: le rendu principal garde ses fallbacks.
-    }
+    final candidates = items.map((item) => item.backdrop?.toString().trim());
+    ImagePrefetchCoordinator.instance.scheduleUrls(
+      candidates.whereType<String>(),
+      context: context,
+      reason: ImagePrefetchReason.continueWatching,
+    );
   }
 
   Future<void> _openMedia(

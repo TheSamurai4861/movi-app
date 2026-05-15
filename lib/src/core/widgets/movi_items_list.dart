@@ -16,7 +16,7 @@ class MoviItemsList extends StatefulWidget {
   const MoviItemsList({
     super.key,
     required this.title,
-    required this.items,
+    required List<Widget> items,
     this.subtitle,
     this.action,
     this.hideHeader = false,
@@ -33,11 +33,41 @@ class MoviItemsList extends StatefulWidget {
     this.horizontalFocusAlignment,
     this.verticalFocusAlignment = 0.5,
     this.onItemKeyEvent,
-  }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
+  })  : itemCount = items.length,
+        itemBuilder = null,
+        _legacyItems = items,
+        assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
+
+  const MoviItemsList.builder({
+    super.key,
+    required this.title,
+    required this.itemCount,
+    required this.itemBuilder,
+    this.subtitle,
+    this.action,
+    this.hideHeader = false,
+    this.itemSpacing = 16,
+    this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
+    this.titlePadding = 20,
+    this.onViewportChanged,
+    this.estimatedItemWidth,
+    this.estimatedItemHeight,
+    this.preloadAhead = 2,
+    this.verticalPreloadMargin = 150,
+    this.debounceMs = 240,
+    this.consumeLeadingEdgeLeftKey = false,
+    this.horizontalFocusAlignment,
+    this.verticalFocusAlignment = 0.5,
+    this.onItemKeyEvent,
+  })  : _legacyItems = null,
+        assert(itemSpacing >= 0, 'itemSpacing must be non-negative'),
+        assert(itemCount >= 0, 'itemCount must be non-negative');
 
   final String title;
   final String? subtitle;
-  final List<Widget> items;
+  final int itemCount;
+  final IndexedWidgetBuilder? itemBuilder;
+  final List<Widget>? _legacyItems;
   final bool hideHeader;
 
   /// Action optionnelle à droite du header (ex: bouton "Voir tout").
@@ -123,6 +153,14 @@ class _MoviItemsListState extends State<MoviItemsList> {
     );
   }
 
+  Widget _buildItem(BuildContext context, int index) {
+    final builder = widget.itemBuilder;
+    if (builder != null) {
+      return builder(context, index);
+    }
+    return widget._legacyItems![index];
+  }
+
   double _effectiveViewportWidth(BoxConstraints constraints) {
     final pads = _resolvedHorizontalPadding(context);
     final width = constraints.maxWidth.isFinite
@@ -180,7 +218,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
     if (cb == null || cardW == null) return;
     if (!_isRoughlyVerticallyVisible()) return;
     if (!_hCtrl.hasClients) return;
-    if (widget.items.isEmpty) return;
+    if (widget.itemCount == 0) return;
 
     // On récupère la largeur connue via _lastViewportWidth (mise à jour par LayoutBuilder).
     final viewportWidth = _lastViewportWidth ?? (context.size?.width ?? 0);
@@ -193,14 +231,14 @@ class _MoviItemsListState extends State<MoviItemsList> {
     final effectiveWidth = viewportWidth - pads.left - pads.right;
     if (effectiveWidth <= 0) return;
 
-    final maxIndex = widget.items.length - 1;
+    final maxIndex = widget.itemCount - 1;
     int start = (_hCtrl.offset / unit).floor();
     if (start < 0) start = 0;
     if (start > maxIndex) start = maxIndex;
 
     int visible = (effectiveWidth / unit).ceil();
     if (visible < 1) visible = 1;
-    if (visible > widget.items.length) visible = widget.items.length;
+    if (visible > widget.itemCount) visible = widget.itemCount;
 
     final preload = widget.preloadAhead;
     final startWithPreload = math.max(0, start - preload);
@@ -233,7 +271,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
   @override
   void didUpdateWidget(covariant MoviItemsList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.items.length != widget.items.length ||
+    if (oldWidget.itemCount != widget.itemCount ||
         oldWidget.estimatedItemWidth != widget.estimatedItemWidth ||
         oldWidget.itemSpacing != widget.itemSpacing ||
         oldWidget.horizontalPadding != widget.horizontalPadding ||
@@ -259,7 +297,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    if (widget.items.isEmpty) return const SizedBox.shrink();
+    if (widget.itemCount == 0) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,16 +368,16 @@ class _MoviItemsListState extends State<MoviItemsList> {
                       cacheExtent: widget.estimatedItemWidth != null
                           ? (_scaledEstimatedItemWidth! * 2)
                           : null,
-                      itemCount: widget.items.length,
+                      itemCount: widget.itemCount,
                       itemBuilder: (context, i) {
                         final child = MoviEnsureVisibleOnFocus(
                           isLeadingEdge: i == 0,
-                          isTrailingEdge: i == widget.items.length - 1,
+                          isTrailingEdge: i == widget.itemCount - 1,
                           consumeBackwardEdgeKey:
                               widget.consumeLeadingEdgeLeftKey,
                           horizontalAlignment: widget.horizontalFocusAlignment,
                           verticalAlignment: widget.verticalFocusAlignment,
-                          child: widget.items[i],
+                          child: _buildItem(context, i),
                         );
                         final onItemKeyEvent = widget.onItemKeyEvent;
                         if (onItemKeyEvent == null) {

@@ -5,6 +5,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/core/images/image_decode_size.dart';
 import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -192,15 +193,25 @@ class LibraryPlaylistCard extends ConsumerWidget {
                   )
                 : ClipRRect(
                     borderRadius: BorderRadius.circular(borderRadius),
-                    child: MoviNetworkImage(
-                      photo!.toString(),
-                      width: width,
-                      height: height,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      cacheWidth: (width * 2).toInt(),
-                      cacheHeight: (height * 2).toInt(),
-                      errorBuilder: (_, __, ___) => Center(child: _getIcon()),
+                    child: Builder(
+                      builder: (context) {
+                        final decodeSize = ImageDecodeSize.decodeSizeForCard(
+                          context,
+                          width,
+                          height,
+                        );
+                        return MoviNetworkImage(
+                          photo!.toString(),
+                          width: width,
+                          height: height,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          cacheWidth: decodeSize.width,
+                          cacheHeight: decodeSize.height,
+                          errorBuilder: (_, __, ___) =>
+                              Center(child: _getIcon()),
+                        );
+                      },
                     ),
                   )
           : Center(child: _getIcon()),

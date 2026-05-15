@@ -9,6 +9,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 // import removed
 import 'package:movi/src/features/player/domain/repositories/video_player_repository.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/features/player/domain/services/player_auto_hide_controls_policy.dart';
 import 'package:movi/src/features/player/presentation/widgets/video_player_controls.dart';
 import 'package:movi/src/features/player/presentation/widgets/track_selection_menu.dart';
 import 'package:movi/src/features/player/presentation/widgets/video_fit_mode_selection_menu.dart';
@@ -161,6 +162,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   Timer? _hideControlsTimer;
   late final AnimationController _controlsAnimationController;
   late final Animation<double> _controlsOpacityAnimation;
+  int _controlsVisibilityGeneration = 0;
   bool _showControls = true;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
@@ -282,8 +284,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _systemControlRepository = ref.read(systemControlRepositoryProvider);
     _setupListeners();
     unawaited(_initializeOffsetCapabilities());
-    _showControlsWithAnimation();
-    _startHideControlsTimer();
+    _onControlsWillShow();
 
     // Initialiser le VideoSource actuel
     _currentVideoSource = widget.videoSource;
@@ -542,7 +543,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           } else {
             _startProgressPersistTimer();
           }
+          _scheduleAutoHideControls();
         } else if (wasPlaying && !playing) {
+          _hideControlsTimer?.cancel();
           _stopProgressPersistTimer();
           unawaited(() async {
             await _persistPlaybackProgress(reason: 'pause');
@@ -635,6 +638,11 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   void _startProgressPersistTimer() {
+    if (!PlayerAutoHideControlsPolicy.shouldRunProgressPersistTimer(
+      isPlaying: _isPlaying,
+    )) {
+      return;
+    }
     _progressPersistTimer?.cancel();
     _progressPersistTimer = Timer.periodic(_progressPersistInterval, (_) {
       unawaited(() async {
@@ -1128,35 +1136,57 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     );
   }
 
-  void _startHideControlsTimer() {
+  void _scheduleAutoHideControls() {
     _hideControlsTimer?.cancel();
-    if (_showControls) {
-      // Démarrer le timer même si pas encore en lecture
-      _hideControlsTimer = Timer(const Duration(seconds: 5), () {
-        if (mounted && _showControls) {
-          // Masquer seulement si en lecture, sinon attendre
-          if (_isPlaying) {
-            _hideControlsWithAnimation();
-          } else {
-            // Si pas encore en lecture, relancer le timer
-            _startHideControlsTimer();
-          }
-        }
-      });
+    if (!PlayerAutoHideControlsPolicy.shouldScheduleAutoHide(
+      showControls: _showControls,
+      isPlaying: _isPlaying,
+    )) {
+      return;
     }
+
+    _hideControlsTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      if (!PlayerAutoHideControlsPolicy.shouldScheduleAutoHide(
+        showControls: _showControls,
+        isPlaying: _isPlaying,
+      )) {
+        return;
+      }
+      _onControlsWillHide();
+    });
   }
 
-  void _showControlsWithAnimation() {
-    setState(() => _showControls = true);
-    _controlsAnimationController.forward();
-    _startHideControlsTimer();
+  void _onControlsWillShow() {
+    _controlsVisibilityGeneration++;
+    _hideControlsTimer?.cancel();
+    _controlsAnimationController.stop();
+    if (mounted) {
+      setState(() => _showControls = true);
+    }
+    _controlsAnimationController.forward(from: 0);
+    _scheduleAutoHideControls();
   }
 
-  void _hideControlsWithAnimation() {
-    _controlsAnimationController.reverse().then((_) {
+  void _onControlsWillHide({bool animated = true}) {
+    _hideControlsTimer?.cancel();
+    if (!animated) {
+      _controlsAnimationController.stop();
       if (mounted) {
         setState(() => _showControls = false);
       }
+      return;
+    }
+
+    final generation = _controlsVisibilityGeneration;
+    _controlsAnimationController
+        .reverse(from: _controlsAnimationController.value)
+        .then((_) {
+      if (!mounted || generation != _controlsVisibilityGeneration) {
+        return;
+      }
+      _controlsAnimationController.stop();
+      setState(() => _showControls = false);
     });
   }
 
@@ -1259,7 +1289,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
         if (!isInsideControls) {
           // Tap hors des contrôles, les masquer avec animation d'opacité
-          _hideControlsWithAnimation();
+          _onControlsWillHide();
           return;
         }
         // Tap sur les contrôles, ne rien faire (les contrôles gèrent leurs propres clics)
@@ -1267,10 +1297,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       }
 
       // Si les contrôles sont affichés et qu'on tape sur l'écran, les masquer avec animation
-      _hideControlsWithAnimation();
+      _onControlsWillHide();
     } else {
       // Si les contrôles sont masqués, les afficher avec animation
-      _showControlsWithAnimation();
+      _onControlsWillShow();
     }
   }
 
@@ -1301,7 +1331,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     }
 
     // Afficher les contrôles après le double tap
-    _showControlsWithAnimation();
+    _onControlsWillShow();
   }
 
   Future<void> _togglePlayPause() async {
@@ -1310,28 +1340,28 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     } else {
       await _playerRepository.play();
     }
-    _startHideControlsTimer();
+    _scheduleAutoHideControls();
   }
 
   Future<void> _seekForward(int seconds) async {
     await _playerRepository.seekForward(seconds);
-    _startHideControlsTimer();
+    _scheduleAutoHideControls();
   }
 
   Future<void> _seekBackward(int seconds) async {
     await _playerRepository.seekBackward(seconds);
-    _startHideControlsTimer();
+    _scheduleAutoHideControls();
   }
 
   Future<void> _onSeek(double value) async {
     final position = _duration * value;
     await _playerRepository.seekTo(position);
-    _startHideControlsTimer();
+    _scheduleAutoHideControls();
   }
 
   Future<void> _restart() async {
     await _playerRepository.seekTo(Duration.zero);
-    _startHideControlsTimer();
+    _scheduleAutoHideControls();
   }
 
   Future<void> _goToNextEpisode() async {
@@ -1502,9 +1532,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       }
     }
 
-    // Relancer le timer après la sélection
-    if (mounted) {
-      _startHideControlsTimer();
+    if (mounted && _showControls) {
+      _scheduleAutoHideControls();
     }
   }
 
@@ -1555,7 +1584,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
     // Relancer le timer après la sélection
     if (mounted) {
-      _startHideControlsTimer();
+      _scheduleAutoHideControls();
     }
   }
 
@@ -1667,9 +1696,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       }
     }
 
-    // Relancer le timer après la sélection
-    if (mounted) {
-      _startHideControlsTimer();
+    if (mounted && _showControls) {
+      _scheduleAutoHideControls();
     }
   }
 
@@ -1871,7 +1899,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
               if (isBackKey) {
                 if (controlOverlayOwnsFocus || _showControls) {
-                  setState(() => _showControls = false);
+                  _onControlsWillHide(animated: false);
                   _keyboardFocusNode.requestFocus();
                   return KeyEventResult.handled;
                 }
@@ -1880,7 +1908,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
               }
 
               if (isNavigationKey && !_showControls) {
-                _showControlsWithAnimation();
+                _onControlsWillShow();
                 return KeyEventResult.handled;
               }
 

@@ -384,50 +384,54 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                           ),
                           handleDirectionalExits: false,
                           debugLabel: 'GenreAllResultsGrid',
-                          child: ListView(
-                            padding: const EdgeInsets.only(bottom: 24),
-                            children: [
-                              NotificationListener<ScrollNotification>(
-                                onNotification: (notification) {
-                                  if (!_hasMore || _isLoading) return false;
-                                  if (notification
-                                      is! ScrollUpdateNotification) {
-                                    return false;
-                                  }
-                                  if (notification.dragDetails != null) {
-                                    return false;
-                                  }
-                                  final delta = notification.scrollDelta;
-                                  if (delta == null || delta <= 0) {
-                                    return false;
-                                  }
-                                  if (notification.metrics.extentAfter > 320) {
-                                    return false;
-                                  }
-                                  final now =
-                                      DateTime.now().millisecondsSinceEpoch;
-                                  if (now - _lastWheelLoadMs < 450) {
-                                    return false;
-                                  }
-                                  _lastWheelLoadMs = now;
-                                  unawaited(_loadMore());
-                                  return false;
-                                },
-                                child: MoviMediaGrid(
-                                  itemCount: count,
-                                  firstItemFocusNode: _firstItemFocusNode,
-                                  onExitUp: () => _enterRegion(
-                                    AppFocusRegionId.genreAllHeader,
-                                    restoreLastFocused: false,
-                                  ),
-                                  onExitDown: () {
-                                    if (_hasMore && !_isLoading) {
-                                      unawaited(_loadMore());
-                                    }
-                                    return true;
-                                  },
-                                  pageHorizontalPadding: _pageHorizontalPadding,
-                                  itemBuilder:
+                          child: NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              if (!_hasMore || _isLoading) return false;
+                              if (notification is! ScrollUpdateNotification) {
+                                return false;
+                              }
+                              if (notification.dragDetails != null) {
+                                return false;
+                              }
+                              final delta = notification.scrollDelta;
+                              if (delta == null || delta <= 0) {
+                                return false;
+                              }
+                              if (notification.metrics.extentAfter > 320) {
+                                return false;
+                              }
+                              final now =
+                                  DateTime.now().millisecondsSinceEpoch;
+                              if (now - _lastWheelLoadMs < 450) {
+                                return false;
+                              }
+                              _lastWheelLoadMs = now;
+                              unawaited(_loadMore());
+                              return false;
+                            },
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: MoviMediaGrid(
+                                    shrinkWrap: false,
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.only(bottom: 24),
+                                    itemCount: count,
+                                    firstItemFocusNode: _firstItemFocusNode,
+                                    onExitUp: () => _enterRegion(
+                                      AppFocusRegionId.genreAllHeader,
+                                      restoreLastFocused: false,
+                                    ),
+                                    onExitDown: () {
+                                      if (_hasMore && !_isLoading) {
+                                        unawaited(_loadMore());
+                                      }
+                                      return true;
+                                    },
+                                    pageHorizontalPadding:
+                                        _pageHorizontalPadding,
+                                    itemBuilder:
                                       (
                                         context,
                                         index,
@@ -502,17 +506,17 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                                               ),
                                         );
                                       },
-                                ),
-                              ),
-                              if (_isLoading) ...[
-                                const Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
                                   ),
                                 ),
+                                if (_isLoading)
+                                  const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
                               ],
-                            ],
+                            ),
                           ),
                         ),
                 ),

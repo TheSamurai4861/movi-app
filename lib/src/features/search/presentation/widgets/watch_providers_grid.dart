@@ -10,6 +10,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/core/images/image_decode_size.dart';
 import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
@@ -465,12 +466,21 @@ class _WatchProviderCard extends ConsumerWidget {
                           return const SizedBox.shrink();
                         }
                         return Positioned.fill(
-                          child: MoviNetworkImage(
-                            popularMedia!.backdropUrl!,
-                            fit: BoxFit.cover,
-                            cacheWidth: 780,
-                            errorBuilder: (_, __, ___) =>
-                                const SizedBox.shrink(),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final decodeWidth =
+                                  ImageDecodeSize.decodePixelForLogical(
+                                    context,
+                                    constraints.maxWidth,
+                                  );
+                              return MoviNetworkImage(
+                                popularMedia!.backdropUrl!,
+                                fit: BoxFit.cover,
+                                cacheWidth: decodeWidth,
+                                errorBuilder: (_, __, ___) =>
+                                    const SizedBox.shrink(),
+                              );
+                            },
                           ),
                         );
                       },

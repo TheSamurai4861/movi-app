@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:movi/src/core/images/image_decode_size.dart';
 import 'package:movi/src/core/images/image_loading_policy.dart';
 import 'package:movi/src/core/images/image_pipeline_telemetry.dart';
 import 'package:movi/src/core/images/safe_image_cache_manager.dart';
@@ -90,12 +90,14 @@ class _MoviNetworkImageState extends State<MoviNetworkImage> {
     }
 
     final policy = ImageLoadingPolicyService.resolve();
-    final resolvedCacheWidth =
-        widget.cacheWidth ??
-        _deriveDecodeDimension(context, widget.width, max: 1920);
-    final resolvedCacheHeight =
-        widget.cacheHeight ??
-        _deriveDecodeDimension(context, widget.height, max: 1920);
+    final resolvedCacheWidth = widget.cacheWidth ??
+        (widget.width != null
+            ? ImageDecodeSize.decodePixelForLogical(context, widget.width!)
+            : null);
+    final resolvedCacheHeight = widget.cacheHeight ??
+        (widget.height != null
+            ? ImageDecodeSize.decodePixelForLogical(context, widget.height!)
+            : null);
 
     final bool forceFallbackOnly = policy.forceNetworkFallbackOnly;
     final bool canUseCachePath =
@@ -133,6 +135,8 @@ class _MoviNetworkImageState extends State<MoviNetworkImage> {
     return CachedNetworkImage(
       imageUrl: trimmed,
       cacheManager: cacheManager,
+      memCacheWidth: resolvedCacheWidth,
+      memCacheHeight: resolvedCacheHeight,
       maxWidthDiskCache: supportsDiskResize ? resolvedCacheWidth : null,
       maxHeightDiskCache: supportsDiskResize ? resolvedCacheHeight : null,
       placeholder: (context, _) =>
@@ -254,19 +258,6 @@ class _MoviNetworkImageState extends State<MoviNetworkImage> {
     return widget.failurePlaceholder ??
         widget.placeholder ??
         SizedBox(width: widget.width, height: widget.height);
-  }
-
-  static int? _deriveDecodeDimension(
-    BuildContext context,
-    double? logicalSize, {
-    required int max,
-  }) {
-    if (logicalSize == null || !logicalSize.isFinite || logicalSize <= 0) {
-      return null;
-    }
-    final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
-    final px = (logicalSize * dpr).round();
-    return math.max(120, math.min(max, px));
   }
 
   _UrlValidation _validateUrl(String value, {required bool allowHttp}) {

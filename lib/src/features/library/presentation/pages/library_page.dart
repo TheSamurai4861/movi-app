@@ -15,8 +15,8 @@ import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
 import 'package:movi/src/core/focus/presentation/focus_directional_navigation.dart';
 import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
-import 'package:movi/src/core/images/image_loading_policy.dart';
-import 'package:movi/src/core/images/safe_image_cache_manager.dart';
+import 'package:movi/src/core/images/image_prefetch_coordinator.dart';
+import 'package:movi/src/core/images/image_prefetch_policy.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -47,10 +47,6 @@ class LibraryPage extends ConsumerStatefulWidget {
 
 class _LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
-  static const Duration _prefetchTimeout = Duration(seconds: 8);
-  static const int _maxPrefetchItems = 32;
-  static const int _maxPrefetchedUrlMemory = 900;
-
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   final _firstPlaylistFocusNode = FocusNode(debugLabel: 'LibraryFirstPlaylist');
@@ -64,8 +60,6 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   late final AnimationController _anim;
   late final Animation<double> _opacity;
   late final Animation<double> _slideY;
-  final Set<String> _prefetchedArtworkUrls = <String>{};
-
   bool _isSearchVisible = false;
   ProviderSubscription<AsyncValue<List<LibraryPlaylistItem>>>?
   _filteredPlaylistsSub;
@@ -118,12 +112,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   }
 
   void _scheduleLibraryArtworkPrefetch(List<LibraryPlaylistItem> playlists) {
-    final policy = ImageLoadingPolicyService.resolve();
-    final useDiskCachePath =
-        policy.enableDiskCache &&
-        policy.enableCachedNetworkPath &&
-        !policy.forceNetworkFallbackOnly;
-
+    if (!mounted) return;
     final candidates = playlists
         .where(
           (playlist) =>
@@ -131,48 +120,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               playlist.id.startsWith(LibraryConstants.sagaPrefix),
         )
         .map((playlist) => playlist.photo?.toString().trim())
-        .whereType<String>()
-        .where(
-          (url) =>
-              url.isNotEmpty &&
-              (url.startsWith('https://') || url.startsWith('http://')),
-        )
-        .take(_maxPrefetchItems);
+        .whereType<String>();
 
-    for (final url in candidates) {
-      if (_prefetchedArtworkUrls.length > _maxPrefetchedUrlMemory) {
-        _prefetchedArtworkUrls.clear();
-      }
-      if (_prefetchedArtworkUrls.add(url)) {
-        unawaited(
-          _prefetchLibraryArtwork(url, useDiskCachePath: useDiskCachePath),
-        );
-      }
-    }
-  }
-
-  Future<void> _prefetchLibraryArtwork(
-    String url, {
-    required bool useDiskCachePath,
-  }) async {
-    if (useDiskCachePath) {
-      final cacheManager = SafeImageCacheManager.tryGet(enabled: true);
-      if (cacheManager != null) {
-        try {
-          await cacheManager.getSingleFile(url).timeout(_prefetchTimeout);
-          return;
-        } catch (_) {
-          // Fallback mémoire si le cache disque échoue.
-        }
-      }
-    }
-
-    if (!mounted) return;
-    try {
-      await precacheImage(NetworkImage(url), context).timeout(_prefetchTimeout);
-    } catch (_) {
-      // Aucun crash UI: le rendu principal garde ses fallbacks.
-    }
+    ImagePrefetchCoordinator.instance.scheduleUrls(
+      candidates,
+      context: context,
+      reason: ImagePrefetchReason.libraryPlaylists,
+    );
   }
 
   void _focusFirstPlaylist() {

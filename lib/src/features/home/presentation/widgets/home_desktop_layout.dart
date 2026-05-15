@@ -10,6 +10,8 @@ import 'package:movi/src/core/focus/domain/directional_edge.dart';
 import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
 import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/images/image_prefetch_coordinator.dart';
+import 'package:movi/src/core/images/image_prefetch_policy.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
@@ -22,7 +24,7 @@ import 'package:movi/src/features/home/presentation/widgets/home_error_banner.da
 import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_continue_watching_section.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_iptv_section.dart';
-import 'package:movi/src/features/home/presentation/widgets/home_loading_overlay.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_page_loading_overlay.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/features/home/presentation/widgets/mark_as_unwatched_dialog.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -144,7 +146,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
   static const PageStorageKey<String> _scrollStorageKey =
       PageStorageKey<String>('home-desktop-scroll');
 
-  bool _isHeroLoadingMeta = false;
   bool _hasAutoRefreshed = false;
   final FocusNode _heroPrimaryActionFocusNode = FocusNode(
     debugLabel: 'HomeHeroPrimaryAction',
@@ -152,8 +153,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
   final FocusNode _heroMoviesFilterFocusNode = FocusNode(
     debugLabel: 'HomeHeroMoviesFilter',
   );
-  bool get _allowLegacyHeroOverlayPrecache =>
-      defaultTargetPlatform != TargetPlatform.windows;
   String? _lastLoggedHeroBuildSignature;
   String? _lastLoggedHeroOverlayUrl;
   late final VoidCallback _heroPrimaryActionFocusListener =
@@ -184,34 +183,23 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
     });
   }
 
-  Future<void> _precacheImageUrl(String url) async {
-    if (!_allowLegacyHeroOverlayPrecache || url.isEmpty) {
+  void _scheduleLegacyHeroPrecache(String url) {
+    if (url.isEmpty || !mounted) {
       _logHomeHeroDebug(
         'legacy_precache_skipped',
-        context: <String, Object?>{
-          'allowLegacyPrecache': _allowLegacyHeroOverlayPrecache,
-          'urlEmpty': url.isEmpty,
-        },
+        context: <String, Object?>{'urlEmpty': url.isEmpty},
       );
       return;
     }
     _logHomeHeroDebug(
-      'legacy_precache_start',
+      'legacy_precache_scheduled',
       context: <String, Object?>{'url': url},
     );
-    try {
-      await precacheImage(NetworkImage(url), context);
-      _logHomeHeroDebug(
-        'legacy_precache_done',
-        context: <String, Object?>{'url': url},
-      );
-    } catch (_) {
-      _logHomeHeroDebug(
-        'legacy_precache_error',
-        context: <String, Object?>{'url': url},
-      );
-      // ignore erreurs réseau; l'overlay ne doit pas bloquer
-    }
+    ImagePrefetchCoordinator.instance.scheduleUrls(
+      [url],
+      context: context,
+      reason: ImagePrefetchReason.legacyHeroOverlay,
+    );
   }
 
   @override
@@ -328,7 +316,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
       state.iptvLists.length,
       state.isLoading,
       disableHero,
-      _isHeroLoadingMeta,
       firstSectionNeedsHeroTransition,
     ].join('|');
     if (_lastLoggedHeroBuildSignature != buildSignature) {
@@ -340,7 +327,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
           'iptvSections': state.iptvLists.length,
           'isLoading': state.isLoading,
           'disableHero': disableHero,
-          'heroMetaLoading': _isHeroLoadingMeta,
           'firstSectionNeedsHeroTransition': firstSectionNeedsHeroTransition,
         },
       );
@@ -348,9 +334,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
 
     // Précache héro pour accélérer les réaffichages
     _postFrame(() {
-      if (_allowLegacyHeroOverlayPrecache &&
-          !disableHero &&
-          state.hero.isNotEmpty) {
+      if (!disableHero && state.hero.isNotEmpty) {
         var heroUrl = (state.hero.first.poster?.toString() ?? '');
         if (heroUrl == 'null') heroUrl = '';
         if (_lastLoggedHeroOverlayUrl != heroUrl) {
@@ -365,15 +349,10 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
           );
         }
         if (heroUrl.isNotEmpty) {
-          unawaited(_precacheImageUrl(heroUrl));
+          _scheduleLegacyHeroPrecache(heroUrl);
         }
       }
     });
-
-    final showLoadingOverlay =
-        (state.isLoading &&
-            (disableHero ? state.iptvLists.isEmpty : state.hero.isEmpty)) ||
-        (!disableHero && _isHeroLoadingMeta);
 
     final iptvEntries = state.iptvLists.entries
         .where((entry) => _matchesIptvFilter(entry.value, iptvFilter))
@@ -416,17 +395,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
                     heroItems: state.hero,
                     primaryActionFocusNode: _heroPrimaryActionFocusNode,
                     moviesFilterFocusNode: _heroMoviesFilterFocusNode,
-                    onLoadingChanged: (isLoading) {
-                      if (mounted && _isHeroLoadingMeta != isLoading) {
-                        _logHomeHeroDebug(
-                          'hero_loading_changed',
-                          context: <String, Object?>{'isLoading': isLoading},
-                        );
-                        setState(() {
-                          _isHeroLoadingMeta = isLoading;
-                        });
-                      }
-                    },
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: HomeLayoutConstants.sectionGap),
@@ -473,7 +441,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent>
               ],
             ),
           ),
-          HomeLoadingOverlay(show: showLoadingOverlay),
+          const HomePageLoadingOverlay(),
         ],
       ),
     );

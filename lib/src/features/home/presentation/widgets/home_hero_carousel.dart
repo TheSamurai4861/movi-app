@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/images/image_prefetch_coordinator.dart';
+import 'package:movi/src/core/images/image_prefetch_policy.dart';
 import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/theme/app_colors.dart';
@@ -30,14 +32,14 @@ import 'package:movi/src/core/preferences/preferences.dart';
 
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
-import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_favorite_button.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_filter_bar.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_transition_policy.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 
 /// Carrousel du Hero d'accueil.
@@ -86,10 +88,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       HomeLayoutConstants.heroDesktopVisualBleed;
   // Timings
   static const Duration _rotation = HomeLayoutConstants.heroRotationDuration;
-  static const Duration _fade = HomeLayoutConstants.heroFadeDuration;
   static const double _synopsisHeight = HomeLayoutConstants.heroSynopsisHeight;
   static const Duration _prefetchThrottle = Duration(milliseconds: 350);
-  static const Duration _heroPrecacheTimeout = Duration(seconds: 4);
 
   // DI
   late final TmdbCacheDataSource _cache;
@@ -110,6 +110,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   final Set<int> _retriedIds = <int>{}; // Pour éviter les retries multiples
 
   int _index = 0;
+  int? _displayedTmdbId;
+  _HeroMeta? _displayedMeta;
   Timer? _timer;
   Timer? _prefetchTimer;
   DateTime? _lastPrefetchAt;
@@ -231,6 +233,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       _metaFutures.clear();
       _precachedBgIds.clear();
       _retriedIds.clear();
+      _displayedTmdbId = null;
+      _displayedMeta = null;
       _lastNotifiedLoadingState = false;
       _pendingStateUpdate = false;
       _prefetchTimer?.cancel();
@@ -250,6 +254,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _prefetchTimer = null;
     _metaFutures.clear();
     _precachedBgIds.clear();
+    ref.read(hp.homeHeroMetaLoadingProvider.notifier).set(false);
     super.dispose();
   }
 
@@ -393,7 +398,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _restartTimer();
   }
 
-  /// Notifie le changement de loading state de manière débounced
+  void _syncHeroMetaLoadingState() {
+    final currentId = _tmdbIdOf(_currentItem);
+    final isLoading = currentId != null &&
+        (_displayedTmdbId != currentId ||
+            (_displayedMeta == null && _metaFutures.containsKey(currentId)));
+    _notifyLoadingStateIfChanged(isLoading);
+  }
+
+  /// Notifie le chargement meta via provider (évite setState sur la page Home).
   void _notifyLoadingStateIfChanged(bool isLoading) {
     if (_lastNotifiedLoadingState != isLoading) {
       _lastNotifiedLoadingState = isLoading;
@@ -401,13 +414,41 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         'loading_changed',
         context: <String, Object?>{'isLoading': isLoading},
       );
-      // Utiliser addPostFrameCallback pour éviter setState() pendant build
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          widget.onLoadingChanged?.call(isLoading);
-        }
+        if (!mounted) return;
+        ref.read(hp.homeHeroMetaLoadingProvider.notifier).set(isLoading);
+        widget.onLoadingChanged?.call(isLoading);
       });
     }
+  }
+
+  void _setMetaFuture(
+    int id,
+    ContentReference item,
+    Future<_HeroMeta?> future, {
+    required int workToken,
+    bool trackForDisplay = false,
+  }) {
+    _metaFutures[id] = future;
+    if (!trackForDisplay) return;
+    unawaited(_trackDisplayedMeta(id, item, future, workToken));
+  }
+
+  Future<void> _trackDisplayedMeta(
+    int id,
+    ContentReference item,
+    Future<_HeroMeta?> future,
+    int workToken,
+  ) async {
+    _syncHeroMetaLoadingState();
+    final meta = await future;
+    if (!mounted) return;
+    if (!_isCurrentHeroItemToken(workToken, tmdbId: id, isNext: false)) return;
+    if (_tmdbIdOf(_currentItem) != id) return;
+    _displayedMeta = meta;
+    _displayedTmdbId = id;
+    _syncHeroMetaLoadingState();
+    _scheduleStateUpdate();
   }
 
   /// Planifie un setState si aucun n'est déjà en attente
@@ -458,7 +499,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _invalidateHeroWorkGeneration();
     _index = (_index + 1) % len;
     _retriedIds.clear();
-    _lastNotifiedLoadingState = false; // Reset pour le nouvel item
+    _displayedTmdbId = null;
+    _displayedMeta = null;
+    _lastNotifiedLoadingState = false;
 
     // Persister et préparer
     ref.read(hp.homeHeroIndexProvider.notifier).set(_index);
@@ -486,9 +529,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final last = _lastPrefetchAt;
     if (last != null) {
       final elapsed = now.difference(last);
-      if (elapsed < _prefetchThrottle) {
+      if (elapsed < _effectivePrefetchThrottle) {
         _prefetchTimer?.cancel();
-        _prefetchTimer = Timer(_prefetchThrottle - elapsed, () {
+        _prefetchTimer = Timer(_effectivePrefetchThrottle - elapsed, () {
           if (!_isCurrentHeroWorkToken(workToken)) return;
           _prepareCurrentMetaNow(workToken: workToken);
         });
@@ -545,7 +588,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _lastPrefetchAt = DateTime.now();
 
     // Préparer meta courante (cache→affichage), puis hydratation réseau dédiée.
-    _metaFutures[id] = _loadMetaWithRetry(current, workToken: workToken);
+    _setMetaFuture(
+      id,
+      current,
+      _loadMetaWithRetry(current, workToken: workToken),
+      workToken: workToken,
+      trackForDisplay: true,
+    );
     _logHeroDebug(
       'meta_future_assigned',
       context: <String, Object?>{'currentId': id, 'workToken': workToken},
@@ -586,8 +635,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       _screenType == ScreenType.tablet ||
       _screenType == ScreenType.tv;
 
-  bool get _disableHeroPrecacheOnCurrentPlatform =>
-      defaultTargetPlatform == TargetPlatform.windows;
+  bool get _isTvLayout => _screenType == ScreenType.tv;
+
+  Duration get _effectivePrefetchThrottle =>
+      _isTvLayout ? const Duration(milliseconds: 500) : _prefetchThrottle;
 
   String get _heroPosterSize {
     if (!_useLargeHeroImages) return 'w500';
@@ -606,11 +657,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   String get _heroPrecachePosterSize => _useLargeHeroImages ? 'w780' : 'w500';
 
-  String get _heroPrecachePosterBackgroundSize =>
-      _useLargeHeroImages ? 'w780' : 'w500';
+  String get _heroPrecachePosterBackgroundSize {
+    if (_isTvLayout) return 'w780';
+    return _useLargeHeroImages ? 'w780' : 'w500';
+  }
 
-  String get _heroPrecacheBackdropSize =>
-      _useLargeHeroImages ? 'w1280' : 'w780';
+  String get _heroPrecacheBackdropSize {
+    if (_isTvLayout) return 'w780';
+    return _useLargeHeroImages ? 'w1280' : 'w780';
+  }
 
   bool get _isWideHeroLayout =>
       _screenType == ScreenType.desktop ||
@@ -637,6 +692,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _metaFutures.clear();
     _precachedBgIds.clear();
     _retriedIds.clear();
+    _displayedTmdbId = null;
+    _displayedMeta = null;
     _lastNotifiedLoadingState = false;
     _prepareCurrentMeta();
     _restartTimer();
@@ -964,8 +1021,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           );
           return;
         }
-        _metaFutures[id] = _loadMeta(item);
-        _scheduleStateUpdate();
+        _setMetaFuture(
+          id,
+          item,
+          _loadMeta(item),
+          workToken: workToken,
+          trackForDisplay: true,
+        );
         _diagnostics.completed(
           'home_hero_hydrate',
           elapsed: stopwatch.elapsed,
@@ -1076,8 +1138,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         );
         return;
       }
-      _metaFutures[id] = _loadMeta(item);
-      _scheduleStateUpdate();
+      _setMetaFuture(
+        id,
+        item,
+        _loadMeta(item),
+        workToken: workToken,
+        trackForDisplay: true,
+      );
       _diagnostics.completed(
         'home_hero_hydrate',
         elapsed: stopwatch.elapsed,
@@ -1168,8 +1235,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           success = true;
           _fullyHydratedIds.add(id);
           if (!mounted) return;
-          _metaFutures[id] = _loadMeta(item);
-          _scheduleStateUpdate();
+          _setMetaFuture(
+            id,
+            item,
+            _loadMeta(item),
+            workToken: _heroWorkGeneration,
+            trackForDisplay: _tmdbIdOf(_currentItem) == id,
+          );
         } catch (e, st) {
           final isTimeout =
               e is TimeoutException ||
@@ -1313,10 +1385,25 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   // UI
   // ---------------------------------------------------------------------------
 
+  Widget _buildHeroOverlaySwitcher({
+    required HeroTransitionPolicy transition,
+    required Key switchKey,
+    required Widget child,
+    Alignment alignment = Alignment.centerLeft,
+  }) {
+    return transition.buildOverlaySwitcher(
+      key: switchKey,
+      duration: transition.overlayFade,
+      alignment: alignment,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const iconActionFocusedBackground = Color(0x807A7A7A);
     final uiScale = context.tvUiScale;
+    final transition = HeroTransitionPolicy.resolve(context);
     _scheduleVisibilitySync();
     final ContentReference? item = _currentItem;
     final int? tmdbId = _tmdbIdOf(item);
@@ -1357,159 +1444,25 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       );
     }
 
+    _syncHeroMetaLoadingState();
+
     final Widget heroBody = SizedBox(
       width: double.infinity,
       child: (widget.items.isEmpty)
           ? _HeroEmpty(heroHeight: heroHeight, isWideHero: isWideHero)
           : item == null || tmdbId == null
           ? _HeroSkeleton(heroHeight: heroHeight, isWideHero: isWideHero)
-          : FutureBuilder<_HeroMeta?>(
-              future: _metaFutures[tmdbId],
-              builder: (context, snap) {
-                final bool isLoadingMeta =
-                    snap.connectionState == ConnectionState.waiting &&
-                    snap.data == null;
-
-                _notifyLoadingStateIfChanged(isLoadingMeta);
-
-                final _HeroMeta? meta = snap.data;
-                final posterBackground = _coerceHttpUrl(meta?.posterBg);
-                final poster =
-                    _coerceHttpUrl(meta?.poster) ??
-                    _coerceHttpUrl(item.poster?.toString());
-                final backdrop = _coerceHttpUrl(meta?.backdrop);
-                final resolvedMediaSignature = [
-                  tmdbId,
-                  snap.connectionState.name,
-                  isLoadingMeta,
-                  posterBackground,
-                  poster,
-                  backdrop,
-                ].join('|');
-                if (_lastLoggedResolvedMediaSignature !=
-                    resolvedMediaSignature) {
-                  _lastLoggedResolvedMediaSignature = resolvedMediaSignature;
-                  _logHeroDebug(
-                    'future_builder_state',
-                    context: <String, Object?>{
-                      'tmdbId': tmdbId,
-                      'connectionState': snap.connectionState.name,
-                      'isLoadingMeta': isLoadingMeta,
-                      'hasMeta': meta != null,
-                      'posterBackground': posterBackground,
-                      'poster': poster,
-                      'backdrop': backdrop,
-                    },
-                  );
-                }
-
-                Widget buildBackground() {
-                  final image = Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      MoviHeroBackground(
-                        key: ValueKey(
-                          '${posterBackground ?? ''}|${poster ?? ''}|${backdrop ?? ''}',
-                        ),
-                        posterBackground: posterBackground,
-                        poster: poster,
-                        backdrop: backdrop,
-                        placeholderType: item.type == ContentType.series
-                            ? PlaceholderType.series
-                            : PlaceholderType.movie,
-                      ),
-                      IgnorePointer(
-                        child: ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.25),
-                        ),
-                      ),
-                    ],
-                  );
-
-                  return AnimatedSwitcher(
-                    duration: _fade,
-                    switchInCurve: Curves.easeInOut,
-                    switchOutCurve: Curves.easeInOut,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    layoutBuilder: (currentChild, previousChildren) {
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ...previousChildren,
-                          if (currentChild != null) currentChild,
-                        ],
-                      );
-                    },
-                    child: image,
-                  );
-                }
-
-                final bool hasTitle = meta?.title?.isNotEmpty ?? false;
-                final String displayTitle = hasTitle
-                    ? meta!.title!
-                    : item.title.value;
-                final String? logoUrl = _coerceHttpUrl(meta?.logo);
-                final int? year = meta?.year ?? item.year;
-                final String yearText = (year ?? '—').toString();
-                final double? rating = meta?.rating;
-                final String? ratingText = (rating == null)
-                    ? null
-                    : (rating >= 10
-                          ? rating.toStringAsFixed(0)
-                          : rating.toStringAsFixed(1));
-                final bool isTv =
-                    meta?.isTv ?? (item.type == ContentType.series);
-                final String? durationText = isTv
-                    ? null
-                    : _formatDuration(meta?.runtime);
-                final int? seasons = meta?.seasons;
-                final String? seasonsText =
-                    (isTv && seasons != null && seasons > 0)
-                    ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
-                    : null;
-
-                if (isWideHero) {
-                  return _buildWideHeroScene(
-                    context: context,
-                    tmdbId: tmdbId,
-                    displayTitle: displayTitle,
-                    hasTitle: hasTitle,
-                    logoUrl: logoUrl,
-                    year: year,
-                    yearText: yearText,
-                    ratingText: ratingText,
-                    durationText: durationText,
-                    seasonsText: seasonsText,
-                    heroHeight: heroHeight,
-                    visualBleed: visualBleed,
-                    overlaySpec: overlaySpec,
-                    heroContentAlignment: heroContentAlignment,
-                    iconActionFocusedBackground: iconActionFocusedBackground,
-                    background: buildBackground(),
-                    meta: meta,
-                  );
-                }
-
-                return _buildMobileHeroScene(
-                  context: context,
-                  tmdbId: tmdbId,
-                  displayTitle: displayTitle,
-                  hasTitle: hasTitle,
-                  logoUrl: logoUrl,
-                  year: year,
-                  yearText: yearText,
-                  ratingText: ratingText,
-                  durationText: durationText,
-                  seasonsText: seasonsText,
-                  heroHeight: heroHeight,
-                  overlaySpec: overlaySpec,
-                  iconActionFocusedBackground: iconActionFocusedBackground,
-                  background: buildBackground(),
-                  meta: meta,
-                );
-              },
+          : _buildHeroSlide(
+              context: context,
+              item: item,
+              tmdbId: tmdbId,
+              transition: transition,
+              isWideHero: isWideHero,
+              heroHeight: heroHeight,
+              visualBleed: visualBleed,
+              overlaySpec: overlaySpec,
+              heroContentAlignment: heroContentAlignment,
+              iconActionFocusedBackground: iconActionFocusedBackground,
             ),
     );
 
@@ -1522,7 +1475,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     }
 
     return AnimatedSize(
-      duration: const Duration(milliseconds: 300),
+      duration: transition.mobileSizeAnimation,
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -1532,8 +1485,147 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     );
   }
 
+  Widget _buildHeroSlide({
+    required BuildContext context,
+    required ContentReference item,
+    required int tmdbId,
+    required HeroTransitionPolicy transition,
+    required bool isWideHero,
+    required double heroHeight,
+    required double visualBleed,
+    required MoviHeroOverlaySpec overlaySpec,
+    required Alignment heroContentAlignment,
+    required Color iconActionFocusedBackground,
+  }) {
+    final _HeroMeta? meta = _displayedTmdbId == tmdbId ? _displayedMeta : null;
+    final posterBackground = _coerceHttpUrl(meta?.posterBg);
+    final poster =
+        _coerceHttpUrl(meta?.poster) ?? _coerceHttpUrl(item.poster?.toString());
+    final backdrop = _coerceHttpUrl(meta?.backdrop);
+    final resolvedMediaSignature = [
+      tmdbId,
+      posterBackground,
+      poster,
+      backdrop,
+    ].join('|');
+    if (_lastLoggedResolvedMediaSignature != resolvedMediaSignature) {
+      _lastLoggedResolvedMediaSignature = resolvedMediaSignature;
+      _logHeroDebug(
+        'slide_media_state',
+        context: <String, Object?>{
+          'tmdbId': tmdbId,
+          'hasMeta': meta != null,
+          'posterBackground': posterBackground,
+          'poster': poster,
+          'backdrop': backdrop,
+        },
+      );
+    }
+
+    final background = RepaintBoundary(
+      child: AnimatedSwitcher(
+        duration: transition.backgroundFade,
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (child, animation) =>
+            FadeTransition(opacity: animation, child: child),
+        layoutBuilder: (currentChild, previousChildren) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
+        child: Stack(
+          key: ValueKey(resolvedMediaSignature),
+          fit: StackFit.expand,
+          children: [
+            MoviHeroBackground(
+              posterBackground: posterBackground,
+              poster: poster,
+              backdrop: backdrop,
+              placeholderType: item.type == ContentType.series
+                  ? PlaceholderType.series
+                  : PlaceholderType.movie,
+            ),
+            IgnorePointer(
+              child: ColoredBox(color: Colors.black.withValues(alpha: 0.25)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final bool hasTitle = meta?.title?.isNotEmpty ?? false;
+    final String displayTitle =
+        hasTitle ? meta!.title! : item.title.value;
+    final String? logoUrl = _coerceHttpUrl(meta?.logo);
+    final int? year = meta?.year ?? item.year;
+    final String yearText = (year ?? '—').toString();
+    final double? rating = meta?.rating;
+    final String? ratingText = rating == null
+        ? null
+        : (rating >= 10
+              ? rating.toStringAsFixed(0)
+              : rating.toStringAsFixed(1));
+    final bool isTv = meta?.isTv ?? (item.type == ContentType.series);
+    final String? durationText =
+        isTv ? null : _formatDuration(meta?.runtime);
+    final int? seasons = meta?.seasons;
+    final String? seasonsText = (isTv && seasons != null && seasons > 0)
+        ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
+        : null;
+
+    if (isWideHero) {
+      return _buildWideHeroScene(
+        context: context,
+        transition: transition,
+        tmdbId: tmdbId,
+        displayTitle: displayTitle,
+        hasTitle: hasTitle,
+        logoUrl: logoUrl,
+        year: year,
+        yearText: yearText,
+        ratingText: ratingText,
+        durationText: durationText,
+        seasonsText: seasonsText,
+        heroHeight: heroHeight,
+        visualBleed: visualBleed,
+        overlaySpec: overlaySpec,
+        heroContentAlignment: heroContentAlignment,
+        iconActionFocusedBackground: iconActionFocusedBackground,
+        background: background,
+        meta: meta,
+        item: item,
+      );
+    }
+
+    return _buildMobileHeroScene(
+      context: context,
+      transition: transition,
+      tmdbId: tmdbId,
+      displayTitle: displayTitle,
+      hasTitle: hasTitle,
+      logoUrl: logoUrl,
+      year: year,
+      yearText: yearText,
+      ratingText: ratingText,
+      durationText: durationText,
+      seasonsText: seasonsText,
+      heroHeight: heroHeight,
+      overlaySpec: overlaySpec,
+      iconActionFocusedBackground: iconActionFocusedBackground,
+      background: background,
+      meta: meta,
+      item: item,
+    );
+  }
+
   Widget _buildWideHeroScene({
     required BuildContext context,
+    required HeroTransitionPolicy transition,
     required int tmdbId,
     required String displayTitle,
     required bool hasTitle,
@@ -1550,6 +1642,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required Color iconActionFocusedBackground,
     required Widget background,
     required _HeroMeta? meta,
+    required ContentReference item,
   }) {
     final uiScale = context.tvUiScale;
     return MoviHeroScene(
@@ -1586,14 +1679,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      AnimatedSwitcher(
-                        duration: _fade,
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        layoutBuilder: (current, previous) => Stack(
-                          alignment: Alignment.centerLeft,
-                          children: [...previous, if (current != null) current],
-                        ),
+                      _buildHeroOverlaySwitcher(
+                        transition: transition,
+                        switchKey: ValueKey('${tmdbId}_title_wide'),
                         child: Semantics(
                           header: true,
                           label: displayTitle,
@@ -1639,6 +1727,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       ),
                       SizedBox(height: 16 * uiScale),
                       _buildHeroPills(
+                        transition: transition,
                         tmdbId: tmdbId,
                         year: year,
                         yearText: yearText,
@@ -1668,6 +1757,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       SizedBox(height: 16 * uiScale),
                       _buildHeroActionsRow(
                         context: context,
+                        item: item,
                         iconActionFocusedBackground:
                             iconActionFocusedBackground,
                         primaryButtonWidth: 320 * uiScale,
@@ -1685,6 +1775,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   Widget _buildMobileHeroScene({
     required BuildContext context,
+    required HeroTransitionPolicy transition,
     required int tmdbId,
     required String displayTitle,
     required bool hasTitle,
@@ -1699,16 +1790,17 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required Color iconActionFocusedBackground,
     required Widget background,
     required _HeroMeta? meta,
+    required ContentReference item,
   }) {
     final uiScale = context.tvUiScale;
     final mobileTextWidth = MediaQuery.of(context).size.width * 0.8;
     final Widget synopsis = SizedBox(
       width: mobileTextWidth,
       child: (meta?.overview?.isNotEmpty ?? false)
-          ? AnimatedSwitcher(
-              duration: _fade,
-              transitionBuilder: (child, animation) =>
-                  FadeTransition(opacity: animation, child: child),
+          ? _buildHeroOverlaySwitcher(
+              transition: transition,
+              switchKey: ValueKey('${tmdbId}_synopsis'),
+              alignment: Alignment.center,
               child: _buildSynopsis(
                 key: ValueKey('${tmdbId}_synopsis'),
                 overview: meta!.overview!,
@@ -1770,6 +1862,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _buildMobileHeroLogo(
+                            transition: transition,
                             tmdbId: tmdbId,
                             displayTitle: displayTitle,
                             hasTitle: hasTitle,
@@ -1777,6 +1870,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                           ),
                           SizedBox(height: 16 * uiScale),
                           _buildHeroPills(
+                            transition: transition,
                             tmdbId: tmdbId,
                             year: year,
                             yearText: yearText,
@@ -1793,7 +1887,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
               ),
             ),
             AnimatedSize(
-              duration: const Duration(milliseconds: 300),
+              duration: transition.mobileSizeAnimation,
               curve: Curves.easeInOut,
               alignment: Alignment.topCenter,
               child: Padding(
@@ -1811,6 +1905,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       SizedBox(height: 16 * uiScale),
                       _buildHeroActionsRow(
                         context: context,
+                        item: item,
                         iconActionFocusedBackground:
                             iconActionFocusedBackground,
                       ),
@@ -1826,20 +1921,17 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   Widget _buildMobileHeroLogo({
+    required HeroTransitionPolicy transition,
     required int tmdbId,
     required String displayTitle,
     required bool hasTitle,
     required String? logoUrl,
   }) {
     final uiScale = context.tvUiScale;
-    return AnimatedSwitcher(
-      duration: _fade,
-      transitionBuilder: (child, animation) =>
-          FadeTransition(opacity: animation, child: child),
-      layoutBuilder: (current, previous) => Stack(
-        alignment: Alignment.center,
-        children: [...previous, if (current != null) current],
-      ),
+    return _buildHeroOverlaySwitcher(
+      transition: transition,
+      switchKey: ValueKey('${tmdbId}_logo_mobile'),
+      alignment: Alignment.center,
       child: Semantics(
         header: true,
         label: displayTitle,
@@ -1892,6 +1984,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   Widget _buildHeroPills({
+    required HeroTransitionPolicy transition,
     required int tmdbId,
     required int? year,
     required String yearText,
@@ -1923,16 +2016,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         ),
     ];
 
-    return AnimatedSwitcher(
-      duration: _fade,
-      transitionBuilder: (child, animation) =>
-          FadeTransition(opacity: animation, child: child),
-      layoutBuilder: (current, previous) => Stack(
-        alignment: centered ? Alignment.center : Alignment.centerLeft,
-        children: [...previous, if (current != null) current],
-      ),
+    return _buildHeroOverlaySwitcher(
+      transition: transition,
+      switchKey: ValueKey('${tmdbId}_${centered ? 'centered' : 'wide'}_pills'),
+      alignment: centered ? Alignment.center : Alignment.centerLeft,
       child: Wrap(
-        key: ValueKey('${tmdbId}_${centered ? 'centered' : 'wide'}_pills'),
+        key: ValueKey('${tmdbId}_${centered ? 'centered' : 'wide'}_pills_inner'),
         spacing: 8 * uiScale,
         runSpacing: 8 * uiScale,
         alignment: centered ? WrapAlignment.center : WrapAlignment.start,
@@ -1943,6 +2032,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   Widget _buildHeroActionsRow({
     required BuildContext context,
+    required ContentReference item,
     required Color iconActionFocusedBackground,
     double? primaryButtonWidth,
   }) {
@@ -1972,112 +2062,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         Focus(
           canRequestFocus: false,
           onKeyEvent: (_, event) => _handleFavoriteActionKey(event),
-          child: Consumer(
-            builder: (context, ref, _) => _buildFavoriteActionButton(
-              context: context,
-              ref: ref,
-              iconActionFocusedBackground: iconActionFocusedBackground,
-            ),
+          child: HomeHeroFavoriteButton(
+            contentId: item.id,
+            contentType: item.type,
+            iconActionFocusedBackground: iconActionFocusedBackground,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFavoriteActionButton({
-    required BuildContext context,
-    required WidgetRef ref,
-    required Color iconActionFocusedBackground,
-  }) {
-    final current = _currentItem;
-    if (current == null) {
-      return _buildFavoritePlaceholderButton(
-        context: context,
-        iconActionFocusedBackground: iconActionFocusedBackground,
-      );
-    }
-    final id = current.id.trim();
-    if (id.isEmpty) {
-      return _buildFavoritePlaceholderButton(
-        context: context,
-        iconActionFocusedBackground: iconActionFocusedBackground,
-      );
-    }
-
-    if (current.type == ContentType.series) {
-      final isFavoriteAsync = ref.watch(tvIsFavoriteProvider(id));
-      return isFavoriteAsync.when(
-        data: (isFavorite) => _buildFavoriteResolvedButton(
-          context: context,
-          iconActionFocusedBackground: iconActionFocusedBackground,
-          isFavorite: isFavorite,
-          onPressed: () async {
-            await ref.read(tvToggleFavoriteProvider.notifier).toggle(id);
-          },
-        ),
-        loading: () => _buildFavoritePlaceholderButton(
-          context: context,
-          iconActionFocusedBackground: iconActionFocusedBackground,
-        ),
-        error: (_, __) => _buildFavoritePlaceholderButton(
-          context: context,
-          iconActionFocusedBackground: iconActionFocusedBackground,
-        ),
-      );
-    }
-
-    final isFavoriteAsync = ref.watch(movieIsFavoriteProvider(id));
-    return isFavoriteAsync.when(
-      data: (isFavorite) => _buildFavoriteResolvedButton(
-        context: context,
-        iconActionFocusedBackground: iconActionFocusedBackground,
-        isFavorite: isFavorite,
-        onPressed: () async {
-          await ref.read(movieToggleFavoriteProvider.notifier).toggle(id);
-        },
-      ),
-      loading: () => _buildFavoritePlaceholderButton(
-        context: context,
-        iconActionFocusedBackground: iconActionFocusedBackground,
-      ),
-      error: (_, __) => _buildFavoritePlaceholderButton(
-        context: context,
-        iconActionFocusedBackground: iconActionFocusedBackground,
-      ),
-    );
-  }
-
-  Widget _buildFavoriteResolvedButton({
-    required BuildContext context,
-    required Color iconActionFocusedBackground,
-    required bool isFavorite,
-    required Future<void> Function() onPressed,
-  }) {
-    return MoviFavoriteButton(
-      isFavorite: isFavorite,
-      size: 44,
-      iconSize: 28,
-      focusPadding: const EdgeInsets.all(5),
-      focusedBackgroundColor: iconActionFocusedBackground,
-      focusedBorderColor: Theme.of(context).colorScheme.primary,
-      borderWidth: 2,
-      onPressed: () => unawaited(onPressed()),
-    );
-  }
-
-  Widget _buildFavoritePlaceholderButton({
-    required BuildContext context,
-    required Color iconActionFocusedBackground,
-  }) {
-    return MoviFavoriteButton(
-      isFavorite: false,
-      size: 44,
-      iconSize: 28,
-      focusPadding: const EdgeInsets.all(5),
-      focusedBackgroundColor: iconActionFocusedBackground,
-      focusedBorderColor: Theme.of(context).colorScheme.primary,
-      borderWidth: 2,
-      onPressed: () {},
     );
   }
 
@@ -2123,6 +2114,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   // Pré-chargement images
   // ---------------------------------------------------------------------------
 
+  void _scheduleHeroImagePrefetch(Iterable<String> urls) {
+    if (!mounted) return;
+    ImagePrefetchCoordinator.instance.scheduleUrls(
+      urls,
+      context: context,
+      reason: ImagePrefetchReason.heroCarousel,
+      maxItems: urls.length,
+    );
+  }
+
   void _precacheBgFor(
     ContentReference item, {
     required bool isNext,
@@ -2131,19 +2132,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     if (!_canRunBackgroundWork) return;
     final int? id = _tmdbIdOf(item);
     if (id == null) return;
-    if (_disableHeroPrecacheOnCurrentPlatform) {
-      _diagnostics.mark(
-        'home_hero_precache_image',
-        event: 'skipped',
-        context: <String, Object?>{
-          'tmdbId': id,
-          'isNext': isNext,
-          'reason': 'platform_disabled',
-          'strategy': 'windows_precache_disabled',
-        },
-      );
-      return;
-    }
     if (_precachedBgIds.contains(id)) return;
 
     final Future<_HeroMeta?>? future = _metaFutures[id];
@@ -2197,7 +2185,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       final stopwatch = Stopwatch()..start();
       try {
         _activePrecacheId = id;
-        if (!mounted || !context.mounted) {
+        if (!mounted) {
           _logHeroAbandoned(
             'home_hero_precache_image',
             stopwatch: stopwatch,
@@ -2205,16 +2193,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
               'tmdbId': id,
               'isNext': isNext,
               'reason': 'widget_not_mounted',
-              'strategy': 'bounded_tmdb_size',
+              'strategy': 'image_prefetch_coordinator',
             },
           );
           return;
         }
-        await precacheImage(NetworkImage(bgSrc), context).timeout(
-          _heroPrecacheTimeout,
-          onTimeout: () =>
-              throw TimeoutException('Hero precache timed out for tmdbId=$id'),
-        );
+        _scheduleHeroImagePrefetch([bgSrc]);
         if (!_isCurrentHeroItemToken(workToken, tmdbId: id, isNext: isNext)) {
           _logHeroAbandoned(
             'home_hero_precache_image',
@@ -2222,8 +2206,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
             context: <String, Object?>{
               'tmdbId': id,
               'isNext': isNext,
-              'reason': 'current_item_changed_after_precache',
-              'strategy': 'bounded_tmdb_size',
+              'reason': 'current_item_changed_after_schedule',
+              'strategy': 'image_prefetch_coordinator',
             },
           );
           return;
@@ -2235,11 +2219,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           context: <String, Object?>{
             'tmdbId': id,
             'isNext': isNext,
-            'strategy': 'bounded_tmdb_size',
+            'strategy': 'image_prefetch_coordinator',
           },
         );
       } catch (e, st) {
-        final isTimeout = e is TimeoutException;
         _diagnostics.failed(
           'home_hero_precache_image',
           elapsed: stopwatch.elapsed,
@@ -2248,9 +2231,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           context: <String, Object?>{
             'tmdbId': id,
             'isNext': isNext,
-            'strategy': 'bounded_tmdb_size',
-            'reason': isTimeout ? 'timeout' : 'error',
-            if (isTimeout) 'timeoutMs': _heroPrecacheTimeout.inMilliseconds,
+            'strategy': 'image_prefetch_coordinator',
+            'reason': 'error',
           },
         );
         if (kDebugMode) {

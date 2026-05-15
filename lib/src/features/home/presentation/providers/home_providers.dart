@@ -59,6 +59,22 @@ final homeHeroIndexProvider = NotifierProvider<HomeHeroIndexController, int>(
   HomeHeroIndexController.new,
 );
 
+class HomeHeroMetaLoadingController extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) {
+    if (state == value) return;
+    state = value;
+  }
+}
+
+/// Indique si le slide courant du hero attend encore ses métadonnées TMDB.
+final homeHeroMetaLoadingProvider =
+    NotifierProvider<HomeHeroMetaLoadingController, bool>(
+  HomeHeroMetaLoadingController.new,
+);
+
 enum HomeBootstrapProgressStage {
   loadingMoviesAndSeries,
   loadingCategories,

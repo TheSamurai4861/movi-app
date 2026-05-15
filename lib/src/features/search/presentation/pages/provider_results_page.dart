@@ -642,9 +642,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       );
       return MoviMediaCard(
         media: media,
-        focusNode: identical(movie, moviesToShow.first)
-            ? _firstMovieFocusNode
-            : null,
+        focusNode: movie == moviesToShow.first ? _firstMovieFocusNode : null,
         onTap: (selectedMedia) => navigateToMovieDetail(
           context,
           ref,
@@ -665,9 +663,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       );
       return MoviMediaCard(
         media: media,
-        focusNode: identical(show, showsToShow.first)
-            ? _firstShowFocusNode
-            : null,
+        focusNode: show == showsToShow.first ? _firstShowFocusNode : null,
         onTap: (selectedMedia) => navigateToTvDetail(
           context,
           ref,
@@ -804,148 +800,193 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                                   : _showsRetryFocusNode,
                             ),
                           )
-                        : ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: 0),
-                            children: [
-                              FocusRegionScope(
-                                regionId:
-                                    AppFocusRegionId.providerResultsMovies,
-                                binding: FocusRegionBinding(
-                                  resolvePrimaryEntryNode: () {
-                                    if (_movies.isNotEmpty) {
-                                      return _firstMovieFocusNode;
-                                    }
-                                    if (_moviesErrorMessage != null) {
-                                      return _moviesRetryFocusNode;
-                                    }
-                                    return _backFocusNode;
-                                  },
-                                  resolveFallbackEntryNode: () =>
-                                      _backFocusNode,
-                                ),
-                                handleDirectionalExits: false,
-                                debugLabel: 'ProviderResultsMovies',
-                                child: Column(
-                                  children: [
-                                    if (_movies.isNotEmpty)
-                                      MoviItemsList(
-                                        title: l10n.moviesTitle,
-                                        subtitle: _movies.length > previewLimit
-                                            ? l10n.resultsCount(_movies.length)
-                                            : null,
-                                        estimatedItemWidth: _previewCardWidth,
-                                        estimatedItemHeight:
-                                            _previewRailItemHeight,
-                                        horizontalFocusAlignment: 0.18,
-                                        titlePadding: 20,
-                                        horizontalPadding:
-                                            const EdgeInsetsDirectional.only(
-                                              start: 20,
-                                              end: 20,
-                                            ),
-                                        onItemKeyEvent: _handleMoviesItemKey,
-                                        items: [
-                                          ...moviesToShow.map(buildMovieCard),
-                                          if (_movies.length > previewLimit)
-                                            _buildSeeAllProviderCard(
-                                              title: l10n.moviesTitle,
-                                              type: MoviMediaType.movie,
-                                            ),
-                                        ],
-                                      )
-                                    else if (!_isLoadingMovies &&
-                                        _moviesErrorMessage != null)
-                                      _ProviderSectionError(
-                                        title: l10n.moviesTitle,
-                                        message: _moviesErrorMessage!,
-                                        retryLabel: l10n.actionRetry,
-                                        onRetry: () {
-                                          unawaited(_loadMovies());
-                                        },
-                                        focusNode: _moviesRetryFocusNode,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              FocusRegionScope(
-                                regionId:
-                                    AppFocusRegionId.providerResultsSeries,
-                                binding: FocusRegionBinding(
-                                  resolvePrimaryEntryNode: () {
-                                    if (_shows.isNotEmpty) {
-                                      return _firstShowFocusNode;
-                                    }
-                                    if (_showsErrorMessage != null) {
-                                      return _showsRetryFocusNode;
-                                    }
-                                    return _backFocusNode;
-                                  },
-                                  resolveFallbackEntryNode: () =>
-                                      _backFocusNode,
-                                ),
-                                handleDirectionalExits: false,
-                                debugLabel: 'ProviderResultsSeries',
-                                child: Column(
-                                  children: [
-                                    if (_shows.isNotEmpty)
-                                      MoviItemsList(
-                                        title: l10n.seriesTitle,
-                                        subtitle: _shows.length > previewLimit
-                                            ? l10n.resultsCount(_shows.length)
-                                            : null,
-                                        estimatedItemWidth: _previewCardWidth,
-                                        estimatedItemHeight:
-                                            _previewRailItemHeight,
-                                        horizontalFocusAlignment: 0.18,
-                                        titlePadding: 20,
-                                        horizontalPadding:
-                                            const EdgeInsetsDirectional.only(
-                                              start: 20,
-                                              end: 20,
-                                            ),
-                                        onItemKeyEvent: _handleShowsItemKey,
-                                        items: [
-                                          ...showsToShow.map(buildShowCard),
-                                          if (_shows.length > previewLimit)
-                                            _buildSeeAllProviderCard(
-                                              title: l10n.seriesTitle,
-                                              type: MoviMediaType.series,
-                                            ),
-                                        ],
-                                      )
-                                    else if (!_isLoadingShows &&
-                                        _showsErrorMessage != null)
-                                      _ProviderSectionError(
-                                        title: l10n.seriesTitle,
-                                        message: _showsErrorMessage!,
-                                        retryLabel: l10n.actionRetry,
-                                        onRetry: () {
-                                          unawaited(_loadShows());
-                                        },
-                                        focusNode: _showsRetryFocusNode,
-                                      ),
-                                  ],
-                                ),
-                              ),
+                        : Builder(
+                            builder: (context) {
+                              final sectionBuilders = <Widget Function()>[];
+
+                              void addSection(Widget Function() buildSection) {
+                                sectionBuilders.add(buildSection);
+                              }
+
+                              final moviesSeeAll =
+                                  _movies.length > previewLimit;
+                              final movieRailCount =
+                                  moviesToShow.length + (moviesSeeAll ? 1 : 0);
+
+                              if (_movies.isNotEmpty ||
+                                  (_moviesErrorMessage != null &&
+                                      !_isLoadingMovies)) {
+                                addSection(
+                                  () => FocusRegionScope(
+                                    regionId:
+                                        AppFocusRegionId.providerResultsMovies,
+                                    binding: FocusRegionBinding(
+                                      resolvePrimaryEntryNode: () {
+                                        if (_movies.isNotEmpty) {
+                                          return _firstMovieFocusNode;
+                                        }
+                                        if (_moviesErrorMessage != null) {
+                                          return _moviesRetryFocusNode;
+                                        }
+                                        return _backFocusNode;
+                                      },
+                                      resolveFallbackEntryNode: () =>
+                                          _backFocusNode,
+                                    ),
+                                    handleDirectionalExits: false,
+                                    debugLabel: 'ProviderResultsMovies',
+                                    child: _movies.isNotEmpty
+                                        ? MoviItemsList.builder(
+                                            title: l10n.moviesTitle,
+                                            subtitle:
+                                                _movies.length > previewLimit
+                                                ? l10n.resultsCount(
+                                                    _movies.length,
+                                                  )
+                                                : null,
+                                            estimatedItemWidth:
+                                                _previewCardWidth,
+                                            estimatedItemHeight:
+                                                _previewRailItemHeight,
+                                            horizontalFocusAlignment: 0.18,
+                                            titlePadding: 20,
+                                            horizontalPadding:
+                                                const EdgeInsetsDirectional.only(
+                                                  start: 20,
+                                                  end: 20,
+                                                ),
+                                            onItemKeyEvent:
+                                                _handleMoviesItemKey,
+                                            itemCount: movieRailCount,
+                                            itemBuilder: (context, index) {
+                                              if (index < moviesToShow.length) {
+                                                return buildMovieCard(
+                                                  moviesToShow[index],
+                                                );
+                                              }
+                                              return _buildSeeAllProviderCard(
+                                                title: l10n.moviesTitle,
+                                                type: MoviMediaType.movie,
+                                              );
+                                            },
+                                          )
+                                        : _ProviderSectionError(
+                                            title: l10n.moviesTitle,
+                                            message: _moviesErrorMessage!,
+                                            retryLabel: l10n.actionRetry,
+                                            onRetry: () {
+                                              unawaited(_loadMovies());
+                                            },
+                                            focusNode: _moviesRetryFocusNode,
+                                          ),
+                                  ),
+                                );
+                              }
+
+                              final showsSeeAll = _shows.length > previewLimit;
+                              final showRailCount =
+                                  showsToShow.length + (showsSeeAll ? 1 : 0);
+
+                              if (_shows.isNotEmpty ||
+                                  (_showsErrorMessage != null &&
+                                      !_isLoadingShows)) {
+                                addSection(
+                                  () => FocusRegionScope(
+                                    regionId:
+                                        AppFocusRegionId.providerResultsSeries,
+                                    binding: FocusRegionBinding(
+                                      resolvePrimaryEntryNode: () {
+                                        if (_shows.isNotEmpty) {
+                                          return _firstShowFocusNode;
+                                        }
+                                        if (_showsErrorMessage != null) {
+                                          return _showsRetryFocusNode;
+                                        }
+                                        return _backFocusNode;
+                                      },
+                                      resolveFallbackEntryNode: () =>
+                                          _backFocusNode,
+                                    ),
+                                    handleDirectionalExits: false,
+                                    debugLabel: 'ProviderResultsSeries',
+                                    child: _shows.isNotEmpty
+                                        ? MoviItemsList.builder(
+                                            title: l10n.seriesTitle,
+                                            subtitle: _shows.length > previewLimit
+                                                ? l10n.resultsCount(
+                                                    _shows.length,
+                                                  )
+                                                : null,
+                                            estimatedItemWidth:
+                                                _previewCardWidth,
+                                            estimatedItemHeight:
+                                                _previewRailItemHeight,
+                                            horizontalFocusAlignment: 0.18,
+                                            titlePadding: 20,
+                                            horizontalPadding:
+                                                const EdgeInsetsDirectional.only(
+                                                  start: 20,
+                                                  end: 20,
+                                                ),
+                                            onItemKeyEvent: _handleShowsItemKey,
+                                            itemCount: showRailCount,
+                                            itemBuilder: (context, index) {
+                                              if (index < showsToShow.length) {
+                                                return buildShowCard(
+                                                  showsToShow[index],
+                                                );
+                                              }
+                                              return _buildSeeAllProviderCard(
+                                                title: l10n.seriesTitle,
+                                                type: MoviMediaType.series,
+                                              );
+                                            },
+                                          )
+                                        : _ProviderSectionError(
+                                            title: l10n.seriesTitle,
+                                            message: _showsErrorMessage!,
+                                            retryLabel: l10n.actionRetry,
+                                            onRetry: () {
+                                              unawaited(_loadShows());
+                                            },
+                                            focusNode: _showsRetryFocusNode,
+                                          ),
+                                  ),
+                                );
+                              }
+
                               if (_movies.isEmpty &&
                                   _shows.isEmpty &&
                                   !_isLoadingMovies &&
                                   !_isLoadingShows &&
-                                  !hasBlockingError)
-                                Center(
-                                  child: Text(
-                                    l10n.noResults,
-                                    style: const TextStyle(fontSize: 16),
+                                  !hasBlockingError) {
+                                addSection(
+                                  () => Center(
+                                    child: Text(
+                                      l10n.noResults,
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
                                   ),
-                                ),
-                              if (_isLoadingMovies || _isLoadingShows)
-                                const Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
+                                );
+                              }
+
+                              if (_isLoadingMovies || _isLoadingShows) {
+                                addSection(
+                                  () => const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
                                   ),
-                                ),
-                            ],
+                                );
+                              }
+
+                              return MoviLazySectionScroll(
+                                sectionCount: sectionBuilders.length,
+                                sectionBuilder: (context, index) =>
+                                    sectionBuilders[index](),
+                              );
+                            },
                           ),
                   ),
                 ],
