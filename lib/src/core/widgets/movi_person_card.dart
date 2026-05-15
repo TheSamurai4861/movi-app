@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
-import 'package:movi/src/core/widgets/movi_marquee_text.dart';
+import 'package:movi/src/core/widgets/movi_ellipsis_text.dart';
 import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 
@@ -175,13 +175,13 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
                   ),
                 ),
                 SizedBox(height: nameRoleGap),
-                MoviMarqueeText(
+                MoviEllipsisText(
                   text: widget.person.name,
                   style: nameStyle,
                   maxWidth: scaledWidth,
                 ),
                 SizedBox(height: roleGap),
-                MoviMarqueeText(
+                MoviEllipsisText(
                   text: widget.person.role,
                   style: roleStyle,
                   maxWidth: scaledWidth,

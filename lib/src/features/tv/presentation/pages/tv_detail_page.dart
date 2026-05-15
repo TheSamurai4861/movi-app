@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -2486,31 +2484,28 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 top: 56,
                 right: horizontalPadding,
                 child: ClipOval(
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      child: IconButton(
-                        padding: const EdgeInsets.all(10),
-                        icon: Transform.flip(
-                          flipX:
-                              _episodeSortOrder == EpisodeSortOrder.descending,
-                          child: const MoviAssetIcon(
-                            AppAssets.iconSort,
-                            width: 24,
-                            height: 24,
-                            color: Colors.white,
-                          ),
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    child: IconButton(
+                      padding: const EdgeInsets.all(10),
+                      icon: Transform.flip(
+                        flipX:
+                            _episodeSortOrder == EpisodeSortOrder.descending,
+                        child: const MoviAssetIcon(
+                          AppAssets.iconSort,
+                          width: 24,
+                          height: 24,
+                          color: Colors.white,
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _episodeSortOrder =
-                                _episodeSortOrder == EpisodeSortOrder.ascending
-                                ? EpisodeSortOrder.descending
-                                : EpisodeSortOrder.ascending;
-                          });
-                        },
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _episodeSortOrder =
+                              _episodeSortOrder == EpisodeSortOrder.ascending
+                                  ? EpisodeSortOrder.descending
+                                  : EpisodeSortOrder.ascending;
+                        });
+                      },
                     ),
                   ),
                 ),
@@ -2779,11 +2774,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   fit: StackFit.expand,
                   children: [
                     base,
-                    BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.22),
-                      ),
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.62),
                     ),
                   ],
                 )
@@ -2801,31 +2793,28 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 bottom: 8 * uiScale,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999 * uiScale),
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(999 * uiScale),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.50),
+                      borderRadius: BorderRadius.circular(999 * uiScale),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8 * uiScale,
+                        vertical: 4 * uiScale,
                       ),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8 * uiScale,
-                          vertical: 4 * uiScale,
-                        ),
-                        child: Text(
-                          _formatDuration(runtime),
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ) ??
-                              TextStyle(
-                                color: Colors.white,
-                                fontSize: 11 * uiScale,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
+                      child: Text(
+                        _formatDuration(runtime),
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ) ??
+                            TextStyle(
+                              color: Colors.white,
+                              fontSize: 11 * uiScale,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                   ),
@@ -2936,10 +2925,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         fit: StackFit.expand,
         children: [
           base,
-          BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-            child: Container(color: Colors.black.withValues(alpha: 0.22)),
-          ),
+          Container(color: Colors.black.withValues(alpha: 0.62)),
         ],
       );
     }

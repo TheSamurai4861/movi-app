@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
 /// Primary action button aligned with the app theme.
 /// - Fills the maximum horizontal space allowed by its parent when [expand] is true.
-/// - Height hugs label/icons with [padding] (16 px vertical by default).
+/// - Height hugs label/icons with [padding] (24 px vertical by default, 6 px on native TV).
 /// - Uses FilledButton to inherit `filledButtonTheme` from AppTheme.
 class MoviPrimaryButton extends StatefulWidget {
   const MoviPrimaryButton({
@@ -50,10 +49,7 @@ class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
   bool _focused = false;
 
   double _resolvePaddingScale(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final isTv =
-        context.resolveScreenType(size.width, size.height) == ScreenType.tv;
-    if (!isTv) return context.tvUiScale;
+    if (!context.isTelevisionDevice) return context.tvUiScale;
     return context.tvUiScale * _tvPaddingReductionFactor;
   }
 
@@ -77,11 +73,36 @@ class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
     return insets;
   }
 
+  static const double _tvVerticalPadding = 6;
+
+  EdgeInsetsGeometry _resolveEffectivePadding(BuildContext context) {
+    final scaled = _scaleInsets(widget.padding, _resolvePaddingScale(context));
+    if (!context.isTelevisionDevice) return scaled;
+
+    if (scaled is EdgeInsets) {
+      return EdgeInsets.fromLTRB(
+        scaled.left,
+        _tvVerticalPadding,
+        scaled.right,
+        _tvVerticalPadding,
+      );
+    }
+    if (scaled is EdgeInsetsDirectional) {
+      return EdgeInsetsDirectional.fromSTEB(
+        scaled.start,
+        _tvVerticalPadding,
+        scaled.end,
+        _tvVerticalPadding,
+      );
+    }
+    return scaled;
+  }
+
   @override
   Widget build(BuildContext context) {
     final paddingScale = _resolvePaddingScale(context);
     final scaledIconSize = widget.iconSize * paddingScale;
-    final scaledPadding = _scaleInsets(widget.padding, paddingScale);
+    final scaledPadding = _resolveEffectivePadding(context);
     final loaderSize = 18.0 * paddingScale;
     final contentGap = 12.0 * paddingScale;
     final iconGap = 8.0 * paddingScale;

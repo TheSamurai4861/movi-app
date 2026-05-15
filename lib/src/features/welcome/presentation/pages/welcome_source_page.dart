@@ -17,6 +17,7 @@ import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dar
 import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+import 'package:movi/src/core/responsive/responsive.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_executor.dart';
 import 'package:movi/src/core/startup/presentation/boot_action_handler.dart';
@@ -260,8 +261,13 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   }
 
   Future<void> _loadSupabaseSources({bool animateRefreshButton = false}) async {
-    if (animateRefreshButton) {
-      _refreshAnimationController.forward(from: 0.0);
+    if (animateRefreshButton && mounted) {
+      final size = MediaQuery.sizeOf(context);
+      final suppressTvAnimations =
+          context.resolveScreenType(size.width, size.height) == ScreenType.tv;
+      if (!suppressTvAnimations) {
+        _refreshAnimationController.forward(from: 0.0);
+      }
     }
 
     setState(() {
@@ -579,6 +585,10 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
 
     final isBusy = _loadingSources || connectState.isLoading;
     final isAddFlow = _forceAddMode;
+    final mqSize = MediaQuery.sizeOf(context);
+    final suppressTvUiAnimations =
+        context.resolveScreenType(mqSize.width, mqSize.height) ==
+            ScreenType.tv;
     final showSavedSourcesSection =
         _shouldDisplaySavedSourcesSection && !isAddFlow;
     final hasSavedSources = showSavedSourcesSection && _sources.isNotEmpty;
@@ -799,15 +809,8 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                           _SectionHeader(
                             title: l10n.welcomeSourceSavedSourcesTitle,
                             forceRow: true,
-                            trailing: AnimatedBuilder(
-                              animation: _refreshAnimation,
-                              builder: (context, child) {
-                                return Transform.rotate(
-                                  angle:
-                                      _refreshAnimation.value *
-                                      2 *
-                                      3.14159, // Rotation complète
-                                  child: Focus(
+                            trailing: suppressTvUiAnimations
+                                ? Focus(
                                     canRequestFocus: false,
                                     onKeyEvent: (_, event) =>
                                         FocusDirectionalNavigation.handleDirectionalKey(
@@ -838,10 +841,50 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                         color: accentColor,
                                       ),
                                     ),
+                                  )
+                                : AnimatedBuilder(
+                                    animation: _refreshAnimation,
+                                    builder: (context, child) {
+                                      return Transform.rotate(
+                                        angle:
+                                            _refreshAnimation.value *
+                                            2 *
+                                            3.14159, // Rotation complète
+                                        child: Focus(
+                                          canRequestFocus: false,
+                                          onKeyEvent: (_, event) =>
+                                              FocusDirectionalNavigation.handleDirectionalKey(
+                                                event,
+                                                up:
+                                                    launchRecovery?.isRetryable ??
+                                                        false
+                                                ? _retryFocusNode
+                                                : null,
+                                                down: hasSavedSources
+                                                    ? _savedSourceFocusNodes.first
+                                                    : _nameFocusNode,
+                                                blockLeft: true,
+                                                blockRight: true,
+                                              ),
+                                          child: IconButton(
+                                            focusNode: _refreshFocusNode,
+                                            tooltip: l10n.welcomeSourceRefreshTooltip,
+                                            onPressed: isBusy
+                                                ? null
+                                                : () => unawaited(
+                                                    _loadSupabaseSources(
+                                                      animateRefreshButton: true,
+                                                    ),
+                                                  ),
+                                            icon: Icon(
+                                              Icons.refresh,
+                                              color: accentColor,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
                           ),
                           const SizedBox(height: AppSpacing.sm),
 

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +14,7 @@ const _kAndroidBottomSpacing = 32.0;
 const _kSelectedBackground = Color(0xFF262626);
 const _kBarBackground = Color(
   0xB3141414,
-); // fond plus sombre tout en gardant le blur
+); // fond semi-opaque (sans blur)
 const _kAnimationDuration = Duration(milliseconds: 300);
 const _kLabelBottomInset = 2.0;
 const _kIconBaseOffsetY = -4.0;
@@ -28,7 +26,7 @@ class MoviBottomNavItem {
   final String icon;
 }
 
-/// Floating bottom navigation bar with blurred background and rounded items.
+/// Floating bottom navigation bar with rounded items and semi-opaque background.
 class MoviBottomNavBar extends ConsumerWidget {
   MoviBottomNavBar({
     super.key,
@@ -70,35 +68,32 @@ class MoviBottomNavBar extends ConsumerWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          height: _kNavHeight * uiScale,
-          width: double.infinity,
-          padding: EdgeInsets.all(_kContainerPadding * uiScale),
-          decoration: BoxDecoration(
-            color: _kBarBackground,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(
-                  child: _MoviBottomNavItemWidget(
-                    item: items[i],
-                    index: i,
-                    isSelected: selectedIndex == i,
-                    onTap: onItemSelected,
-                    accentColor: accentColor,
-                    selectedTextColor: accentColor,
-                    unselectedTextColor: unselectedTextColor,
-                    textStyle: theme.textTheme.labelSmall,
-                    uiScale: uiScale,
-                  ),
+      child: Container(
+        height: _kNavHeight * uiScale,
+        width: double.infinity,
+        padding: EdgeInsets.all(_kContainerPadding * uiScale),
+        decoration: BoxDecoration(
+          color: _kBarBackground,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < items.length; i++)
+              Expanded(
+                child: _MoviBottomNavItemWidget(
+                  item: items[i],
+                  index: i,
+                  isSelected: selectedIndex == i,
+                  onTap: onItemSelected,
+                  accentColor: accentColor,
+                  selectedTextColor: accentColor,
+                  unselectedTextColor: unselectedTextColor,
+                  textStyle: theme.textTheme.labelSmall,
+                  uiScale: uiScale,
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

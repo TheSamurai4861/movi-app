@@ -68,4 +68,21 @@ void main() {
     },
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
+
+  testWidgets(
+    'preserves host text scaler on Windows TV layout without native TV',
+    (tester) async {
+      await tester.pumpWidget(
+        buildHarness(
+          isTelevisionDevice: false,
+          size: const Size(1920, 1080),
+          rootScale: 1.4,
+        ),
+      );
+
+      final text = tester.widget<Text>(find.byKey(probeKey));
+      expect(text.textScaler!.scale(1.0), closeTo(1.4, 1e-12));
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.windows),
+  );
 }

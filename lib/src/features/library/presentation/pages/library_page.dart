@@ -94,6 +94,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final isTv = _screenType(context) == ScreenType.tv;
+    _anim.duration =
+        isTv ? Duration.zero : const Duration(milliseconds: 260);
+  }
+
+  @override
   void dispose() {
     _filteredPlaylistsSub?.close();
     _disposePlaylistFocusNodes();
@@ -400,13 +408,22 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   void _toggleSearch() {
     setState(() => _isSearchVisible = !_isSearchVisible);
 
+    final isTv = _screenType(context) == ScreenType.tv;
+
     if (_isSearchVisible) {
       _anim.forward();
-      // Focus après l’animation (meilleure sensation)
-      Future.delayed(const Duration(milliseconds: 120), () {
-        if (!mounted) return;
-        _focusSearchInput();
-      });
+      if (isTv) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _focusSearchInput();
+        });
+      } else {
+        // Focus après l’animation (meilleure sensation)
+        Future.delayed(const Duration(milliseconds: 120), () {
+          if (!mounted) return;
+          _focusSearchInput();
+        });
+      }
     } else {
       _anim.reverse();
       _searchController.clear();

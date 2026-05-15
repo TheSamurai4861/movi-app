@@ -501,6 +501,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final ctrl = ref.read(searchControllerProvider.notifier);
     final searchUiMode = state.uiMode;
     final isMobileLayout = _screenTypeFor(context) == ScreenType.mobile;
+    final suppressResultCardAnimations =
+        _screenTypeFor(context) == ScreenType.tv;
     final hasHistoryItems = ref
         .watch(searchHistoryControllerProvider)
         .maybeWhen(data: (items) => items.isNotEmpty, orElse: () => false);
@@ -667,6 +669,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     .entries
                     .map(
                       (entry) => _AnimatedMovieCard(
+                        suppressEntranceAnimation: suppressResultCardAnimations,
                         media: MoviMedia(
                           id: entry.value.id.value,
                           title: entry.value.title.display,
@@ -726,6 +729,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     .entries
                     .map(
                       (entry) => _AnimatedMovieCard(
+                        suppressEntranceAnimation: suppressResultCardAnimations,
                         media: MoviMedia(
                           id: entry.value.id.value,
                           title: entry.value.title.display,
@@ -784,6 +788,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     .entries
                     .map(
                       (entry) => _AnimatedPersonCard(
+                        suppressEntranceAnimation: suppressResultCardAnimations,
                         person: MoviPerson(
                           id: entry.value.id.value,
                           name: entry.value.name,
@@ -848,6 +853,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             .entries
                             .map(
                               (entry) => _AnimatedSagaCard(
+                                suppressEntranceAnimation:
+                                    suppressResultCardAnimations,
                                 saga: entry.value,
                                 focusNode: entry.key == 0
                                     ? _firstSagaResultFocusNode
@@ -1213,10 +1220,12 @@ class _AnimatedPersonCard extends StatefulWidget {
     required this.person,
     required this.onTap,
     required this.delay,
+    this.suppressEntranceAnimation = false,
     this.focusNode,
     this.onFirstLeft,
   });
 
+  final bool suppressEntranceAnimation;
   final MoviPerson person;
   final void Function(MoviPerson) onTap;
   final Duration delay;
@@ -1237,7 +1246,9 @@ class _AnimatedPersonCardState extends State<_AnimatedPersonCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: widget.suppressEntranceAnimation
+          ? Duration.zero
+          : const Duration(milliseconds: 500),
       vsync: this,
     );
 
@@ -1251,9 +1262,13 @@ class _AnimatedPersonCardState extends State<_AnimatedPersonCard>
       end: 0.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
+    if (widget.suppressEntranceAnimation) {
+      _controller.value = 1.0;
+    } else {
+      Future.delayed(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
   }
 
   @override
@@ -1305,10 +1320,12 @@ class _AnimatedMovieCard extends StatefulWidget {
     required this.media,
     required this.onTap,
     required this.delay,
+    this.suppressEntranceAnimation = false,
     this.focusNode,
     this.onFirstLeft,
   });
 
+  final bool suppressEntranceAnimation;
   final MoviMedia media;
   final void Function(MoviMedia) onTap;
   final Duration delay;
@@ -1329,7 +1346,9 @@ class _AnimatedMovieCardState extends State<_AnimatedMovieCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: widget.suppressEntranceAnimation
+          ? Duration.zero
+          : const Duration(milliseconds: 500),
       vsync: this,
     );
 
@@ -1343,9 +1362,13 @@ class _AnimatedMovieCardState extends State<_AnimatedMovieCard>
       end: 0.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
+    if (widget.suppressEntranceAnimation) {
+      _controller.value = 1.0;
+    } else {
+      Future.delayed(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
   }
 
   @override
@@ -1712,10 +1735,12 @@ class _AnimatedSagaCard extends StatefulWidget {
   const _AnimatedSagaCard({
     required this.saga,
     required this.delay,
+    this.suppressEntranceAnimation = false,
     this.focusNode,
     this.onFirstLeft,
   });
 
+  final bool suppressEntranceAnimation;
   final SagaSummary saga;
   final Duration delay;
   final FocusNode? focusNode;
@@ -1735,7 +1760,9 @@ class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: widget.suppressEntranceAnimation
+          ? Duration.zero
+          : const Duration(milliseconds: 500),
       vsync: this,
     );
 
@@ -1749,9 +1776,13 @@ class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
       end: 0.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    Future.delayed(widget.delay, () {
-      if (mounted) _controller.forward();
-    });
+    if (widget.suppressEntranceAnimation) {
+      _controller.value = 1.0;
+    } else {
+      Future.delayed(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
   }
 
   @override

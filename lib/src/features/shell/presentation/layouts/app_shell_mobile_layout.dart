@@ -1,7 +1,5 @@
 // lib/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart
 
-import 'dart:ui';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -20,7 +18,7 @@ const _kBarBackground = Color.fromARGB(
   46,
   46,
   46,
-); // fond plus sombre tout en gardant le blur
+); // fond semi-opaque (sans blur)
 
 const _kAnimationDuration = Duration(milliseconds: 300);
 const _kLabelBottomInset = 2.0;
@@ -28,16 +26,15 @@ const _kIconBaseOffsetY = -4.0;
 
 /// Layout Mobile :
 /// - Contenu en plein écran
-/// - Bottom nav flottante avec blur (conservée)
+/// - Bottom nav flottante semi-opaque
 ///
 /// Choix validés :
-/// 1) On garde le style (blur + floating)
+/// 1) Style flottant conservé (sans BackdropFilter)
 /// 2) Même retention policy que desktop (Home+Search keepAlive, Library+Settings reset)
 /// 3) Label visible uniquement sur l’onglet sélectionné
 /// 4) Accent depuis Theme.colorScheme.primary (cohérent AppTheme)
 /// 5) Items depuis buildSidebarDestinations(context) (source unique)
-/// 6) Blur conservé
-/// 7) Back/Escape : on ne touche pas (géré ailleurs / système)
+/// 6) Back/Escape : on ne touche pas (géré ailleurs / système)
 class AppShellMobileLayout extends StatelessWidget {
   const AppShellMobileLayout({
     super.key,
@@ -102,7 +99,7 @@ class AppShellMobileLayout extends StatelessWidget {
   }
 }
 
-/// Floating bottom navigation bar with blurred background and rounded items.
+/// Floating bottom navigation bar with semi-opaque background and rounded items.
 /// - Label seulement quand sélectionné.
 /// - Aucun texte brut : label = destinations[i].tooltip (déjà localisé).
 class MoviBottomNavBar extends StatelessWidget {
@@ -132,35 +129,32 @@ class MoviBottomNavBar extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          height: _kNavHeight,
-          width: double.infinity,
-          padding: const EdgeInsets.all(_kContainerPadding),
-          decoration: BoxDecoration(
-            color: _kBarBackground,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < destinations.length; i++)
-                Expanded(
-                  child: _MoviBottomNavItemWidget(
-                    label: destinations[i].tooltip,
-                    svgAssetPath: destinations[i].assetPath,
-                    index: i,
-                    isSelected: selectedIndex == i,
-                    onTap: onItemSelected,
-                    accentColor: accentColor,
-                    selectedTextColor: accentColor,
-                    unselectedTextColor: unselectedTextColor,
-                    textStyle: theme.textTheme.labelSmall,
-                  ),
+      child: Container(
+        height: _kNavHeight,
+        width: double.infinity,
+        padding: const EdgeInsets.all(_kContainerPadding),
+        decoration: BoxDecoration(
+          color: _kBarBackground,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < destinations.length; i++)
+              Expanded(
+                child: _MoviBottomNavItemWidget(
+                  label: destinations[i].tooltip,
+                  svgAssetPath: destinations[i].assetPath,
+                  index: i,
+                  isSelected: selectedIndex == i,
+                  onTap: onItemSelected,
+                  accentColor: accentColor,
+                  selectedTextColor: accentColor,
+                  unselectedTextColor: unselectedTextColor,
+                  textStyle: theme.textTheme.labelSmall,
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

@@ -1,8 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
-/// Pill-shaped label with optional font size choices and blurred background.
+/// Pill-shaped label with optional font size choices.
 class MoviPill extends StatelessWidget {
   const MoviPill(
     this.label, {
@@ -38,39 +36,36 @@ class MoviPill extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style:
-                    textStyle ??
-                    const TextStyle(fontSize: 14, color: Colors.white),
-              ),
-              if (trailingIcon != null) ...[
-                const SizedBox(width: 4),
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: Center(
-                    child: IconTheme.merge(
-                      data: const IconThemeData(size: 18, color: Colors.white),
-                      child: trailingIcon!,
-                    ),
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style:
+                  textStyle ??
+                  const TextStyle(fontSize: 14, color: Colors.white),
+            ),
+            if (trailingIcon != null) ...[
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: Center(
+                  child: IconTheme.merge(
+                    data: const IconThemeData(size: 18, color: Colors.white),
+                    child: trailingIcon!,
                   ),
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

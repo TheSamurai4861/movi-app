@@ -6,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/tv_ui_scale_context.dart';
 
 import 'package:movi/src/core/router/auth_recovery_deep_link_bridge.dart';
@@ -31,10 +30,10 @@ const List<LocalizationsDelegate<dynamic>> _appLocalizationsDelegates = [
   GlobalCupertinoLocalizations.delegate,
 ];
 
-/// Applies a normalized text scale for television layouts.
+/// Resets host text scale on native Android TV only.
 ///
-/// Some Android TV hosts expose a larger system text scale, which can make
-/// the whole app look artificially zoomed compared to Windows.
+/// Some Android TV hosts expose a larger system text scale. Windows keeps the
+/// TV layout class but preserves the user/system text scaler.
 class AppTvTextScaleScope extends StatelessWidget {
   const AppTvTextScaleScope({super.key, required this.child});
 
@@ -45,11 +44,7 @@ class AppTvTextScaleScope extends StatelessWidget {
     final mediaQuery = MediaQuery.maybeOf(context);
     if (mediaQuery == null) return child;
 
-    final screenType = context.resolveScreenType(
-      mediaQuery.size.width,
-      mediaQuery.size.height,
-    );
-    if (screenType != ScreenType.tv) return child;
+    if (!context.isTelevisionDevice) return child;
 
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: TextScaler.linear(1.0)),

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,7 +57,7 @@ class HomeHeroFilterBar extends ConsumerWidget {
                   _scrollToTop(context);
                 }
               },
-              child: _BlurPillButton(
+              child: _HeroFilterPillButton(
                 label: l10n.moviesTitle,
                 isActive: mediaFilter == hp.HomeIptvMediaFilter.movies,
                 activeColor: accentColor,
@@ -78,7 +76,7 @@ class HomeHeroFilterBar extends ConsumerWidget {
                 }
               },
               onKeyEvent: (_, event) => _handleSeriesKey(context, event),
-              child: _BlurPillButton(
+              child: _HeroFilterPillButton(
                 label: l10n.seriesTitle,
                 isActive: mediaFilter == hp.HomeIptvMediaFilter.series,
                 activeColor: accentColor,
@@ -94,8 +92,8 @@ class HomeHeroFilterBar extends ConsumerWidget {
   }
 }
 
-class _BlurPillButton extends StatelessWidget {
-  const _BlurPillButton({
+class _HeroFilterPillButton extends StatelessWidget {
+  const _HeroFilterPillButton({
     required this.label,
     required this.onTap,
     this.isActive = false,
@@ -140,27 +138,24 @@ class _BlurPillButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(999),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: effectiveBackground,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: effectiveBorder, width: 1.5),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: isActive
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                      ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: effectiveBackground,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: effectiveBorder, width: 1.5),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: isActive
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                     ),
                   ),
                 ),
