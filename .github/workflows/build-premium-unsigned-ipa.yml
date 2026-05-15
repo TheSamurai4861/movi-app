@@ -67,6 +67,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.3'
           channel: stable
           cache: true
 
@@ -103,9 +104,28 @@ jobs:
           FORCE_PREMIUM=true
           ALLOW_FORCE_PREMIUM_IN_RELEASE=true
           EOF
+          sed -i '' 's/^[[:space:]]*//' .env.ci
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Diagnose iOS build inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          flutter doctor -v
+          test -f ios/Podfile
+          test -d ios/Runner.xcodeproj/xcshareddata/xcschemes
+          ls -la ios
+          ls -la ios/Runner.xcodeproj/xcshareddata/xcschemes
+
+      - name: Verify Dart analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          flutter analyze
 
       - name: Build premium unsigned iOS app
         shell: bash
@@ -115,7 +135,6 @@ jobs:
           flutter build ios \
             --release \
             --no-codesign \
-            --flavor prod \
             --build-name="$BUILD_NAME" \
             --build-number="$BUILD_NUMBER" \
             --dart-define-from-file=.env.ci
@@ -126,12 +145,14 @@ jobs:
           set -euo pipefail
 
           mkdir -p dist
+          test -d build/ios/iphoneos/Runner.app
           mkdir -p build/ios/ipa/Payload
           cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/Runner.app
           (
             cd build/ios/ipa
             zip -r "../../../dist/movi-premium-${APP_VERSION}.ipa" Payload
           )
+          test -s "dist/movi-premium-${APP_VERSION}.ipa"
 
       - name: Upload iOS artifact
         uses: actions/upload-artifact@v4
